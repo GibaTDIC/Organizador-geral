@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Planejamento de Aulas - Educação Física BNCC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        
+        .content {
+            padding: 30px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #4a90e2;
+            padding-bottom: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4a90e2;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: #4a90e2;
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .btn:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .search-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .aulas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .aula-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+
+        .aula-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .aula-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .aula-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .badge {
+            background: #e9ecef;
+            color: #495057;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .badge-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .badge-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .habilidades-list {
+            margin: 10px 0;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .habilidade-item {
+            font-size: 0.85em;
+            padding: 3px 5px;
+            margin: 2px 0;
+            background: white;
+            border-radius: 3px;
+            border-left: 3px solid #4a90e2;
+        }
+
+        .aula-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 13px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            flex: 1;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-view {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #c3e6cb;
+        }
+
+        .info-message {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #bee5eb;
+            font-size: 0.9em;
+        }
+
+        .habilidades-container {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+
+        .habilidade-checkbox {
+            display: block;
+            margin: 8px 0;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .habilidade-checkbox:last-child {
+            border-bottom: none;
+        }
+
+        .habilidade-checkbox label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: normal;
+            color: #333;
+        }
+
+        .habilidade-checkbox input[type="checkbox"] {
+            width: auto;
+            margin-top: 3px;
+            flex-shrink: 0;
+        }
+
+        .habilidade-descricao {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .numero-aulas {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .numero-aulas input[type="number"] {
+            width: 80px;
+            text-align: center;
+        }
+
+        .numero-aulas span {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .especificacao-group {
+            transition: all 0.3s ease;
+        }
+
+        .especificacao-group.hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            .aulas-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Programa de Aulas - Educação Física</h1>
+            <p>Sistema de planejamento baseado na BNCC para Educação Física - Ensino Fundamental</p>
+        </header>
+        <!-- Navegação entre Páginas -->
+<div style="background: white; border-radius: 12px; padding: 0 10px; margin-bottom: 25px; display: flex; overflow-x: auto; gap: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+    <div class="nav-tab active" style="padding: 12px 25px; cursor: pointer; border-bottom: 3px solid #1e3c72; font-weight: 600; color: #1e3c72; background: white; white-space: nowrap;">📚 Planejamento</div>
+    <div class="nav-tab" onclick="location.href='controlador.html'" style="padding: 12px 25px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 600; color: #666; white-space: nowrap;">✅ Controlador</div>
+    <div class="nav-tab" onclick="location.href='index.html'" style="padding: 12px 25px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 600; color: #666; white-space: nowrap;">📅 Programação Diária</div>
+</div>
+
+        <div class="content">
+            <!-- Seção de Adição de Aulas -->
+            <div class="form-section">
+                <h2>➕ Adicionar Nova Aula</h2>
+                <form id="aulaForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="titulo">Título da Aula *</label>
+                            <input type="text" id="titulo" required placeholder="Ex: Jogos e Brincadeiras Populares">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="turma">Turma *</label>
+                            <select id="turma" required onchange="atualizarUnidadesTematicas()">
+                                <option value="">Selecione a turma</option>
+                                <option value="1º Ano">1º Ano - Ensino Fundamental (Anos Iniciais)</option>
+                                <option value="2º Ano">2º Ano - Ensino Fundamental (Anos Iniciais)</option>
+                                <option value="3º Ano">3º Ano - Ensino Fundamental (Anos Iniciais)</option>
+                                <option value="4º Ano">4º Ano - Ensino Fundamental (Anos Iniciais)</option>
+                                <option value="5º Ano">5º Ano - Ensino Fundamental (Anos Iniciais)</option>
+                                <option value="6º Ano">6º Ano - Ensino Fundamental (Anos Finais)</option>
+                                <option value="7º Ano">7º Ano - Ensino Fundamental (Anos Finais)</option>
+                                <option value="8º Ano">8º Ano - Ensino Fundamental (Anos Finais)</option>
+                                <option value="9º Ano">9º Ano - Ensino Fundamental (Anos Finais)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="unidadeTematica">Unidade Temática (BNCC) *</label>
+                            <select id="unidadeTematica" required onchange="atualizarEspecificacoes()">
+                                <option value="">Selecione a turma primeiro</option>
+                            </select>
+                        </div>
+
+                        <!-- NOVO CAMPO: Especificação da Unidade Temática -->
+                        <div class="form-group especificacao-group hidden" id="especificacaoGroup">
+                            <label for="especificacao">Especificação *</label>
+                            <select id="especificacao" onchange="atualizarHabilidades()">
+                                <option value="">Selecione a especificação</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="objetoConhecimento">Objeto de Conhecimento *</label>
+                            <input type="text" id="objetoConhecimento" required placeholder="Ex: Jogos populares do Brasil e do mundo">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Quantidade de Aulas *</label>
+                            <div class="numero-aulas">
+                                <input type="number" id="numeroAulas" min="1" max="10" value="1" required>
+                                <span>(1 a 10 aulas)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Habilidades da BNCC * (selecione uma ou mais)</label>
+                        <div id="habilidadesContainer" class="habilidades-container">
+                            <p style="color: #666; text-align: center;">Selecione a turma, unidade temática e especificação primeiro</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descricao">Descrição da Aula / Atividades *</label>
+                        <textarea id="descricao" required placeholder="Descreva os objetivos, atividades e metodologia da aula..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn">📅 Salvar Aula</button>
+                </form>
+            </div>
+
+            <!-- Seção de Busca e Filtros -->
+            <div class="search-section">
+                <h2>🔍 Buscar Aulas</h2>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Pesquisar por título, descrição ou objeto de conhecimento...">
+                    <button class="btn btn-secondary" id="searchBtn">Buscar</button>
+                </div>
+                
+                <div class="filters">
+                    <select class="filter-select" id="filterTurma">
+                        <option value="">Todas as Turmas</option>
+                        <option value="1º Ano">1º Ano</option>
+                        <option value="2º Ano">2º Ano</option>
+                        <option value="3º Ano">3º Ano</option>
+                        <option value="4º Ano">4º Ano</option>
+                        <option value="5º Ano">5º Ano</option>
+                        <option value="6º Ano">6º Ano</option>
+                        <option value="7º Ano">7º Ano</option>
+                        <option value="8º Ano">8º Ano</option>
+                        <option value="9º Ano">9º Ano</option>
+                    </select>
+                    
+                    <select class="filter-select" id="filterUnidade">
+                        <option value="">Todas as Unidades</option>
+                    </select>
+
+                    <!-- NOVO FILTRO: Especificação -->
+                    <select class="filter-select" id="filterEspecificacao">
+                        <option value="">Todas as Especificações</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Lista de Aulas -->
+            <h2>📋 Aulas Planejadas</h2>
+            <div id="aulasList" class="aulas-grid">
+                <!-- As aulas serão carregadas aqui via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importar Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc } 
+        from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+  apiKey: "AIzaSyBnwbnCSPLH8yjkYrgLgK5Q8g1Q8RoDz1s",
+  authDomain: "sistema-edf.firebaseapp.com",
+  projectId: "sistema-edf",
+  storageBucket: "sistema-edf.firebasestorage.app",
+  messagingSenderId: "1021164434404",
+  appId: "1:1021164434404:web:768123da370f7f56cc0df1",
+  measurementId: "G-WDH195N955"
+};
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        const aulasRef = collection(db, 'aulas');
+
+        // Elementos DOM
+        const form = document.getElementById('aulaForm');
+        const aulasList = document.getElementById('aulasList');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const filterTurma = document.getElementById('filterTurma');
+        const filterUnidade = document.getElementById('filterUnidade');
+        const filterEspecificacao = document.getElementById('filterEspecificacao');
+        const turmaSelect = document.getElementById('turma');
+        const unidadeTematicaSelect = document.getElementById('unidadeTematica');
+        const especificacaoSelect = document.getElementById('especificacao');
+        const especificacaoGroup = document.getElementById('especificacaoGroup');
+        const habilidadesContainer = document.getElementById('habilidadesContainer');
+        const numeroAulasInput = document.getElementById('numeroAulas');
+
+        // Estado da aplicação
+        let todasAulas = [];
+        let aulaEditando = null;
+
+        // Mapeamento de unidades temáticas por ano/série
+        const unidadesPorAno = {
+            "1º Ano": ["Brincadeiras e Jogos", "Esportes", "Ginásticas", "Danças"],
+            "2º Ano": ["Brincadeiras e Jogos", "Esportes", "Ginásticas", "Danças"],
+            "3º Ano": ["Brincadeiras e Jogos", "Esportes", "Ginásticas", "Danças", "Lutas"],
+            "4º Ano": ["Brincadeiras e Jogos", "Esportes", "Ginásticas", "Danças", "Lutas"],
+            "5º Ano": ["Brincadeiras e Jogos", "Esportes", "Ginásticas", "Danças", "Lutas"],
+            "6º Ano": ["Brincadeiras e Jogos", "Esportes", "Ginásticas", "Danças", "Lutas", "Práticas Corporais de Aventura"],
+            "7º Ano": ["Brincadeiras e Jogos", "Esportes", "Ginásticas", "Danças", "Lutas", "Práticas Corporais de Aventura"],
+            "8º Ano": ["Esportes", "Ginásticas", "Danças", "Lutas", "Práticas Corporais de Aventura"],
+            "9º Ano": ["Esportes", "Ginásticas", "Danças", "Lutas", "Práticas Corporais de Aventura"]
+        };
+
+        // NOVO: Especificações por unidade temática
+        const especificacoesPorUnidade = {
+            "Esportes": [
+                "Esportes de Marca",
+                "Esportes de Precisão",
+                "Esportes de Invasão",
+                "Esportes de Rede/Parede",
+                "Esportes de Campo e Taco",
+                "Esportes Técnico-Combinatórios",
+                "Esportes de Combate"
+            ],
+            "Ginásticas": [
+                "Ginástica Geral",
+                "Ginástica de Condicionamento Físico",
+                "Ginástica de Conscientização Corporal",
+                "Ginástica Artística",
+                "Ginástica Rítmica"
+            ],
+            "Danças": [
+                "Danças do Contexto Comunitário e Regional",
+                "Danças do Brasil e do Mundo",
+                "Danças de Matriz Indígena e Africana",
+                "Danças Urbanas",
+                "Danças de Salão"
+            ],
+            "Lutas": [
+                "Lutas do Contexto Comunitário e Regional",
+                "Lutas de Matriz Indígena e Africana",
+                "Lutas do Brasil e do Mundo"
+            ],
+            "Práticas Corporais de Aventura": [
+                "Práticas de Aventura Urbanas",
+                "Práticas de Aventura na Natureza"
+            ],
+            "Brincadeiras e Jogos": [
+                "Brincadeiras e Jogos Populares",
+                "Brincadeiras e Jogos de Matriz Indígena e Africana",
+                "Jogos Eletrônicos"
+            ]
+        };
+
+        // === BANCO DE HABILIDADES COMPLETO DA BNCC - EDUCAÇÃO FÍSICA ===
+        const habilidadesBNCC = {
+            "1º Ano": {
+                "Brincadeiras e Jogos": {
+                    "Brincadeiras e Jogos Populares": [
+                        { codigo: "EF12EF01", descricao: "Experimentar, fruir e recriar diferentes brincadeiras e jogos da cultura popular presentes no contexto comunitário e regional, reconhecendo e respeitando as diferenças individuais de desempenho dos colegas." },
+                        { codigo: "EF12EF02", descricao: "Explicar, por meio de múltiplas linguagens (corporal, visual, oral e escrita), as brincadeiras e os jogos populares do contexto comunitário e regional, reconhecendo e valorizando a importância desses jogos e brincadeiras para suas culturas de origem." },
+                        { codigo: "EF12EF03", descricao: "Planejar e utilizar estratégias para resolver desafios de brincadeiras e jogos populares do contexto comunitário e regional, com base no reconhecimento das características dessas práticas." },
+                        { codigo: "EF12EF04", descricao: "Colaborar na proposição e na produção de alternativas para a prática, em outros momentos e espaços, de brincadeiras e jogos e demais práticas corporais tematizadas na escola, produzindo textos (orais, escritos, audiovisuais) para divulgá-las na escola e na comunidade." }
+                    ],
+                    "Brincadeiras e Jogos de Matriz Indígena e Africana": [
+                        { codigo: "EF12EF01", descricao: "Experimentar, fruir e recriar diferentes brincadeiras e jogos da cultura popular presentes no contexto comunitário e regional, reconhecendo e respeitando as diferenças individuais de desempenho dos colegas." },
+                        { codigo: "EF12EF02", descricao: "Explicar, por meio de múltiplas linguagens (corporal, visual, oral e escrita), as brincadeiras e os jogos populares do contexto comunitário e regional, reconhecendo e valorizando a importância desses jogos e brincadeiras para suas culturas de origem." },
+                        { codigo: "EF12EF03", descricao: "Planejar e utilizar estratégias para resolver desafios de brincadeiras e jogos populares do contexto comunitário e regional, com base no reconhecimento das características dessas práticas." }
+                    ]
+                },
+                "Esportes": {
+                    "Esportes de Marca": [
+                        { codigo: "EF12EF05", descricao: "Experimentar e fruir, prezando pelo trabalho coletivo e pelo protagonismo, a prática de esportes de marca e de precisão, identificando os elementos comuns a esses esportes." },
+                        { codigo: "EF12EF06", descricao: "Discutir a importância da observação das normas e das regras dos esportes de marca e de precisão para assegurar a integridade própria e as dos demais participantes." }
+                    ],
+                    "Esportes de Precisão": [
+                        { codigo: "EF12EF05", descricao: "Experimentar e fruir, prezando pelo trabalho coletivo e pelo protagonismo, a prática de esportes de marca e de precisão, identificando os elementos comuns a esses esportes." },
+                        { codigo: "EF12EF06", descricao: "Discutir a importância da observação das normas e das regras dos esportes de marca e de precisão para assegurar a integridade própria e as dos demais participantes." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica Geral": [
+                        { codigo: "EF12EF07", descricao: "Experimentar, fruir e identificar diferentes elementos básicos da ginástica (equilíbrios, saltos, giros, rotações, acrobacias, com e sem materiais) e da ginástica geral, de forma individual e em pequenos grupos, adotando procedimentos de segurança." },
+                        { codigo: "EF12EF08", descricao: "Planejar e utilizar estratégias para a execução de diferentes elementos básicos da ginástica e da ginástica geral." },
+                        { codigo: "EF12EF09", descricao: "Participar da ginástica geral, identificando as potencialidades e os limites do corpo, e respeitando as diferenças individuais e de desempenho corporal." },
+                        { codigo: "EF12EF10", descricao: "Descrever, por meio de múltiplas linguagens (corporal, oral, escrita e audiovisual), as características dos elementos básicos da ginástica e da ginástica geral, identificando a presença desses elementos em distintas práticas corporais." }
+                    ]
+                },
+                "Danças": {
+                    "Danças do Contexto Comunitário e Regional": [
+                        { codigo: "EF12EF11", descricao: "Experimentar e fruir diferentes danças do contexto comunitário e regional (rodas cantadas, brincadeiras rítmicas e expressivas), e recriá-las, respeitando as diferenças individuais e de desempenho corporal." },
+                        { codigo: "EF12EF12", descricao: "Identificar os elementos constitutivos (ritmo, espaço, gestos) das danças do contexto comunitário e regional, valorizando e respeitando as manifestações de diferentes culturas." }
+                    ],
+                    "Danças de Matriz Indígena e Africana": [
+                        { codigo: "EF12EF11", descricao: "Experimentar e fruir diferentes danças do contexto comunitário e regional (rodas cantadas, brincadeiras rítmicas e expressivas), e recriá-las, respeitando as diferenças individuais e de desempenho corporal." },
+                        { codigo: "EF12EF12", descricao: "Identificar os elementos constitutivos (ritmo, espaço, gestos) das danças do contexto comunitário e regional, valorizando e respeitando as manifestações de diferentes culturas." }
+                    ]
+                }
+            },
+            "2º Ano": {
+                "Brincadeiras e Jogos": {
+                    "Brincadeiras e Jogos Populares": [
+                        { codigo: "EF12EF01", descricao: "Experimentar, fruir e recriar diferentes brincadeiras e jogos da cultura popular presentes no contexto comunitário e regional, reconhecendo e respeitando as diferenças individuais de desempenho dos colegas." },
+                        { codigo: "EF12EF02", descricao: "Explicar, por meio de múltiplas linguagens (corporal, visual, oral e escrita), as brincadeiras e os jogos populares do contexto comunitário e regional, reconhecendo e valorizando a importância desses jogos e brincadeiras para suas culturas de origem." },
+                        { codigo: "EF12EF03", descricao: "Planejar e utilizar estratégias para resolver desafios de brincadeiras e jogos populares do contexto comunitário e regional, com base no reconhecimento das características dessas práticas." },
+                        { codigo: "EF12EF04", descricao: "Colaborar na proposição e na produção de alternativas para a prática, em outros momentos e espaços, de brincadeiras e jogos e demais práticas corporais tematizadas na escola, produzindo textos (orais, escritos, audiovisuais) para divulgá-las na escola e na comunidade." }
+                    ],
+                    "Brincadeiras e Jogos de Matriz Indígena e Africana": [
+                        { codigo: "EF12EF01", descricao: "Experimentar, fruir e recriar diferentes brincadeiras e jogos da cultura popular presentes no contexto comunitário e regional, reconhecendo e respeitando as diferenças individuais de desempenho dos colegas." },
+                        { codigo: "EF12EF02", descricao: "Explicar, por meio de múltiplas linguagens (corporal, visual, oral e escrita), as brincadeiras e os jogos populares do contexto comunitário e regional, reconhecendo e valorizando a importância desses jogos e brincadeiras para suas culturas de origem." },
+                        { codigo: "EF12EF03", descricao: "Planejar e utilizar estratégias para resolver desafios de brincadeiras e jogos populares do contexto comunitário e regional, com base no reconhecimento das características dessas práticas." }
+                    ]
+                },
+                "Esportes": {
+                    "Esportes de Marca": [
+                        { codigo: "EF12EF05", descricao: "Experimentar e fruir, prezando pelo trabalho coletivo e pelo protagonismo, a prática de esportes de marca e de precisão, identificando os elementos comuns a esses esportes." },
+                        { codigo: "EF12EF06", descricao: "Discutir a importância da observação das normas e das regras dos esportes de marca e de precisão para assegurar a integridade própria e as dos demais participantes." }
+                    ],
+                    "Esportes de Precisão": [
+                        { codigo: "EF12EF05", descricao: "Experimentar e fruir, prezando pelo trabalho coletivo e pelo protagonismo, a prática de esportes de marca e de precisão, identificando os elementos comuns a esses esportes." },
+                        { codigo: "EF12EF06", descricao: "Discutir a importância da observação das normas e das regras dos esportes de marca e de precisão para assegurar a integridade própria e as dos demais participantes." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica Geral": [
+                        { codigo: "EF12EF07", descricao: "Experimentar, fruir e identificar diferentes elementos básicos da ginástica (equilíbrios, saltos, giros, rotações, acrobacias, com e sem materiais) e da ginástica geral, de forma individual e em pequenos grupos, adotando procedimentos de segurança." },
+                        { codigo: "EF12EF08", descricao: "Planejar e utilizar estratégias para a execução de diferentes elementos básicos da ginástica e da ginástica geral." },
+                        { codigo: "EF12EF09", descricao: "Participar da ginástica geral, identificando as potencialidades e os limites do corpo, e respeitando as diferenças individuais e de desempenho corporal." },
+                        { codigo: "EF12EF10", descricao: "Descrever, por meio de múltiplas linguagens (corporal, oral, escrita e audiovisual), as características dos elementos básicos da ginástica e da ginástica geral, identificando a presença desses elementos em distintas práticas corporais." }
+                    ]
+                },
+                "Danças": {
+                    "Danças do Contexto Comunitário e Regional": [
+                        { codigo: "EF12EF11", descricao: "Experimentar e fruir diferentes danças do contexto comunitário e regional (rodas cantadas, brincadeiras rítmicas e expressivas), e recriá-las, respeitando as diferenças individuais e de desempenho corporal." },
+                        { codigo: "EF12EF12", descricao: "Identificar os elementos constitutivos (ritmo, espaço, gestos) das danças do contexto comunitário e regional, valorizando e respeitando as manifestações de diferentes culturas." }
+                    ],
+                    "Danças de Matriz Indígena e Africana": [
+                        { codigo: "EF12EF11", descricao: "Experimentar e fruir diferentes danças do contexto comunitário e regional (rodas cantadas, brincadeiras rítmicas e expressivas), e recriá-las, respeitando as diferenças individuais e de desempenho corporal." },
+                        { codigo: "EF12EF12", descricao: "Identificar os elementos constitutivos (ritmo, espaço, gestos) das danças do contexto comunitário e regional, valorizando e respeitando as manifestações de diferentes culturas." }
+                    ]
+                }
+            },
+            "3º Ano": {
+                "Brincadeiras e Jogos": {
+                    "Brincadeiras e Jogos Populares": [
+                        { codigo: "EF35EF01", descricao: "Experimentar e fruir brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e recriá-los, valorizando a importância desse patrimônio histórico cultural." },
+                        { codigo: "EF35EF02", descricao: "Planejar e utilizar estratégias para possibilitar a participação segura de todos os alunos em brincadeiras e jogos populares do Brasil e de matriz indígena e africana." },
+                        { codigo: "EF35EF03", descricao: "Descrever, por meio de múltiplas linguagens (corporal, oral, escrita, audiovisual), as brincadeiras e os jogos populares do Brasil e de matriz indígena e africana, explicando suas características e a importância desse patrimônio histórico cultural na preservação das diferentes culturas." },
+                        { codigo: "EF35EF04", descricao: "Recriar, individual e coletivamente, e experimentar, na escola e fora dela, brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e demais práticas corporais tematizadas na escola, adequando-as aos espaços públicos disponíveis." }
+                    ],
+                    "Brincadeiras e Jogos de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF01", descricao: "Experimentar e fruir brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e recriá-los, valorizando a importância desse patrimônio histórico cultural." },
+                        { codigo: "EF35EF02", descricao: "Planejar e utilizar estratégias para possibilitar a participação segura de todos os alunos em brincadeiras e jogos populares do Brasil e de matriz indígena e africana." },
+                        { codigo: "EF35EF03", descricao: "Descrever, por meio de múltiplas linguagens (corporal, oral, escrita, audiovisual), as brincadeiras e os jogos populares do Brasil e de matriz indígena e africana, explicando suas características e a importância desse patrimônio histórico cultural na preservação das diferentes culturas." },
+                        { codigo: "EF35EF04", descricao: "Recriar, individual e coletivamente, e experimentar, na escola e fora dela, brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e demais práticas corporais tematizadas na escola, adequando-as aos espaços públicos disponíveis." }
+                    ]
+                },
+                "Esportes": {
+                    "Esportes de Campo e Taco": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ],
+                    "Esportes de Rede/Parede": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ],
+                    "Esportes de Invasão": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica Geral": [
+                        { codigo: "EF35EF07", descricao: "Experimentar e fruir, de forma coletiva, combinações de diferentes elementos da ginástica geral (equilíbrios, saltos, giros, rotações, acrobacias, com e sem materiais), propondo coreografias com diferentes temas do cotidiano." },
+                        { codigo: "EF35EF08", descricao: "Planejar e utilizar estratégias para resolver desafios na execução de elementos básicos de apresentações coletivas de ginástica geral, reconhecendo as potencialidades e os limites do corpo e adotando procedimentos de segurança." }
+                    ]
+                },
+                "Danças": {
+                    "Danças do Brasil e do Mundo": [
+                        { codigo: "EF35EF09", descricao: "Experimentar, recriar e fruir danças populares do Brasil e do mundo e danças de matriz indígena e africana, valorizando e respeitando os diferentes sentidos e significados dessas danças em suas culturas de origem." },
+                        { codigo: "EF35EF10", descricao: "Comparar e identificar os elementos constitutivos comuns e diferentes (ritmo, espaço, gestos) em danças populares do Brasil e do mundo e danças de matriz indígena e africana." },
+                        { codigo: "EF35EF11", descricao: "Formular e utilizar estratégias para a execução de elementos constitutivos das danças populares do Brasil e do mundo, e das danças de matriz indígena e africana." },
+                        { codigo: "EF35EF12", descricao: "Identificar situações de injustiça e preconceito geradas e/ou presentes no contexto das danças e demais práticas corporais e discutir alternativas para superá-las." }
+                    ],
+                    "Danças de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF09", descricao: "Experimentar, recriar e fruir danças populares do Brasil e do mundo e danças de matriz indígena e africana, valorizando e respeitando os diferentes sentidos e significados dessas danças em suas culturas de origem." },
+                        { codigo: "EF35EF10", descricao: "Comparar e identificar os elementos constitutivos comuns e diferentes (ritmo, espaço, gestos) em danças populares do Brasil e do mundo e danças de matriz indígena e africana." },
+                        { codigo: "EF35EF11", descricao: "Formular e utilizar estratégias para a execução de elementos constitutivos das danças populares do Brasil e do mundo, e das danças de matriz indígena e africana." },
+                        { codigo: "EF35EF12", descricao: "Identificar situações de injustiça e preconceito geradas e/ou presentes no contexto das danças e demais práticas corporais e discutir alternativas para superá-las." }
+                    ]
+                },
+                "Lutas": {
+                    "Lutas do Contexto Comunitário e Regional": [
+                        { codigo: "EF35EF13", descricao: "Experimentar, fruir e recriar diferentes lutas presentes no contexto comunitário e regional e lutas de matriz indígena e africana." },
+                        { codigo: "EF35EF14", descricao: "Planejar e utilizar estratégias básicas das lutas do contexto comunitário e regional e lutas de matriz indígena e africana experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF35EF15", descricao: "Identificar as características das lutas do contexto comunitário e regional e lutas de matriz indígena e africana, reconhecendo as diferenças entre lutas e brigas e entre lutas e as demais práticas corporais." }
+                    ],
+                    "Lutas de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF13", descricao: "Experimentar, fruir e recriar diferentes lutas presentes no contexto comunitário e regional e lutas de matriz indígena e africana." },
+                        { codigo: "EF35EF14", descricao: "Planejar e utilizar estratégias básicas das lutas do contexto comunitário e regional e lutas de matriz indígena e africana experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF35EF15", descricao: "Identificar as características das lutas do contexto comunitário e regional e lutas de matriz indígena e africana, reconhecendo as diferenças entre lutas e brigas e entre lutas e as demais práticas corporais." }
+                    ]
+                }
+            },
+            "4º Ano": {
+                "Brincadeiras e Jogos": {
+                    "Brincadeiras e Jogos Populares": [
+                        { codigo: "EF35EF01", descricao: "Experimentar e fruir brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e recriá-los, valorizando a importância desse patrimônio histórico cultural." },
+                        { codigo: "EF35EF02", descricao: "Planejar e utilizar estratégias para possibilitar a participação segura de todos os alunos em brincadeiras e jogos populares do Brasil e de matriz indígena e africana." },
+                        { codigo: "EF35EF03", descricao: "Descrever, por meio de múltiplas linguagens (corporal, oral, escrita, audiovisual), as brincadeiras e os jogos populares do Brasil e de matriz indígena e africana, explicando suas características e a importância desse patrimônio histórico cultural na preservação das diferentes culturas." },
+                        { codigo: "EF35EF04", descricao: "Recriar, individual e coletivamente, e experimentar, na escola e fora dela, brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e demais práticas corporais tematizadas na escola, adequando-as aos espaços públicos disponíveis." }
+                    ],
+                    "Brincadeiras e Jogos de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF01", descricao: "Experimentar e fruir brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e recriá-los, valorizando a importância desse patrimônio histórico cultural." },
+                        { codigo: "EF35EF02", descricao: "Planejar e utilizar estratégias para possibilitar a participação segura de todos os alunos em brincadeiras e jogos populares do Brasil e de matriz indígena e africana." },
+                        { codigo: "EF35EF03", descricao: "Descrever, por meio de múltiplas linguagens (corporal, oral, escrita, audiovisual), as brincadeiras e os jogos populares do Brasil e de matriz indígena e africana, explicando suas características e a importância desse patrimônio histórico cultural na preservação das diferentes culturas." },
+                        { codigo: "EF35EF04", descricao: "Recriar, individual e coletivamente, e experimentar, na escola e fora dela, brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e demais práticas corporais tematizadas na escola, adequando-as aos espaços públicos disponíveis." }
+                    ]
+                },
+                "Esportes": {
+                    "Esportes de Campo e Taco": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ],
+                    "Esportes de Rede/Parede": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ],
+                    "Esportes de Invasão": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica Geral": [
+                        { codigo: "EF35EF07", descricao: "Experimentar e fruir, de forma coletiva, combinações de diferentes elementos da ginástica geral (equilíbrios, saltos, giros, rotações, acrobacias, com e sem materiais), propondo coreografias com diferentes temas do cotidiano." },
+                        { codigo: "EF35EF08", descricao: "Planejar e utilizar estratégias para resolver desafios na execução de elementos básicos de apresentações coletivas de ginástica geral, reconhecendo as potencialidades e os limites do corpo e adotando procedimentos de segurança." }
+                    ]
+                },
+                "Danças": {
+                    "Danças do Brasil e do Mundo": [
+                        { codigo: "EF35EF09", descricao: "Experimentar, recriar e fruir danças populares do Brasil e do mundo e danças de matriz indígena e africana, valorizando e respeitando os diferentes sentidos e significados dessas danças em suas culturas de origem." },
+                        { codigo: "EF35EF10", descricao: "Comparar e identificar os elementos constitutivos comuns e diferentes (ritmo, espaço, gestos) em danças populares do Brasil e do mundo e danças de matriz indígena e africana." },
+                        { codigo: "EF35EF11", descricao: "Formular e utilizar estratégias para a execução de elementos constitutivos das danças populares do Brasil e do mundo, e das danças de matriz indígena e africana." },
+                        { codigo: "EF35EF12", descricao: "Identificar situações de injustiça e preconceito geradas e/ou presentes no contexto das danças e demais práticas corporais e discutir alternativas para superá-las." }
+                    ],
+                    "Danças de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF09", descricao: "Experimentar, recriar e fruir danças populares do Brasil e do mundo e danças de matriz indígena e africana, valorizando e respeitando os diferentes sentidos e significados dessas danças em suas culturas de origem." },
+                        { codigo: "EF35EF10", descricao: "Comparar e identificar os elementos constitutivos comuns e diferentes (ritmo, espaço, gestos) em danças populares do Brasil e do mundo e danças de matriz indígena e africana." },
+                        { codigo: "EF35EF11", descricao: "Formular e utilizar estratégias para a execução de elementos constitutivos das danças populares do Brasil e do mundo, e das danças de matriz indígena e africana." },
+                        { codigo: "EF35EF12", descricao: "Identificar situações de injustiça e preconceito geradas e/ou presentes no contexto das danças e demais práticas corporais e discutir alternativas para superá-las." }
+                    ]
+                },
+                "Lutas": {
+                    "Lutas do Contexto Comunitário e Regional": [
+                        { codigo: "EF35EF13", descricao: "Experimentar, fruir e recriar diferentes lutas presentes no contexto comunitário e regional e lutas de matriz indígena e africana." },
+                        { codigo: "EF35EF14", descricao: "Planejar e utilizar estratégias básicas das lutas do contexto comunitário e regional e lutas de matriz indígena e africana experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF35EF15", descricao: "Identificar as características das lutas do contexto comunitário e regional e lutas de matriz indígena e africana, reconhecendo as diferenças entre lutas e brigas e entre lutas e as demais práticas corporais." }
+                    ],
+                    "Lutas de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF13", descricao: "Experimentar, fruir e recriar diferentes lutas presentes no contexto comunitário e regional e lutas de matriz indígena e africana." },
+                        { codigo: "EF35EF14", descricao: "Planejar e utilizar estratégias básicas das lutas do contexto comunitário e regional e lutas de matriz indígena e africana experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF35EF15", descricao: "Identificar as características das lutas do contexto comunitário e regional e lutas de matriz indígena e africana, reconhecendo as diferenças entre lutas e brigas e entre lutas e as demais práticas corporais." }
+                    ]
+                }
+            },
+            "5º Ano": {
+                "Brincadeiras e Jogos": {
+                    "Brincadeiras e Jogos Populares": [
+                        { codigo: "EF35EF01", descricao: "Experimentar e fruir brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e recriá-los, valorizando a importância desse patrimônio histórico cultural." },
+                        { codigo: "EF35EF02", descricao: "Planejar e utilizar estratégias para possibilitar a participação segura de todos os alunos em brincadeiras e jogos populares do Brasil e de matriz indígena e africana." },
+                        { codigo: "EF35EF03", descricao: "Descrever, por meio de múltiplas linguagens (corporal, oral, escrita, audiovisual), as brincadeiras e os jogos populares do Brasil e de matriz indígena e africana, explicando suas características e a importância desse patrimônio histórico cultural na preservação das diferentes culturas." },
+                        { codigo: "EF35EF04", descricao: "Recriar, individual e coletivamente, e experimentar, na escola e fora dela, brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e demais práticas corporais tematizadas na escola, adequando-as aos espaços públicos disponíveis." }
+                    ],
+                    "Brincadeiras e Jogos de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF01", descricao: "Experimentar e fruir brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e recriá-los, valorizando a importância desse patrimônio histórico cultural." },
+                        { codigo: "EF35EF02", descricao: "Planejar e utilizar estratégias para possibilitar a participação segura de todos os alunos em brincadeiras e jogos populares do Brasil e de matriz indígena e africana." },
+                        { codigo: "EF35EF03", descricao: "Descrever, por meio de múltiplas linguagens (corporal, oral, escrita, audiovisual), as brincadeiras e os jogos populares do Brasil e de matriz indígena e africana, explicando suas características e a importância desse patrimônio histórico cultural na preservação das diferentes culturas." },
+                        { codigo: "EF35EF04", descricao: "Recriar, individual e coletivamente, e experimentar, na escola e fora dela, brincadeiras e jogos populares do Brasil e do mundo, incluindo aqueles de matriz indígena e africana, e demais práticas corporais tematizadas na escola, adequando-as aos espaços públicos disponíveis." }
+                    ]
+                },
+                "Esportes": {
+                    "Esportes de Campo e Taco": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ],
+                    "Esportes de Rede/Parede": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ],
+                    "Esportes de Invasão": [
+                        { codigo: "EF35EF05", descricao: "Experimentar e fruir diversos tipos de esportes de campo e taco, rede/parede e invasão, identificando seus elementos comuns e criando estratégias individuais e coletivas básicas para sua execução, prezando pelo trabalho coletivo e pelo protagonismo." },
+                        { codigo: "EF35EF06", descricao: "Diferenciar os conceitos de jogo e esporte, identificando as características que os constituem na contemporaneidade e suas manifestações (profissional e comunitária/lazer)." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica Geral": [
+                        { codigo: "EF35EF07", descricao: "Experimentar e fruir, de forma coletiva, combinações de diferentes elementos da ginástica geral (equilíbrios, saltos, giros, rotações, acrobacias, com e sem materiais), propondo coreografias com diferentes temas do cotidiano." },
+                        { codigo: "EF35EF08", descricao: "Planejar e utilizar estratégias para resolver desafios na execução de elementos básicos de apresentações coletivas de ginástica geral, reconhecendo as potencialidades e os limites do corpo e adotando procedimentos de segurança." }
+                    ]
+                },
+                "Danças": {
+                    "Danças do Brasil e do Mundo": [
+                        { codigo: "EF35EF09", descricao: "Experimentar, recriar e fruir danças populares do Brasil e do mundo e danças de matriz indígena e africana, valorizando e respeitando os diferentes sentidos e significados dessas danças em suas culturas de origem." },
+                        { codigo: "EF35EF10", descricao: "Comparar e identificar os elementos constitutivos comuns e diferentes (ritmo, espaço, gestos) em danças populares do Brasil e do mundo e danças de matriz indígena e africana." },
+                        { codigo: "EF35EF11", descricao: "Formular e utilizar estratégias para a execução de elementos constitutivos das danças populares do Brasil e do mundo, e das danças de matriz indígena e africana." },
+                        { codigo: "EF35EF12", descricao: "Identificar situações de injustiça e preconceito geradas e/ou presentes no contexto das danças e demais práticas corporais e discutir alternativas para superá-las." }
+                    ],
+                    "Danças de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF09", descricao: "Experimentar, recriar e fruir danças populares do Brasil e do mundo e danças de matriz indígena e africana, valorizando e respeitando os diferentes sentidos e significados dessas danças em suas culturas de origem." },
+                        { codigo: "EF35EF10", descricao: "Comparar e identificar os elementos constitutivos comuns e diferentes (ritmo, espaço, gestos) em danças populares do Brasil e do mundo e danças de matriz indígena e africana." },
+                        { codigo: "EF35EF11", descricao: "Formular e utilizar estratégias para a execução de elementos constitutivos das danças populares do Brasil e do mundo, e das danças de matriz indígena e africana." },
+                        { codigo: "EF35EF12", descricao: "Identificar situações de injustiça e preconceito geradas e/ou presentes no contexto das danças e demais práticas corporais e discutir alternativas para superá-las." }
+                    ]
+                },
+                "Lutas": {
+                    "Lutas do Contexto Comunitário e Regional": [
+                        { codigo: "EF35EF13", descricao: "Experimentar, fruir e recriar diferentes lutas presentes no contexto comunitário e regional e lutas de matriz indígena e africana." },
+                        { codigo: "EF35EF14", descricao: "Planejar e utilizar estratégias básicas das lutas do contexto comunitário e regional e lutas de matriz indígena e africana experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF35EF15", descricao: "Identificar as características das lutas do contexto comunitário e regional e lutas de matriz indígena e africana, reconhecendo as diferenças entre lutas e brigas e entre lutas e as demais práticas corporais." }
+                    ],
+                    "Lutas de Matriz Indígena e Africana": [
+                        { codigo: "EF35EF13", descricao: "Experimentar, fruir e recriar diferentes lutas presentes no contexto comunitário e regional e lutas de matriz indígena e africana." },
+                        { codigo: "EF35EF14", descricao: "Planejar e utilizar estratégias básicas das lutas do contexto comunitário e regional e lutas de matriz indígena e africana experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF35EF15", descricao: "Identificar as características das lutas do contexto comunitário e regional e lutas de matriz indígena e africana, reconhecendo as diferenças entre lutas e brigas e entre lutas e as demais práticas corporais." }
+                    ]
+                }
+            },
+            "6º Ano": {
+                "Brincadeiras e Jogos": {
+                    "Jogos Eletrônicos": [
+                        { codigo: "EF67EF01", descricao: "Experimentar e fruir, na escola e fora dela, jogos eletrônicos diversos, valorizando e respeitando os sentidos e significados atribuídos a eles por diferentes grupos sociais e etários." },
+                        { codigo: "EF67EF02", descricao: "Identificar as transformações nas características dos jogos eletrônicos em função dos avanços das tecnologias e nas respectivas exigências corporais colocadas por esses diferentes tipos de jogos." }
+                    ]
+                },
+                "Esportes": {
+                    "Esportes de Marca": [
+                        { codigo: "EF67EF03", descricao: "Experimentar e fruir esportes de marca, precisão, invasão e técnico-combinatórios, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF67EF04", descricao: "Praticar um ou mais esportes de marca, precisão, invasão e técnico-combinatórios oferecidos pela escola, usando habilidades técnico-táticas básicas e respeitando regras." },
+                        { codigo: "EF67EF05", descricao: "Planejar e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de marca, precisão, invasão e técnico-combinatórios como nas modalidades esportivas escolhidas para praticar de forma específica." },
+                        { codigo: "EF67EF06", descricao: "Analisar as transformações na organização e na prática dos esportes em suas diferentes manifestações (profissional e comunitário/lazer)." },
+                        { codigo: "EF67EF07", descricao: "Propor e produzir alternativas para experimentação dos esportes não disponíveis e/ou acessíveis na comunidade e das demais práticas corporais tematizadas na escola." }
+                    ],
+                    "Esportes de Precisão": [
+                        { codigo: "EF67EF03", descricao: "Experimentar e fruir esportes de marca, precisão, invasão e técnico-combinatórios, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF67EF04", descricao: "Praticar um ou mais esportes de marca, precisão, invasão e técnico-combinatórios oferecidos pela escola, usando habilidades técnico-táticas básicas e respeitando regras." },
+                        { codigo: "EF67EF05", descricao: "Planejar e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de marca, precisão, invasão e técnico-combinatórios como nas modalidades esportivas escolhidas para praticar de forma específica." },
+                        { codigo: "EF67EF06", descricao: "Analisar as transformações na organização e na prática dos esportes em suas diferentes manifestações (profissional e comunitário/lazer)." },
+                        { codigo: "EF67EF07", descricao: "Propor e produzir alternativas para experimentação dos esportes não disponíveis e/ou acessíveis na comunidade e das demais práticas corporais tematizadas na escola." }
+                    ],
+                    "Esportes de Invasão": [
+                        { codigo: "EF67EF03", descricao: "Experimentar e fruir esportes de marca, precisão, invasão e técnico-combinatórios, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF67EF04", descricao: "Praticar um ou mais esportes de marca, precisão, invasão e técnico-combinatórios oferecidos pela escola, usando habilidades técnico-táticas básicas e respeitando regras." },
+                        { codigo: "EF67EF05", descricao: "Planejar e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de marca, precisão, invasão e técnico-combinatórios como nas modalidades esportivas escolhidas para praticar de forma específica." },
+                        { codigo: "EF67EF06", descricao: "Analisar as transformações na organização e na prática dos esportes em suas diferentes manifestações (profissional e comunitário/lazer)." },
+                        { codigo: "EF67EF07", descricao: "Propor e produzir alternativas para experimentação dos esportes não disponíveis e/ou acessíveis na comunidade e das demais práticas corporais tematizadas na escola." }
+                    ],
+                    "Esportes Técnico-Combinatórios": [
+                        { codigo: "EF67EF03", descricao: "Experimentar e fruir esportes de marca, precisão, invasão e técnico-combinatórios, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF67EF04", descricao: "Praticar um ou mais esportes de marca, precisão, invasão e técnico-combinatórios oferecidos pela escola, usando habilidades técnico-táticas básicas e respeitando regras." },
+                        { codigo: "EF67EF05", descricao: "Planejar e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de marca, precisão, invasão e técnico-combinatórios como nas modalidades esportivas escolhidas para praticar de forma específica." },
+                        { codigo: "EF67EF06", descricao: "Analisar as transformações na organização e na prática dos esportes em suas diferentes manifestações (profissional e comunitário/lazer)." },
+                        { codigo: "EF67EF07", descricao: "Propor e produzir alternativas para experimentação dos esportes não disponíveis e/ou acessíveis na comunidade e das demais práticas corporais tematizadas na escola." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica de Condicionamento Físico": [
+                        { codigo: "EF67EF08", descricao: "Experimentar e fruir exercícios físicos que solicitem diferentes capacidades físicas, identificando seus tipos (força, velocidade, resistência, flexibilidade) e as sensações corporais provocadas pela sua prática." },
+                        { codigo: "EF67EF09", descricao: "Construir, coletivamente, procedimentos e normas de convívio que viabilizem a participação de todos na prática de exercícios físicos, com o objetivo de promover a saúde." },
+                        { codigo: "EF67EF10", descricao: "Diferenciar exercício físico de atividade física e propor alternativas para a prática de exercícios físicos dentro e fora do ambiente escolar." }
+                    ]
+                },
+                "Danças": {
+                    "Danças Urbanas": [
+                        { codigo: "EF67EF11", descricao: "Experimentar, fruir e recriar danças urbanas, identificando seus elementos constitutivos (ritmo, espaço, gestos)." },
+                        { codigo: "EF67EF12", descricao: "Planejar e utilizar estratégias para aprender elementos constitutivos das danças urbanas." },
+                        { codigo: "EF67EF13", descricao: "Diferenciar as danças urbanas das demais manifestações da dança, valorizando e respeitando os sentidos e significados atribuídos a eles por diferentes grupos sociais." }
+                    ]
+                },
+                "Lutas": {
+                    "Lutas do Brasil": [
+                        { codigo: "EF67EF14", descricao: "Experimentar, fruir e recriar diferentes lutas do Brasil, valorizando a própria segurança e integridade física, bem como as dos demais." },
+                        { codigo: "EF67EF15", descricao: "Planejar e utilizar estratégias básicas das lutas do Brasil, respeitando o colega como oponente." },
+                        { codigo: "EF67EF16", descricao: "Identificar as características (códigos, rituais, elementos técnico-táticos, indumentária, materiais, instalações, instituições) das lutas do Brasil." },
+                        { codigo: "EF67EF17", descricao: "Problematizar preconceitos e estereótipos relacionados ao universo das lutas e demais práticas corporais, propondo alternativas para superá-los, com base na solidariedade, na justiça, na equidade e no respeito." }
+                    ]
+                },
+                "Práticas Corporais de Aventura": {
+                    "Práticas de Aventura Urbanas": [
+                        { codigo: "EF67EF18", descricao: "Experimentar e fruir diferentes práticas corporais de aventura urbanas, valorizando a própria segurança e integridade física, bem como as dos demais." },
+                        { codigo: "EF67EF19", descricao: "Identificar os riscos durante a realização de práticas corporais de aventura urbanas e planejar estratégias para sua superação." },
+                        { codigo: "EF67EF20", descricao: "Executar práticas corporais de aventura urbanas, respeitando o patrimônio público e utilizando alternativas para a prática segura em diversos espaços." },
+                        { codigo: "EF67EF21", descricao: "Identificar a origem das práticas corporais de aventura e as possibilidades de recriá-las, reconhecendo as características (instrumentos, equipamentos de segurança, indumentária, organização) e seus tipos de práticas." }
+                    ]
+                }
+            },
+            "7º Ano": {
+                "Brincadeiras e Jogos": {
+                    "Jogos Eletrônicos": [
+                        { codigo: "EF67EF01", descricao: "Experimentar e fruir, na escola e fora dela, jogos eletrônicos diversos, valorizando e respeitando os sentidos e significados atribuídos a eles por diferentes grupos sociais e etários." },
+                        { codigo: "EF67EF02", descricao: "Identificar as transformações nas características dos jogos eletrônicos em função dos avanços das tecnologias e nas respectivas exigências corporais colocadas por esses diferentes tipos de jogos." }
+                    ]
+                },
+                "Esportes": {
+                    "Esportes de Marca": [
+                        { codigo: "EF67EF03", descricao: "Experimentar e fruir esportes de marca, precisão, invasão e técnico-combinatórios, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF67EF04", descricao: "Praticar um ou mais esportes de marca, precisão, invasão e técnico-combinatórios oferecidos pela escola, usando habilidades técnico-táticas básicas e respeitando regras." },
+                        { codigo: "EF67EF05", descricao: "Planejar e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de marca, precisão, invasão e técnico-combinatórios como nas modalidades esportivas escolhidas para praticar de forma específica." },
+                        { codigo: "EF67EF06", descricao: "Analisar as transformações na organização e na prática dos esportes em suas diferentes manifestações (profissional e comunitário/lazer)." },
+                        { codigo: "EF67EF07", descricao: "Propor e produzir alternativas para experimentação dos esportes não disponíveis e/ou acessíveis na comunidade e das demais práticas corporais tematizadas na escola." }
+                    ],
+                    "Esportes de Precisão": [
+                        { codigo: "EF67EF03", descricao: "Experimentar e fruir esportes de marca, precisão, invasão e técnico-combinatórios, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF67EF04", descricao: "Praticar um ou mais esportes de marca, precisão, invasão e técnico-combinatórios oferecidos pela escola, usando habilidades técnico-táticas básicas e respeitando regras." },
+                        { codigo: "EF67EF05", descricao: "Planejar e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de marca, precisão, invasão e técnico-combinatórios como nas modalidades esportivas escolhidas para praticar de forma específica." },
+                        { codigo: "EF67EF06", descricao: "Analisar as transformações na organização e na prática dos esportes em suas diferentes manifestações (profissional e comunitário/lazer)." },
+                        { codigo: "EF67EF07", descricao: "Propor e produzir alternativas para experimentação dos esportes não disponíveis e/ou acessíveis na comunidade e das demais práticas corporais tematizadas na escola." }
+                    ],
+                    "Esportes de Invasão": [
+                        { codigo: "EF67EF03", descricao: "Experimentar e fruir esportes de marca, precisão, invasão e técnico-combinatórios, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF67EF04", descricao: "Praticar um ou mais esportes de marca, precisão, invasão e técnico-combinatórios oferecidos pela escola, usando habilidades técnico-táticas básicas e respeitando regras." },
+                        { codigo: "EF67EF05", descricao: "Planejar e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de marca, precisão, invasão e técnico-combinatórios como nas modalidades esportivas escolhidas para praticar de forma específica." },
+                        { codigo: "EF67EF06", descricao: "Analisar as transformações na organização e na prática dos esportes em suas diferentes manifestações (profissional e comunitário/lazer)." },
+                        { codigo: "EF67EF07", descricao: "Propor e produzir alternativas para experimentação dos esportes não disponíveis e/ou acessíveis na comunidade e das demais práticas corporais tematizadas na escola." }
+                    ],
+                    "Esportes Técnico-Combinatórios": [
+                        { codigo: "EF67EF03", descricao: "Experimentar e fruir esportes de marca, precisão, invasão e técnico-combinatórios, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF67EF04", descricao: "Praticar um ou mais esportes de marca, precisão, invasão e técnico-combinatórios oferecidos pela escola, usando habilidades técnico-táticas básicas e respeitando regras." },
+                        { codigo: "EF67EF05", descricao: "Planejar e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de marca, precisão, invasão e técnico-combinatórios como nas modalidades esportivas escolhidas para praticar de forma específica." },
+                        { codigo: "EF67EF06", descricao: "Analisar as transformações na organização e na prática dos esportes em suas diferentes manifestações (profissional e comunitário/lazer)." },
+                        { codigo: "EF67EF07", descricao: "Propor e produzir alternativas para experimentação dos esportes não disponíveis e/ou acessíveis na comunidade e das demais práticas corporais tematizadas na escola." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica de Condicionamento Físico": [
+                        { codigo: "EF67EF08", descricao: "Experimentar e fruir exercícios físicos que solicitem diferentes capacidades físicas, identificando seus tipos (força, velocidade, resistência, flexibilidade) e as sensações corporais provocadas pela sua prática." },
+                        { codigo: "EF67EF09", descricao: "Construir, coletivamente, procedimentos e normas de convívio que viabilizem a participação de todos na prática de exercícios físicos, com o objetivo de promover a saúde." },
+                        { codigo: "EF67EF10", descricao: "Diferenciar exercício físico de atividade física e propor alternativas para a prática de exercícios físicos dentro e fora do ambiente escolar." }
+                    ],
+                    "Ginástica de Conscientização Corporal": [
+                        { codigo: "EF67EF08", descricao: "Experimentar e fruir exercícios físicos que solicitem diferentes capacidades físicas, identificando seus tipos (força, velocidade, resistência, flexibilidade) e as sensações corporais provocadas pela sua prática." },
+                        { codigo: "EF67EF09", descricao: "Construir, coletivamente, procedimentos e normas de convívio que viabilizem a participação de todos na prática de exercícios físicos, com o objetivo de promover a saúde." },
+                        { codigo: "EF67EF10", descricao: "Diferenciar exercício físico de atividade física e propor alternativas para a prática de exercícios físicos dentro e fora do ambiente escolar." }
+                    ]
+                },
+                "Danças": {
+                    "Danças Urbanas": [
+                        { codigo: "EF67EF11", descricao: "Experimentar, fruir e recriar danças urbanas, identificando seus elementos constitutivos (ritmo, espaço, gestos)." },
+                        { codigo: "EF67EF12", descricao: "Planejar e utilizar estratégias para aprender elementos constitutivos das danças urbanas." },
+                        { codigo: "EF67EF13", descricao: "Diferenciar as danças urbanas das demais manifestações da dança, valorizando e respeitando os sentidos e significados atribuídos a eles por diferentes grupos sociais." }
+                    ],
+                    "Danças de Salão": [
+                        { codigo: "EF67EF11", descricao: "Experimentar, fruir e recriar danças urbanas, identificando seus elementos constitutivos (ritmo, espaço, gestos)." },
+                        { codigo: "EF67EF12", descricao: "Planejar e utilizar estratégias para aprender elementos constitutivos das danças urbanas." },
+                        { codigo: "EF67EF13", descricao: "Diferenciar as danças urbanas das demais manifestações da dança, valorizando e respeitando os sentidos e significados atribuídos a eles por diferentes grupos sociais." }
+                    ]
+                },
+                "Lutas": {
+                    "Lutas do Brasil": [
+                        { codigo: "EF67EF14", descricao: "Experimentar, fruir e recriar diferentes lutas do Brasil, valorizando a própria segurança e integridade física, bem como as dos demais." },
+                        { codigo: "EF67EF15", descricao: "Planejar e utilizar estratégias básicas das lutas do Brasil, respeitando o colega como oponente." },
+                        { codigo: "EF67EF16", descricao: "Identificar as características (códigos, rituais, elementos técnico-táticos, indumentária, materiais, instalações, instituições) das lutas do Brasil." },
+                        { codigo: "EF67EF17", descricao: "Problematizar preconceitos e estereótipos relacionados ao universo das lutas e demais práticas corporais, propondo alternativas para superá-los, com base na solidariedade, na justiça, na equidade e no respeito." }
+                    ],
+                    "Lutas de Matriz Indígena e Africana": [
+                        { codigo: "EF67EF14", descricao: "Experimentar, fruir e recriar diferentes lutas do Brasil, valorizando a própria segurança e integridade física, bem como as dos demais." },
+                        { codigo: "EF67EF15", descricao: "Planejar e utilizar estratégias básicas das lutas do Brasil, respeitando o colega como oponente." },
+                        { codigo: "EF67EF16", descricao: "Identificar as características (códigos, rituais, elementos técnico-táticos, indumentária, materiais, instalações, instituições) das lutas do Brasil." },
+                        { codigo: "EF67EF17", descricao: "Problematizar preconceitos e estereótipos relacionados ao universo das lutas e demais práticas corporais, propondo alternativas para superá-los, com base na solidariedade, na justiça, na equidade e no respeito." }
+                    ]
+                },
+                "Práticas Corporais de Aventura": {
+                    "Práticas de Aventura Urbanas": [
+                        { codigo: "EF67EF18", descricao: "Experimentar e fruir diferentes práticas corporais de aventura urbanas, valorizando a própria segurança e integridade física, bem como as dos demais." },
+                        { codigo: "EF67EF19", descricao: "Identificar os riscos durante a realização de práticas corporais de aventura urbanas e planejar estratégias para sua superação." },
+                        { codigo: "EF67EF20", descricao: "Executar práticas corporais de aventura urbanas, respeitando o patrimônio público e utilizando alternativas para a prática segura em diversos espaços." },
+                        { codigo: "EF67EF21", descricao: "Identificar a origem das práticas corporais de aventura e as possibilidades de recriá-las, reconhecendo as características (instrumentos, equipamentos de segurança, indumentária, organização) e seus tipos de práticas." }
+                    ]
+                }
+            },
+            "8º Ano": {
+                "Esportes": {
+                    "Esportes de Rede/Parede": [
+                        { codigo: "EF89EF01", descricao: "Experimentar e fruir diferentes papéis (jogador, árbitro e técnico) e fruir os esportes de rede/parede, campo e taco, invasão e combate, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF89EF02", descricao: "Praticar um ou mais esportes de rede/parede, campo e taco, invasão e combate oferecidos pela escola, usando habilidades técnico-táticas básicas." },
+                        { codigo: "EF89EF03", descricao: "Formular e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de rede/parede, campo e taco, invasão e combate como nas modalidades esportivas escolhidas para praticar." },
+                        { codigo: "EF89EF04", descricao: "Investigar as transformações na organização e na prática dos esportes de rede/parede, campo e taco, invasão e combate em diferentes épocas e lugares." }
+                    ],
+                    "Esportes de Campo e Taco": [
+                        { codigo: "EF89EF01", descricao: "Experimentar e fruir diferentes papéis (jogador, árbitro e técnico) e fruir os esportes de rede/parede, campo e taco, invasão e combate, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF89EF02", descricao: "Praticar um ou mais esportes de rede/parede, campo e taco, invasão e combate oferecidos pela escola, usando habilidades técnico-táticas básicas." },
+                        { codigo: "EF89EF03", descricao: "Formular e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de rede/parede, campo e taco, invasão e combate como nas modalidades esportivas escolhidas para praticar." },
+                        { codigo: "EF89EF04", descricao: "Investigar as transformações na organização e na prática dos esportes de rede/parede, campo e taco, invasão e combate em diferentes épocas e lugares." }
+                    ],
+                    "Esportes de Invasão": [
+                        { codigo: "EF89EF01", descricao: "Experimentar e fruir diferentes papéis (jogador, árbitro e técnico) e fruir os esportes de rede/parede, campo e taco, invasão e combate, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF89EF02", descricao: "Praticar um ou mais esportes de rede/parede, campo e taco, invasão e combate oferecidos pela escola, usando habilidades técnico-táticas básicas." },
+                        { codigo: "EF89EF03", descricao: "Formular e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de rede/parede, campo e taco, invasão e combate como nas modalidades esportivas escolhidas para praticar." },
+                        { codigo: "EF89EF04", descricao: "Investigar as transformações na organização e na prática dos esportes de rede/parede, campo e taco, invasão e combate em diferentes épocas e lugares." }
+                    ],
+                    "Esportes de Combate": [
+                        { codigo: "EF89EF01", descricao: "Experimentar e fruir diferentes papéis (jogador, árbitro e técnico) e fruir os esportes de rede/parede, campo e taco, invasão e combate, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF89EF02", descricao: "Praticar um ou mais esportes de rede/parede, campo e taco, invasão e combate oferecidos pela escola, usando habilidades técnico-táticas básicas." },
+                        { codigo: "EF89EF03", descricao: "Formular e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de rede/parede, campo e taco, invasão e combate como nas modalidades esportivas escolhidas para praticar." },
+                        { codigo: "EF89EF04", descricao: "Investigar as transformações na organização e na prática dos esportes de rede/parede, campo e taco, invasão e combate em diferentes épocas e lugares." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica de Conscientização Corporal": [
+                        { codigo: "EF89EF05", descricao: "Experimentar e fruir diferentes tipos de ginásticas de conscientização corporal, identificando as exigências corporais dos mesmos e reconhecendo a importância de uma prática individualizada, adequada às características e necessidades de cada aluno." },
+                        { codigo: "EF89EF06", descricao: "Identificar as características das ginásticas de conscientização corporal, discutindo como a prática pode contribuir para a melhoria das condições de vida, saúde, bem-estar e cuidado consigo mesmo." }
+                    ]
+                },
+                "Danças": {
+                    "Danças de Salão": [
+                        { codigo: "EF89EF07", descricao: "Experimentar e fruir um ou mais programas de exercícios físicos, identificando as exigências corporais dos mesmos e reconhecendo a importância de uma prática individualizada, adequada às características e necessidades de cada aluno." },
+                        { codigo: "EF89EF08", descricao: "Discutir as transformações históricas dos padrões de desempenho, saúde e beleza, considerando a forma como são apresentados nos diferentes meios (científico, midiático etc.)." }
+                    ]
+                },
+                "Lutas": {
+                    "Lutas do Brasil e do Mundo": [
+                        { codigo: "EF89EF09", descricao: "Experimentar e fruir diferentes lutas do Brasil e do mundo (lutas de matriz indígena e africana), prezando pelo trabalho coletivo, pelo respeito e pela integridade física e emocional." },
+                        { codigo: "EF89EF10", descricao: "Planejar e utilizar estratégias básicas das lutas do Brasil e do mundo (lutas de matriz indígena e africana) experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF89EF11", descricao: "Identificar e debater as transformações históricas das lutas e suas diferentes manifestações, considerando a forma como são apresentadas nos diferentes meios (científico, midiático etc.)." }
+                    ],
+                    "Lutas de Matriz Indígena e Africana": [
+                        { codigo: "EF89EF09", descricao: "Experimentar e fruir diferentes lutas do Brasil e do mundo (lutas de matriz indígena e africana), prezando pelo trabalho coletivo, pelo respeito e pela integridade física e emocional." },
+                        { codigo: "EF89EF10", descricao: "Planejar e utilizar estratégias básicas das lutas do Brasil e do mundo (lutas de matriz indígena e africana) experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF89EF11", descricao: "Identificar e debater as transformações históricas das lutas e suas diferentes manifestações, considerando a forma como são apresentadas nos diferentes meios (científico, midiático etc.)." }
+                    ]
+                },
+                "Práticas Corporais de Aventura": {
+                    "Práticas de Aventura na Natureza": [
+                        { codigo: "EF89EF12", descricao: "Experimentar e fruir diferentes práticas corporais de aventura na natureza, valorizando a própria segurança e integridade física, bem como as dos demais, respeitando o patrimônio natural e minimizando os impactos de degradação ambiental." },
+                        { codigo: "EF89EF13", descricao: "Planejar e utilizar estratégias para a prática segura e inclusiva das práticas corporais de aventura na natureza." },
+                        { codigo: "EF89EF14", descricao: "Identificar e discutir os riscos durante a realização de práticas corporais de aventura na natureza e planejar estratégias para sua superação." }
+                    ]
+                }
+            },
+            "9º Ano": {
+                "Esportes": {
+                    "Esportes de Rede/Parede": [
+                        { codigo: "EF89EF01", descricao: "Experimentar e fruir diferentes papéis (jogador, árbitro e técnico) e fruir os esportes de rede/parede, campo e taco, invasão e combate, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF89EF02", descricao: "Praticar um ou mais esportes de rede/parede, campo e taco, invasão e combate oferecidos pela escola, usando habilidades técnico-táticas básicas." },
+                        { codigo: "EF89EF03", descricao: "Formular e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de rede/parede, campo e taco, invasão e combate como nas modalidades esportivas escolhidas para praticar." },
+                        { codigo: "EF89EF04", descricao: "Investigar as transformações na organização e na prática dos esportes de rede/parede, campo e taco, invasão e combate em diferentes épocas e lugares." }
+                    ],
+                    "Esportes de Campo e Taco": [
+                        { codigo: "EF89EF01", descricao: "Experimentar e fruir diferentes papéis (jogador, árbitro e técnico) e fruir os esportes de rede/parede, campo e taco, invasão e combate, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF89EF02", descricao: "Praticar um ou mais esportes de rede/parede, campo e taco, invasão e combate oferecidos pela escola, usando habilidades técnico-táticas básicas." },
+                        { codigo: "EF89EF03", descricao: "Formular e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de rede/parede, campo e taco, invasão e combate como nas modalidades esportivas escolhidas para praticar." },
+                        { codigo: "EF89EF04", descricao: "Investigar as transformações na organização e na prática dos esportes de rede/parede, campo e taco, invasão e combate em diferentes épocas e lugares." }
+                    ],
+                    "Esportes de Invasão": [
+                        { codigo: "EF89EF01", descricao: "Experimentar e fruir diferentes papéis (jogador, árbitro e técnico) e fruir os esportes de rede/parede, campo e taco, invasão e combate, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF89EF02", descricao: "Praticar um ou mais esportes de rede/parede, campo e taco, invasão e combate oferecidos pela escola, usando habilidades técnico-táticas básicas." },
+                        { codigo: "EF89EF03", descricao: "Formular e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de rede/parede, campo e taco, invasão e combate como nas modalidades esportivas escolhidas para praticar." },
+                        { codigo: "EF89EF04", descricao: "Investigar as transformações na organização e na prática dos esportes de rede/parede, campo e taco, invasão e combate em diferentes épocas e lugares." }
+                    ],
+                    "Esportes de Combate": [
+                        { codigo: "EF89EF01", descricao: "Experimentar e fruir diferentes papéis (jogador, árbitro e técnico) e fruir os esportes de rede/parede, campo e taco, invasão e combate, valorizando o trabalho coletivo e o protagonismo." },
+                        { codigo: "EF89EF02", descricao: "Praticar um ou mais esportes de rede/parede, campo e taco, invasão e combate oferecidos pela escola, usando habilidades técnico-táticas básicas." },
+                        { codigo: "EF89EF03", descricao: "Formular e utilizar estratégias para solucionar os desafios técnicos e táticos, tanto nos esportes de rede/parede, campo e taco, invasão e combate como nas modalidades esportivas escolhidas para praticar." },
+                        { codigo: "EF89EF04", descricao: "Investigar as transformações na organização e na prática dos esportes de rede/parede, campo e taco, invasão e combate em diferentes épocas e lugares." }
+                    ]
+                },
+                "Ginásticas": {
+                    "Ginástica de Conscientização Corporal": [
+                        { codigo: "EF89EF05", descricao: "Experimentar e fruir diferentes tipos de ginásticas de conscientização corporal, identificando as exigências corporais dos mesmos e reconhecendo a importância de uma prática individualizada, adequada às características e necessidades de cada aluno." },
+                        { codigo: "EF89EF06", descricao: "Identificar as características das ginásticas de conscientização corporal, discutindo como a prática pode contribuir para a melhoria das condições de vida, saúde, bem-estar e cuidado consigo mesmo." }
+                    ]
+                },
+                "Danças": {
+                    "Danças de Salão": [
+                        { codigo: "EF89EF07", descricao: "Experimentar e fruir um ou mais programas de exercícios físicos, identificando as exigências corporais dos mesmos e reconhecendo a importância de uma prática individualizada, adequada às características e necessidades de cada aluno." },
+                        { codigo: "EF89EF08", descricao: "Discutir as transformações históricas dos padrões de desempenho, saúde e beleza, considerando a forma como são apresentados nos diferentes meios (científico, midiático etc.)." }
+                    ]
+                },
+                "Lutas": {
+                    "Lutas do Brasil e do Mundo": [
+                        { codigo: "EF89EF09", descricao: "Experimentar e fruir diferentes lutas do Brasil e do mundo (lutas de matriz indígena e africana), prezando pelo trabalho coletivo, pelo respeito e pela integridade física e emocional." },
+                        { codigo: "EF89EF10", descricao: "Planejar e utilizar estratégias básicas das lutas do Brasil e do mundo (lutas de matriz indígena e africana) experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF89EF11", descricao: "Identificar e debater as transformações históricas das lutas e suas diferentes manifestações, considerando a forma como são apresentadas nos diferentes meios (científico, midiático etc.)." }
+                    ],
+                    "Lutas de Matriz Indígena e Africana": [
+                        { codigo: "EF89EF09", descricao: "Experimentar e fruir diferentes lutas do Brasil e do mundo (lutas de matriz indígena e africana), prezando pelo trabalho coletivo, pelo respeito e pela integridade física e emocional." },
+                        { codigo: "EF89EF10", descricao: "Planejar e utilizar estratégias básicas das lutas do Brasil e do mundo (lutas de matriz indígena e africana) experimentadas, respeitando o colega como oponente e as normas de segurança." },
+                        { codigo: "EF89EF11", descricao: "Identificar e debater as transformações históricas das lutas e suas diferentes manifestações, considerando a forma como são apresentadas nos diferentes meios (científico, midiático etc.)." }
+                    ]
+                },
+                "Práticas Corporais de Aventura": {
+                    "Práticas de Aventura na Natureza": [
+                        { codigo: "EF89EF12", descricao: "Experimentar e fruir diferentes práticas corporais de aventura na natureza, valorizando a própria segurança e integridade física, bem como as dos demais, respeitando o patrimônio natural e minimizando os impactos de degradação ambiental." },
+                        { codigo: "EF89EF13", descricao: "Planejar e utilizar estratégias para a prática segura e inclusiva das práticas corporais de aventura na natureza." },
+                        { codigo: "EF89EF14", descricao: "Identificar e discutir os riscos durante a realização de práticas corporais de aventura na natureza e planejar estratégias para sua superação." }
+                    ]
+                }
+            }
+        };
+
+        // Função para atualizar unidades temáticas com base na turma selecionada
+        window.atualizarUnidadesTematicas = function() {
+            const turmaSelecionada = turmaSelect.value;
+            
+            // Limpar selects
+            unidadeTematicaSelect.innerHTML = '';
+            filterUnidade.innerHTML = '<option value="">Todas as Unidades</option>';
+            filterEspecificacao.innerHTML = '<option value="">Todas as Especificações</option>';
+            
+            // Esconder campo de especificação
+            especificacaoGroup.classList.add('hidden');
+            especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+            
+            if (!turmaSelecionada) {
+                unidadeTematicaSelect.innerHTML = '<option value="">Selecione a turma primeiro</option>';
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione a turma, unidade temática e especificação primeiro</p>';
+                return;
+            }
+            
+            // Obter unidades temáticas para o ano selecionado
+            const unidades = unidadesPorAno[turmaSelecionada] || [];
+            
+            if (unidades.length === 0) {
+                unidadeTematicaSelect.innerHTML = '<option value="">Nenhuma unidade encontrada</option>';
+                return;
+            }
+            
+            // Adicionar opção padrão
+            const optionDefault = document.createElement('option');
+            optionDefault.value = '';
+            optionDefault.textContent = 'Selecione a unidade temática';
+            unidadeTematicaSelect.appendChild(optionDefault);
+            
+            // Adicionar unidades temáticas
+            unidades.forEach(unidade => {
+                const option = document.createElement('option');
+                option.value = unidade;
+                option.textContent = unidade;
+                unidadeTematicaSelect.appendChild(option);
+                
+                // Adicionar ao filtro também
+                const filterOption = document.createElement('option');
+                filterOption.value = unidade;
+                filterOption.textContent = unidade;
+                filterUnidade.appendChild(filterOption);
+            });
+            
+            // Limpar habilidades
+            habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione uma unidade temática</p>';
+        };
+
+        // NOVA FUNÇÃO: Atualizar especificações com base na unidade temática
+        window.atualizarEspecificacoes = function() {
+            const unidadeSelecionada = unidadeTematicaSelect.value;
+            
+            // Limpar select de especificação
+            especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+            
+            if (!unidadeSelecionada) {
+                especificacaoGroup.classList.add('hidden');
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione uma unidade temática</p>';
+                return;
+            }
+            
+            // Obter especificações para a unidade selecionada
+            const especificacoes = especificacoesPorUnidade[unidadeSelecionada] || [];
+            
+            if (especificacoes.length > 0) {
+                // Mostrar campo de especificação
+                especificacaoGroup.classList.remove('hidden');
+                
+                // Adicionar especificações
+                especificacoes.forEach(espec => {
+                    const option = document.createElement('option');
+                    option.value = espec;
+                    option.textContent = espec;
+                    especificacaoSelect.appendChild(option);
+                });
+                
+                // Atualizar filtro de especificação
+                filterEspecificacao.innerHTML = '<option value="">Todas as Especificações</option>';
+                especificacoes.forEach(espec => {
+                    const option = document.createElement('option');
+                    option.value = espec;
+                    option.textContent = espec;
+                    filterEspecificacao.appendChild(option);
+                });
+                
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione uma especificação</p>';
+            } else {
+                // Se não há especificações, esconder o campo
+                especificacaoGroup.classList.add('hidden');
+                filterEspecificacao.innerHTML = '<option value="">Todas as Especificações</option>';
+                
+                // Buscar habilidades diretamente da unidade temática (sem especificação)
+                const turmaSelecionada = turmaSelect.value;
+                const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
+                
+                if (habilidadesTurma && habilidadesTurma[unidadeSelecionada]) {
+                    // Se a unidade temática tem habilidades diretas (sem especificação)
+                    const habilidades = [];
+                    Object.values(habilidadesTurma[unidadeSelecionada]).forEach(especHabilidades => {
+                        habilidades.push(...especHabilidades);
+                    });
+                    
+                    exibirHabilidades(habilidades);
+                }
+            }
+        };
+
+        // Função para atualizar habilidades com base na turma, unidade e especificação
+        window.atualizarHabilidades = function() {
+            const turmaSelecionada = turmaSelect.value;
+            const unidadeSelecionada = unidadeTematicaSelect.value;
+            const especificacaoSelecionada = especificacaoSelect.value;
+            
+            if (!turmaSelecionada || !unidadeSelecionada) {
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione a turma e unidade temática primeiro</p>';
+                return;
+            }
+            
+            // Se tem especificação, mas não foi selecionada
+            if (especificacaoGroup.classList.contains('hidden') === false && !especificacaoSelecionada) {
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione uma especificação</p>';
+                return;
+            }
+            
+            // Buscar habilidades
+            const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
+            if (!habilidadesTurma) {
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Nenhuma habilidade encontrada para esta turma</p>';
+                return;
+            }
+            
+            const habilidadesUnidade = habilidadesTurma[unidadeSelecionada];
+            if (!habilidadesUnidade) {
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Nenhuma habilidade encontrada para esta unidade</p>';
+                return;
+            }
+            
+            let habilidades = [];
+            
+            if (especificacaoSelecionada) {
+                // Buscar habilidades da especificação selecionada
+                habilidades = habilidadesUnidade[especificacaoSelecionada] || [];
+            } else {
+                // Se não há especificação, pegar todas as habilidades da unidade
+                Object.values(habilidadesUnidade).forEach(especHabilidades => {
+                    habilidades.push(...especHabilidades);
+                });
+            }
+            
+            exibirHabilidades(habilidades);
+        };
+
+        // Função auxiliar para exibir habilidades
+        function exibirHabilidades(habilidades) {
+            if (habilidades.length === 0) {
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Nenhuma habilidade disponível para esta combinação</p>';
+                return;
+            }
+            
+            // Remover duplicatas (mesmo código)
+            const habilidadesUnicas = [];
+            const codigosVistos = new Set();
+            
+            habilidades.forEach(habilidade => {
+                if (!codigosVistos.has(habilidade.codigo)) {
+                    codigosVistos.add(habilidade.codigo);
+                    habilidadesUnicas.push(habilidade);
+                }
+            });
+            
+            // Criar checkboxes para cada habilidade
+            let html = '<div style="margin-bottom: 10px;"><strong>Selecione as habilidades trabalhadas:</strong></div>';
+            
+            habilidadesUnicas.forEach(habilidade => {
+                html += `
+                    <div class="habilidade-checkbox">
+                        <label>
+                            <input type="checkbox" name="habilidades" value="${habilidade.codigo}" data-descricao="${habilidade.descricao.replace(/"/g, '&quot;')}">
+                            <div>
+                                <strong>${habilidade.codigo}</strong><br>
+                                <span class="habilidade-descricao">${habilidade.descricao}</span>
+                            </div>
+                        </label>
+                    </div>
+                `;
+            });
+            
+            habilidadesContainer.innerHTML = html;
+        }
+
+        // Função para obter habilidades selecionadas
+        function getHabilidadesSelecionadas() {
+            const checkboxes = document.querySelectorAll('input[name="habilidades"]:checked');
+            return Array.from(checkboxes).map(cb => ({
+                codigo: cb.value,
+                descricao: cb.getAttribute('data-descricao')
+            }));
+        }
+
+        // Carregar aulas do Firebase
+       function carregarAulas() {
+    onSnapshot(aulasRef, (snapshot) => {
+
+        if (!snapshot.empty) {
+
+            todasAulas = snapshot.docs.map(docSnap => ({
+                id: docSnap.id,
+                ...docSnap.data()
+            }));
+
+            aplicarFiltros();
+
+        } else {
+            todasAulas = [];
+            aulasList.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">Nenhuma aula cadastrada ainda.</p>';
+        }
+
+    });
+}
+        // Aplicar filtros e busca
+        function aplicarFiltros() {
+            const termoBusca = searchInput.value.toLowerCase();
+            const turmaFiltro = filterTurma.value;
+            const unidadeFiltro = filterUnidade.value;
+            const especificacaoFiltro = filterEspecificacao.value;
+
+            let aulasFiltradas = todasAulas.filter(aula => {
+                const matchesBusca = termoBusca === '' || 
+                    aula.titulo?.toLowerCase().includes(termoBusca) ||
+                    aula.descricao?.toLowerCase().includes(termoBusca) ||
+                    aula.objetoConhecimento?.toLowerCase().includes(termoBusca);
+                
+                const matchesTurma = turmaFiltro === '' || aula.turma === turmaFiltro;
+                const matchesUnidade = unidadeFiltro === '' || aula.unidadeTematica === unidadeFiltro;
+                const matchesEspecificacao = especificacaoFiltro === '' || aula.especificacao === especificacaoFiltro;
+
+                return matchesBusca && matchesTurma && matchesUnidade && matchesEspecificacao;
+            });
+
+            exibirAulas(aulasFiltradas);
+        }
+
+        // Exibir aulas na tela
+        function exibirAulas(aulas) {
+            if (aulas.length === 0) {
+                aulasList.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">Nenhuma aula encontrada com os filtros atuais.</p>';
+                return;
+            }
+
+            aulasList.innerHTML = aulas.map(aula => {
+                // Formatar lista de habilidades
+                const habilidadesList = Array.isArray(aula.habilidades) 
+                    ? aula.habilidades.map(h => 
+                        `<div class="habilidade-item">${h.codigo || h}</div>`
+                      ).join('')
+                    : `<div class="habilidade-item">${aula.habilidade || 'Habilidade não definida'}</div>`;
+
+                return `
+                <div class="aula-card" data-id="${aula.id}">
+                    <h3>${aula.titulo || 'Sem título'}</h3>
+                    <div class="aula-meta">
+                        <span class="badge badge-primary">${aula.turma || 'Turma não definida'}</span>
+                        <span class="badge badge-success">${aula.unidadeTematica || 'Unidade não definida'}</span>
+                        ${aula.especificacao ? `<span class="badge badge-secondary">${aula.especificacao}</span>` : ''}
+                        <span class="badge badge-info">${aula.numeroAulas || 1} aula(s)</span>
+                    </div>
+                    <p><strong>Objeto de Conhecimento:</strong> ${aula.objetoConhecimento || 'Não especificado'}</p>
+                    <div class="habilidades-list">
+                        <strong>Habilidades:</strong>
+                        ${habilidadesList}
+                    </div>
+                    <p><strong>Descrição:</strong> ${aula.descricao ? aula.descricao.substring(0, 100) + '...' : 'Sem descrição'}</p>
+                    <div class="aula-actions">
+                        <button class="btn-small btn-view" onclick="window.visualizarAula('${aula.id}')">👁️ Visualizar</button>
+                        <button class="btn-small btn-edit" onclick="window.editarAula('${aula.id}')">✏️ Editar</button>
+                        <button class="btn-small btn-delete" onclick="window.excluirAula('${aula.id}')">🗑️ Excluir</button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // Salvar aula
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const habilidadesSelecionadas = getHabilidadesSelecionadas();
+
+            if (habilidadesSelecionadas.length === 0) {
+                mostrarMensagem('Selecione pelo menos uma habilidade.', 'error');
+                return;
+            }
+
+            const aulaData = {
+                titulo: document.getElementById('titulo').value,
+                turma: document.getElementById('turma').value,
+                unidadeTematica: document.getElementById('unidadeTematica').value,
+                especificacao: document.getElementById('especificacao').value || null,
+                objetoConhecimento: document.getElementById('objetoConhecimento').value,
+                habilidades: habilidadesSelecionadas,
+                numeroAulas: parseInt(document.getElementById('numeroAulas').value) || 1,
+                descricao: document.getElementById('descricao').value,
+                timestamp: new Date().toISOString()
+            };
+
+            // Validar se todos os campos obrigatórios foram preenchidos
+            if (!aulaData.turma || !aulaData.unidadeTematica) {
+                mostrarMensagem('Por favor, preencha todos os campos obrigatórios: turma e unidade temática.', 'error');
+                return;
+            }
+
+            try {
+                if (aulaEditando) {
+                    // Atualizar aula existente
+                    const aulaRef = ref(database, `aulas/${aulaEditando}`);
+                    await update(aulaRef, aulaData);
+                    mostrarMensagem('Aula atualizada com sucesso!', 'success');
+                    aulaEditando = null;
+                } else {
+                    // Criar nova aula
+                    await addDoc(aulasRef, aulaData);
+                    mostrarMensagem('Aula salva com sucesso!', 'success');
+                }
+
+                form.reset();
+                // Resetar os selects
+                numeroAulasInput.value = 1;
+                await atualizarUnidadesTematicas();
+                especificacaoGroup.classList.add('hidden');
+                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione a turma, unidade temática e especificação primeiro</p>';
+            } catch (error) {
+                console.error('Erro ao salvar aula:', error);
+                mostrarMensagem('Erro ao salvar aula. Tente novamente.', 'error');
+            }
+        });
+
+        // Funções globais para os botões
+        window.editarAula = (id) => {
+            const aula = todasAulas.find(a => a.id === id);
+            if (aula) {
+                document.getElementById('titulo').value = aula.titulo || '';
+                document.getElementById('turma').value = aula.turma || '';
+                document.getElementById('numeroAulas').value = aula.numeroAulas || 1;
+                document.getElementById('descricao').value = aula.descricao || '';
+                
+                // Atualizar unidades temáticas e aguardar
+                atualizarUnidadesTematicas();
+                
+                // Aguardar um momento para o select ser preenchido e então selecionar a unidade
+                setTimeout(() => {
+                    document.getElementById('unidadeTematica').value = aula.unidadeTematica || '';
+                    
+                    // Atualizar especificações
+                    atualizarEspecificacoes();
+                    
+                    // Aguardar especificações carregarem e selecionar
+                    setTimeout(() => {
+                        if (aula.especificacao) {
+                            document.getElementById('especificacao').value = aula.especificacao || '';
+                        }
+                        
+                        // Atualizar habilidades
+                        atualizarHabilidades();
+                        
+                        // Aguardar checkboxes serem criados e marcar os selecionados
+                        setTimeout(() => {
+                            const habilidadesArray = Array.isArray(aula.habilidades) ? aula.habilidades : [];
+                            
+                            habilidadesArray.forEach(habilidade => {
+                                const codigo = typeof habilidade === 'string' ? habilidade : habilidade.codigo;
+                                const checkbox = document.querySelector(`input[name="habilidades"][value="${codigo}"]`);
+                                if (checkbox) {
+                                    checkbox.checked = true;
+                                }
+                            });
+                            
+                            document.getElementById('objetoConhecimento').value = aula.objetoConhecimento || '';
+                        }, 200);
+                    }, 200);
+                }, 200);
+                
+                aulaEditando = id;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+
+        window.visualizarAula = (id) => {
+            const aula = todasAulas.find(a => a.id === id);
+            if (aula) {
+                let habilidadesTexto = '';
+                if (Array.isArray(aula.habilidades)) {
+                    habilidadesTexto = aula.habilidades.map(h => 
+                        `\n   • ${h.codigo || h}: ${h.descricao || ''}`
+                    ).join('');
+                } else {
+                    habilidadesTexto = `\n   • ${aula.habilidade || 'Habilidade não definida'}`;
+                }
+
+                alert(`
+📋 DETALHES DA AULA
+===================
+Título: ${aula.titulo}
+Turma: ${aula.turma}
+Unidade Temática: ${aula.unidadeTematica}
+${aula.especificacao ? `Especificação: ${aula.especificacao}` : ''}
+Número de Aulas: ${aula.numeroAulas || 1}
+Objeto de Conhecimento: ${aula.objetoConhecimento}
+
+📌 HABILIDADES BNCC:
+${habilidadesTexto}
+
+📝 DESCRIÇÃO:
+${aula.descricao}
+                `);
+            }
+        };
+
+        window.excluirAula = async (id) => {
+            if (confirm('Tem certeza que deseja excluir esta aula?')) {
+                try {
+                    const aulaRef = doc(db, 'aulas', aulaEditando);
+                     await updateDoc(aulaRef, aulaData);
+                    mostrarMensagem('Aula excluída com sucesso!', 'success');
+                } catch (error) {
+                    console.error('Erro ao excluir aula:', error);
+                    mostrarMensagem('Erro ao excluir aula. Tente novamente.', 'error');
+                }
+            }
+        };
+
+        // Função para mostrar mensagens
+        function mostrarMensagem(texto, tipo) {
+            const mensagemDiv = document.createElement('div');
+            mensagemDiv.className = tipo === 'success' ? 'success-message' : 'error-message';
+            mensagemDiv.textContent = texto;
+            mensagemDiv.style.position = 'fixed';
+            mensagemDiv.style.top = '20px';
+            mensagemDiv.style.right = '20px';
+            mensagemDiv.style.zIndex = '1000';
+            document.body.appendChild(mensagemDiv);
+
+            setTimeout(() => {
+                mensagemDiv.remove();
+            }, 3000);
+        }
+
+        // Event listeners para filtros e busca
+        searchInput.addEventListener('input', aplicarFiltros);
+        searchBtn.addEventListener('click', aplicarFiltros);
+        filterTurma.addEventListener('change', aplicarFiltros);
+        filterUnidade.addEventListener('change', aplicarFiltros);
+        filterEspecificacao.addEventListener('change', aplicarFiltros);
+
+        // Carregar aulas ao iniciar
+        carregarAulas();
+        
+        // Inicializar selects
+        atualizarUnidadesTematicas();
+    </script>
+</body>
+</html>
