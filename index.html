@@ -1035,6 +1035,10 @@ button {
     <div class="container">
         <!-- Header Principal -->
         <div class="main-header">
+       <div id="userPanel" class="user-panel">
+  <span id="userEmail"></span>
+  <button id="logoutBtn">Sair</button>
+</div>
             <h1>📅 Programação Diária - Educação Física</h1>
             <p>Visualize e gerencie suas aulas</p>
         </div>
@@ -1959,37 +1963,50 @@ const turmasRef = doc(db, 'turmas', 'principal');
             icon.textContent = '►';
         }, 100);
      
-  onAuthStateChanged(auth, (user) => {
+ onAuthStateChanged(auth, (user) => {
     const modal = document.getElementById("loginModal");
     const mensagem = document.getElementById("mensagem");
     const botaoLogin = document.getElementById("botaoLogin");
     const botaoLogout = document.getElementById("botaoLogout");
 
+    const userPanel = document.getElementById("userPanel");
+    const userEmail = document.getElementById("userEmail");
+    const logoutBtn = document.getElementById("logoutBtn");
+
     if (!user) {
         // ❌ NÃO LOGADO
-        mensagem.textContent = "Você precisa fazer login para alterar dados.";
-        botaoLogin.style.display = "inline-block";
-        botaoLogout.style.display = "none";
-        modal.style.display = "block";
+        if (modal) {
+            mensagem.textContent = "Você precisa fazer login para acessar.";
+            botaoLogin.style.display = "inline-block";
+            botaoLogout.style.display = "none";
+            modal.style.display = "block";
 
-        botaoLogin.onclick = () => {
-            window.location.href = "login.html";
-        };
+            botaoLogin.onclick = () => {
+                window.location.href = "login.html";
+            };
+        }
+
+        if (userPanel) {
+            userPanel.style.display = "none";
+        }
 
     } else {
         // ✅ LOGADO
-        mensagem.textContent = "Logado como: " + user.email;
-        botaoLogin.style.display = "none";
-        botaoLogout.style.display = "inline-block";
-        modal.style.display = "block";
+        if (modal) modal.style.display = "none";
 
-        botaoLogout.onclick = async () => {
-            await signOut(auth);
-            window.location.href = "login.html";
-        };
+        if (userPanel) {
+            userPanel.style.display = "flex";
+            userEmail.textContent = user.displayName || user.email;
+
+            logoutBtn.onclick = async () => {
+                await signOut(auth);
+                window.location.href = "login.html";
+            };
+        }
+
+        console.log("Logado como:", user.email);
     }
-});    
-
+});
     </script>
 </body>
 </html>
