@@ -1975,7 +1975,7 @@ const turmasRef = doc(db, 'turmas', 'principal');
       modal.style.display = "block";
 
       botaoLogin.onclick = () => {
-        window.location.href = "https://gibatdic.github.io/login/login.html";
+        window.location.href = "login.html";
       };
     } else {
       // Usuário logado
@@ -1987,7 +1987,7 @@ const turmasRef = doc(db, 'turmas', 'principal');
       botaoLogout.onclick = () => {
         localStorage.removeItem("usuarioAutenticado");
         localStorage.removeItem("emailUsuario");
-        window.location.href = "https://gibatdic.github.io/login/login.html";
+        window.location.href = "login.html";
       };
     }
   });    
