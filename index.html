@@ -1043,16 +1043,7 @@ button {
             <p>Visualize e gerencie suas aulas</p>
         </div>
        
-        <!-- Popup -->
-<div id="loginModal" class="modal">
-  <div class="modal-content">
-    <p id="mensagem"></p>
-    <button id="botaoLogin">Login</button>
-    <button id="botaoLogout" style="display:none;">Logout</button>
-  </div>
-</div>
-
-        <!-- Navegação entre Páginas -->
+              <!-- Navegação entre Páginas -->
         <div class="nav-tabs">
             <div class="nav-tab" onclick="location.href='planejamento.html'">📚 Planejamento</div>
             <div class="nav-tab" onclick="location.href='controlador.html'">✅ Controlador</div>
@@ -1963,48 +1954,23 @@ const turmasRef = doc(db, 'turmas', 'principal');
             icon.textContent = '►';
         }, 100);
      
- onAuthStateChanged(auth, (user) => {
-    const modal = document.getElementById("loginModal");
-    const mensagem = document.getElementById("mensagem");
-    const botaoLogin = document.getElementById("botaoLogin");
-    const botaoLogout = document.getElementById("botaoLogout");
-
+onAuthStateChanged(auth, (user) => {
     const userPanel = document.getElementById("userPanel");
     const userEmail = document.getElementById("userEmail");
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (!user) {
-        // ❌ NÃO LOGADO
-        if (modal) {
-            mensagem.textContent = "Você precisa fazer login para acessar.";
-            botaoLogin.style.display = "inline-block";
-            botaoLogout.style.display = "none";
-            modal.style.display = "block";
-
-            botaoLogin.onclick = () => {
-                window.location.href = "login.html";
-            };
-        }
-
-        if (userPanel) {
-            userPanel.style.display = "none";
-        }
-
+        // 🔒 Bloqueia acesso direto
+        window.location.href = "login.html";
     } else {
-        // ✅ LOGADO
-        if (modal) modal.style.display = "none";
+        // ✅ Libera sistema
+        userPanel.style.display = "flex";
+        userEmail.textContent = user.displayName || user.email;
 
-        if (userPanel) {
-            userPanel.style.display = "flex";
-            userEmail.textContent = user.displayName || user.email;
-
-            logoutBtn.onclick = async () => {
-                await signOut(auth);
-                window.location.href = "login.html";
-            };
-        }
-
-        console.log("Logado como:", user.email);
+        logoutBtn.onclick = async () => {
+            await signOut(auth);
+            window.location.href = "login.html";
+        };
     }
 });
     </script>
