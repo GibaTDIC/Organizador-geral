@@ -830,18 +830,7 @@
         document.getElementById('errorMessage').classList.remove('show');
         document.getElementById('successMessage').classList.remove('show');
     });
-        function autenticar() {
-    const email = document.getElementById("email").value; // pega o email digitado
-
-    // Aqui você faria a validação real (ex.: checar no banco)
-    if (email) {
-        localStorage.setItem("usuarioAutenticado", "true");
-        localStorage.setItem("emailUsuario", email); // salva o email no navegador
-        window.location.href = "index.html";
-    } else {
-        alert("Digite seu email e senha corretamente!");
-    }
-}
+       
 </script>
 </body>
 </html>
