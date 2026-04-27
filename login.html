@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gibabit · Login</title>
+    
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --slate-dark: #0f172a;
+            --slate-deep: #1e293b;
+            --slate-medium: #334155;
+            --slate-light: #475569;
+            --orange-vibrant: #f97316;
+            --orange-glow: #fb923c;
+            --orange-soft: #fed7aa;
+            --white-ice: #f1f5f9;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --glass-border-hover: rgba(249, 115, 22, 0.3);
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--slate-dark);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            color: var(--white-ice);
+        }
+
+        /* Fundo com padrão abstrato de bits/circuitos */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(249, 115, 22, 0.03) 0%, transparent 30%),
+                radial-gradient(circle at 80% 70%, rgba(249, 115, 22, 0.03) 0%, transparent 30%),
+                linear-gradient(90deg, rgba(249, 115, 22, 0.02) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(249, 115, 22, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px, 60px 60px, 40px 40px, 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Camada de ruído sutil */
+        body::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Elementos flutuantes de dados (bits) */
+        .data-particle {
+            position: absolute;
+            color: rgba(249, 115, 22, 0.1);
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: 600;
+            user-select: none;
+            pointer-events: none;
+            z-index: 0;
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Card principal com glassmorphism */
+        .glass-card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 440px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            padding: 48px 40px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(249, 115, 22, 0.1) inset,
+                0 0 40px rgba(249, 115, 22, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        .glass-card:hover {
+            border-color: var(--glass-border-hover);
+            box-shadow: 
+                0 30px 60px -12px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(249, 115, 22, 0.2) inset,
+                0 0 60px rgba(249, 115, 22, 0.1);
+            transform: translateY(-4px);
+        }
+
+        /* Logo Gibabit */
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-symbol {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 20px;
+            background: rgba(249, 115, 22, 0.1);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border: 2px solid rgba(249, 115, 22, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .logo-symbol::before {
+            content: 'G';
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--orange-vibrant);
+            text-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo-symbol::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 30%, rgba(249, 115, 22, 0.2), transparent 70%);
+            border-radius: inherit;
+        }
+
+        .logo-text {
+            font-size: 42px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .logo-text span {
+            background: linear-gradient(135deg, var(--orange-vibrant), var(--orange-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-tagline {
+            color: var(--slate-light);
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .logo-tagline .line {
+            width: 30px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--orange-vibrant), transparent);
+        }
+
+        /* Mensagens de feedback */
+        .message {
+            padding: 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-bottom: 24px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.show {
+            display: flex;
+        }
+
+        .message.error {
+            border-left-color: #ef4444;
+            color: #fecaca;
+        }
+
+        .message.success {
+            border-left-color: #22c55e;
+            color: #bbf7d0;
+        }
+
+        /* Input fields minimalistas */
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-label {
+            display: block;
+            color: var(--slate-light);
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            font-size: 16px;
+            color: var(--white-ice);
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .input-field:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(249, 115, 22, 0.3);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--orange-vibrant);
+            background: rgba(249, 115, 22, 0.02);
+            box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
+        }
+
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+            font-weight: 300;
+            font-size: 15px;
+        }
+
+        /* Opções do formulário */
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--orange-vibrant);
+            background: transparent;
+            border: 2px solid var(--slate-light);
+            border-radius: 4px;
+        }
+
+        .checkbox-wrapper label {
+            color: var(--slate-light);
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .checkbox-wrapper:hover label {
+            color: var(--white-ice);
+        }
+
+        .forgot-link {
+            color: var(--orange-vibrant);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid transparent;
+            padding-bottom: 2px;
+        }
+
+        .forgot-link:hover {
+            border-bottom-color: var(--orange-vibrant);
+            color: var(--orange-glow);
+        }
+
+        /* Botão principal brilhante */
+        .btn-primary {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--orange-vibrant), var(--orange-glow));
+            color: var(--slate-dark);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(249, 115, 22, 0.5);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+        }
+
+        /* Botão secundário (cadastro) */
+        .btn-secondary {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: 'Inter', sans-serif;
+            background: transparent;
+            color: var(--white-ice);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--orange-vibrant);
+            color: var(--orange-vibrant);
+            background: rgba(249, 115, 22, 0.02);
+            transform: translateY(-2px);
+        }
+
+        /* Botão Google */
+        .btn-google {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: 'Inter', sans-serif;
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--white-ice);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            margin-top: 12px;
+        }
+
+        .btn-google:hover {
+            border-color: var(--orange-vibrant);
+            background: rgba(249, 115, 22, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .btn-google i {
+            font-style: normal;
+            font-weight: 600;
+            color: var(--orange-vibrant);
+        }
+
+        /* Divisor */
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 24px 0;
+            color: var(--slate-light);
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .divider span {
+            padding: 0 16px;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Loading state */
+        .btn.loading {
+            color: transparent !important;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border: 3px solid;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .btn-primary.loading::after {
+            border-color: var(--slate-dark) transparent var(--slate-dark) var(--slate-dark);
+        }
+
+        .btn-secondary.loading::after,
+        .btn-google.loading::after {
+            border-color: var(--orange-vibrant) transparent var(--orange-vibrant) var(--orange-vibrant);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsividade */
+        @media (max-width: 480px) {
+            .glass-card {
+                padding: 32px 24px;
+                border-radius: 32px;
+            }
+
+            .logo-text {
+                font-size: 36px;
+            }
+
+            .logo-symbol {
+                width: 60px;
+                height: 60px;
+            }
+
+            .logo-symbol::before {
+                font-size: 36px;
+            }
+
+            .btn-primary {
+                padding: 16px;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .glass-card {
+                max-width: 480px;
+                padding: 56px 48px;
+            }
+        }
+
+        /* Efeito de brilho nos campos em foco */
+        .input-field:focus ~ .input-label {
+            color: var(--orange-vibrant);
+        }
+
+        /* Animações de entrada */
+        .glass-card {
+            animation: cardAppear 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Partículas de dados flutuantes -->
+    <div class="data-particle" style="top: 10%; left: 5%;">0101</div>
+    <div class="data-particle" style="top: 30%; left: 85%;">1010</div>
+    <div class="data-particle" style="top: 70%; left: 15%;">1100</div>
+    <div class="data-particle" style="top: 90%; left: 60%;">0011</div>
+    <div class="data-particle" style="top: 20%; left: 45%;">1001</div>
+    <div class="data-particle" style="top: 60%; left: 75%;">0110</div>
+
+    <!-- Card principal -->
+    <div class="glass-card">
+        <!-- Logo Gibabit -->
+        <div class="logo">
+            <div class="logo-symbol"></div>
+            <div class="logo-text">
+                Giba<span>bit</span>
+            </div>
+            <div class="logo-tagline">
+                <span class="line"></span>
+                IA · Educação · Futuro
+                <span class="line"></span>
+            </div>
+        </div>
+
+        <!-- Mensagens -->
+        <div id="errorMessage" class="message error">
+            <span>⚠️</span>
+            <span id="errorText"></span>
+        </div>
+
+        <div id="successMessage" class="message success">
+            <span>✓</span>
+            <span id="successText"></span>
+        </div>
+
+        <!-- Formulário -->
+        <div class="input-group">
+            <label class="input-label">Usuário / E-mail</label>
+            <input type="email" id="email" class="input-field" placeholder="giba@bit.education" autocomplete="email">
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Senha</label>
+            <input type="password" id="senha" class="input-field" placeholder="··········" autocomplete="current-password">
+        </div>
+
+        <div class="form-options">
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="remember" checked>
+                <label for="remember">Manter conectado</label>
+            </div>
+            <a href="#" onclick="recuperarSenha()" class="forgot-link">Esqueceu a senha?</a>
+        </div>
+
+        <button onclick="login()" class="btn-primary" id="btnLogin">
+            <span>→</span> Acessar plataforma
+        </button>
+
+        <button onclick="cadastrar()" class="btn-secondary" id="btnCadastrar">
+            <span>+</span> Criar nova conta
+        </button>
+
+        <div class="divider">
+            <span>ou</span>
+        </div>
+
+        <button onclick="loginGoogle()" class="btn-google" id="btnGoogle">
+            <i>G</i> Continuar com Google
+        </button>
+
+        <!-- Termos -->
+        <div style="margin-top: 32px; font-size: 12px; color: var(--slate-light); text-align: center;">
+            Ao acessar, você concorda com os<br>
+            <a href="#" style="color: var(--orange-vibrant); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.3s;" onmouseover="this.style.borderBottomColor='var(--orange-vibrant)'" onmouseout="this.style.borderBottomColor='transparent'">Termos de Serviço</a> e <a href="#" style="color: var(--orange-vibrant); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.3s;" onmouseover="this.style.borderBottomColor='var(--orange-vibrant)'" onmouseout="this.style.borderBottomColor='transparent'">Política de Privacidade</a>
+        </div>
+    </div>
+
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { 
+        getAuth, 
+        signInWithEmailAndPassword, 
+        createUserWithEmailAndPassword,
+        GoogleAuthProvider,
+        signInWithPopup,
+        onAuthStateChanged,
+        sendPasswordResetEmail
+    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+
+    // Configuração Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyBnwbnCSPLH8yjkYrgLgK5Q8g1Q8RoDz1s",
+        authDomain: "sistema-edf.firebaseapp.com",
+        databaseURL: "https://sistema-edf-default-rtdb.firebaseio.com",
+        projectId: "sistema-edf",
+        storageBucket: "sistema-edf.firebasestorage.app",
+        messagingSenderId: "1021164434404",
+        appId: "1:1021164434404:web:768123da370f7f56cc0df1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // UI Helpers
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        errorText.textContent = message;
+        errorDiv.classList.add('show');
+        document.getElementById('successMessage').classList.remove('show');
+        setTimeout(() => errorDiv.classList.remove('show'), 5000);
+    }
+
+    function showSuccess(message) {
+        const successDiv = document.getElementById('successMessage');
+        const successText = document.getElementById('successText');
+        successText.textContent = message;
+        successDiv.classList.add('show');
+        document.getElementById('errorMessage').classList.remove('show');
+        setTimeout(() => successDiv.classList.remove('show'), 3000);
+    }
+
+    function setLoading(buttonId, isLoading) {
+        const button = document.getElementById(buttonId);
+        if (isLoading) {
+            button.classList.add('loading');
+            button.disabled = true;
+        } else {
+            button.classList.remove('loading');
+            button.disabled = false;
+        }
+    }
+
+    // Auth state - Verifica se usuário já está logado
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Usuário já está logado, redireciona para index
+            console.log("Usuário já logado:", user.email);
+            window.location.replace("index.html");
+        }
+    });
+
+    // Função de Login
+    window.login = async function() {
+        const email = document.getElementById("email").value.trim();
+        const senha = document.getElementById("senha").value;
+
+        if (!email || !senha) {
+            showError('Preencha todos os campos');
+            return;
+        }
+
+        setLoading('btnLogin', true);
+
+        try {
+            await signInWithEmailAndPassword(auth, email, senha);
+            showSuccess('Login realizado! Redirecionando...');
+            setTimeout(() => {
+                window.location.replace("index.html");
+            }, 1500);
+        } catch (error) {
+            let msg = 'Erro: ';
+            switch(error.code) {
+                case 'auth/user-not-found': 
+                    msg += 'Usuário não encontrado'; 
+                    break;
+                case 'auth/wrong-password': 
+                    msg += 'Senha incorreta'; 
+                    break;
+                case 'auth/invalid-email': 
+                    msg += 'E-mail inválido'; 
+                    break;
+                case 'auth/invalid-credential':
+                    msg += 'Credenciais inválidas';
+                    break;
+                default: 
+                    msg += error.message;
+            }
+            showError(msg);
+            setLoading('btnLogin', false);
+        }
+    };
+
+    // Função de Cadastro
+    window.cadastrar = async function() {
+        const email = document.getElementById("email").value.trim();
+        const senha = document.getElementById("senha").value;
+
+        if (!email || !senha) {
+            showError('Preencha todos os campos');
+            return;
+        }
+
+        if (senha.length < 6) {
+            showError('Senha deve ter 6+ caracteres');
+            return;
+        }
+
+        setLoading('btnCadastrar', true);
+
+        try {
+            await createUserWithEmailAndPassword(auth, email, senha);
+            showSuccess('Conta criada! Redirecionando para login...');
+            setTimeout(() => {
+                window.location.replace("login.html");
+            }, 1500);
+        } catch (error) {
+            let msg = 'Erro: ';
+            switch(error.code) {
+                case 'auth/email-already-in-use': 
+                    msg += 'E-mail já cadastrado'; 
+                    break;
+                case 'auth/invalid-email': 
+                    msg += 'E-mail inválido'; 
+                    break;
+                case 'auth/weak-password': 
+                    msg += 'Senha muito fraca'; 
+                    break;
+                default: 
+                    msg += error.message;
+            }
+            showError(msg);
+            setLoading('btnCadastrar', false);
+        }
+    };
+
+    // Função de Login com Google
+    window.loginGoogle = async function() {
+        const provider = new GoogleAuthProvider();
+        setLoading('btnGoogle', true);
+
+        try {
+            await signInWithPopup(auth, provider);
+            showSuccess('Login Google OK! Redirecionando...');
+            setTimeout(() => {
+                window.location.replace("index.html");
+            }, 1500);
+        } catch (error) {
+            let msg = 'Erro: ';
+            if (error.code === 'auth/popup-closed-by-user') {
+                msg += 'Janela fechada';
+            } else if (error.code === 'auth/cancelled-popup-request') {
+                msg += 'Operação cancelada';
+            } else {
+                msg += error.message;
+            }
+            showError(msg);
+            setLoading('btnGoogle', false);
+        }
+    };
+
+    // Função de Recuperar Senha
+    window.recuperarSenha = async function() {
+        const email = document.getElementById("email").value.trim();
+        
+        if (!email) {
+            showError('Digite seu e-mail');
+            return;
+        }
+
+        setLoading('btnLogin', true);
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            showSuccess('E-mail de recuperação enviado!');
+            setLoading('btnLogin', false);
+        } catch (error) {
+            showError('Erro ao enviar recuperação');
+            setLoading('btnLogin', false);
+        }
+    };
+
+    // Event listener para tecla Enter
+    document.getElementById('senha').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            login();
+        }
+    });
+
+    // Limpar mensagens ao digitar
+    document.getElementById('email').addEventListener('input', function() {
+        document.getElementById('errorMessage').classList.remove('show');
+        document.getElementById('successMessage').classList.remove('show');
+    });
+
+    document.getElementById('senha').addEventListener('input', function() {
+        document.getElementById('errorMessage').classList.remove('show');
+        document.getElementById('successMessage').classList.remove('show');
+    });
+        function autenticar() {
+    const email = document.getElementById("email").value; // pega o email digitado
+
+    // Aqui você faria a validação real (ex.: checar no banco)
+    if (email) {
+        localStorage.setItem("usuarioAutenticado", "true");
+        localStorage.setItem("emailUsuario", email); // salva o email no navegador
+        window.location.href = "index.html";
+    } else {
+        alert("Digite seu email e senha corretamente!");
+    }
+}
+</script>
+</body>
+</html>
