@@ -1,4 +1,4 @@
-/* PROF+ — Base de tipografia/corpo compartilhada (deduplicada das 4 páginas) */
+/* Prof GB — Base de tipografia/corpo compartilhada (deduplicada das 4 páginas) */
 body {
   font-family: var(--pf-font-family);
   color: var(--pf-gray-900);

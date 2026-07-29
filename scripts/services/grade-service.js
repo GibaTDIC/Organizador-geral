@@ -1,4 +1,4 @@
-// PROF+ — Serviço da grade semanal (Programação Diária).
+// Prof GB — Serviço da grade semanal (Programação Diária).
 // Espelha 1:1 as chamadas que já existiam soltas em index.html contra o
 // documento grade/principal.
 import { db } from '../firebase-config.js';

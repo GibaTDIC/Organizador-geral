@@ -1,4 +1,4 @@
-// PROF+ — Registro central de módulos.
+// Prof GB — Registro central de módulos.
 // Usado pela pf-sidebar hoje e, futuramente, por uma Home GIBABIT que
 // precise listar os módulos disponíveis sem duplicar essa informação.
 // Caminhos são relativos a partir de dentro de modules/<algum-modulo>/.

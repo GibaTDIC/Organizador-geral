@@ -1,4 +1,4 @@
-// PROF+ — <pf-modal>. Wrapper genérico de modal (overlay + caixa central).
+// Prof GB — <pf-modal>. Wrapper genérico de modal (overlay + caixa central).
 // Usado nesta fase só no modal de configuração de bimestres da Programação
 // Diária — os modais do Controlador/Planejamento carregam lógica de
 // formulário própria e não são migrados agora.

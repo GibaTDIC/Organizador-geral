@@ -1,4 +1,4 @@
-// PROF+ — Dados fixos da BNCC (Educação Física) usados pelo módulo de Planejamento.
+// Prof GB — Dados fixos da BNCC (Educação Física) usados pelo módulo de Planejamento.
 // Extraído de dentro de planejamento.html, sem nenhuma alteração de conteúdo.
 
         // Mapeamento de unidades temáticas por ano/série

@@ -1,4 +1,4 @@
-// PROF+ — Serviço de autenticação. Espelha 1:1 as chamadas que já existiam
+// Prof GB — Serviço de autenticação. Espelha 1:1 as chamadas que já existiam
 // soltas em login.html, só centralizadas aqui.
 import { auth } from '../firebase-config.js';
 import {

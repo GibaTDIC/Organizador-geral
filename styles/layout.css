@@ -1,5 +1,5 @@
 /*
-  PROF+ — Layout base compartilhado: cabeçalho + menu lateral + área
+  Prof GB — Layout base compartilhado: cabeçalho + menu lateral + área
   principal. Substitui o cabeçalho e o .nav-tabs que cada página de
   módulo duplicava com sua própria marcação.
 */
@@ -71,7 +71,7 @@ pf-header {
     letter-spacing: -0.5px;
 }
 
-.pf-header__plus {
+.pf-header__accent {
     color: var(--pf-orange-500);
 }
 

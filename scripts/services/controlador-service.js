@@ -1,4 +1,4 @@
-// PROF+ — Serviço do documento do Controlador. Espelha 1:1 as chamadas que
+// Prof GB — Serviço do documento do Controlador. Espelha 1:1 as chamadas que
 // já existiam soltas em controlador.html contra o documento
 // controlador/principal. A lógica de reconciliação (sincronizarControlador,
 // com a correção de condição de corrida já aplicada) continua em

@@ -1,4 +1,4 @@
-// PROF+ — Serviço das turmas cadastradas. Espelha 1:1 as chamadas que já
+// Prof GB — Serviço das turmas cadastradas. Espelha 1:1 as chamadas que já
 // existiam soltas em index.html e controlador.html contra o documento
 // turmas/principal (fonte compartilhada entre os dois módulos).
 import { db } from '../firebase-config.js';

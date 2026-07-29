@@ -1,4 +1,4 @@
-// PROF+ — Inicialização única do Firebase.
+// Prof GB — Inicialização única do Firebase.
 // Antes cada página chamava initializeApp/getAuth/getFirestore com o mesmo
 // firebaseConfig copiado 4 vezes. Agora existe uma só fonte.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";

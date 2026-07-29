@@ -1,4 +1,4 @@
-// PROF+ — Componente de toast/mensagem.
+// Prof GB — Componente de toast/mensagem.
 // Substitui as 3 implementações quase idênticas de "mostrarMensagem" que
 // existiam soltas em index.html, controlador.html e planejamento.html.
 // Cada página mantém sua função mostrarMensagem(texto, tipo) como um

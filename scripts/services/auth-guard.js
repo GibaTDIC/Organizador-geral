@@ -1,4 +1,4 @@
-// PROF+ — Guarda de autenticação compartilhada.
+// Prof GB — Guarda de autenticação compartilhada.
 // Substitui o bloco de onAuthStateChanged duplicado em cada página de
 // módulo. Componentes de layout (pf-header/pf-sidebar) nunca chamam o
 // Firebase diretamente: só escutam 'pf-auth-ready' e disparam

@@ -1,4 +1,4 @@
-// PROF+ — Serviço das aulas planejadas. Espelha 1:1 as chamadas que já
+// Prof GB — Serviço das aulas planejadas. Espelha 1:1 as chamadas que já
 // existiam soltas em planejamento.html (CRUD completo) e controlador.html
 // (somente leitura) contra a coleção 'aulas'.
 import { db } from '../firebase-config.js';

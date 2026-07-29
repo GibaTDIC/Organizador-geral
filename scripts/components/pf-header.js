@@ -1,4 +1,4 @@
-// PROF+ — <pf-header>. Cabeçalho compartilhado: marca, usuário logado e
+// Prof GB — <pf-header>. Cabeçalho compartilhado: marca, usuário logado e
 // botão de sair. Nunca chama o Firebase diretamente — só escuta
 // 'pf-auth-ready' (disparado por auth-guard.js) e dispara
 // 'pf-logout-request' quando o usuário clica em Sair.
@@ -10,7 +10,7 @@ export class PfHeader extends HTMLElement {
                 <button class="pf-header__menu-toggle" type="button" aria-label="Abrir menu">☰</button>
                 <div class="pf-header__brand">
                     <span class="pf-header__mark">G</span>
-                    <span class="pf-header__wordmark">PROF<span class="pf-header__plus">+</span></span>
+                    <span class="pf-header__wordmark">Prof<span class="pf-header__accent">GB</span></span>
                 </div>
             </div>
             <a class="pf-header__login-link" href="../../login.html">🔑 Entrar</a>

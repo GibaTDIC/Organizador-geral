@@ -1,4 +1,4 @@
-// PROF+ — Serviço das configurações de bimestres (Programação Diária).
+// Prof GB — Serviço das configurações de bimestres (Programação Diária).
 // Espelha 1:1 as chamadas que já existiam soltas em index.html contra o
 // documento configuracoes/principal.
 import { db } from '../firebase-config.js';

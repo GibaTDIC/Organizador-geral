@@ -1,4 +1,4 @@
-// PROF+ — <pf-sidebar>. Menu lateral compartilhado, construído a partir do
+// Prof GB — <pf-sidebar>. Menu lateral compartilhado, construído a partir do
 // registro MODULES (scripts/utils/constants.js) — a mesma fonte que uma
 // futura Home GIBABIT poderia consumir. Uso: <pf-sidebar active="controlador">.
 import { MODULES } from '../utils/constants.js';
