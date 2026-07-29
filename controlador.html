@@ -833,7 +833,6 @@
                 <span id="userEmail" style="opacity:0.85;"></span>
                 <button id="logoutBtn" style="padding:6px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.3); background:transparent; color:inherit; cursor:pointer;">Sair</button>
             </div>
-            <a id="loginLink" href="login.html" style="display:none; align-items:center; justify-content:flex-end; gap:6px; margin-bottom:10px; font-size:14px; text-decoration:none; color:inherit; opacity:0.85;">🔑 Entrar</a>
             <h1>🏫 Controlador de Tarefas - Educação Física</h1>
             <p>Gerencie a execução das aulas por turma, acompanhe prazos e status</p>
         </div>
@@ -895,7 +894,7 @@
                         <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
                     </div>
                 </div>
-                <button class="btn-executar professor-only" id="btnIniciarAulaTopo" onclick="iniciarAulaSelecionada()" disabled>
+                <button class="btn-executar" id="btnIniciarAulaTopo" onclick="iniciarAulaSelecionada()" disabled>
                     <span class="btn-icon-large">▶️</span>
                     <span class="btn-text">Iniciar Aula</span>
                 </button>
@@ -924,7 +923,7 @@
                 <button class="btn btn-primary" onclick="aplicarFiltros()">🔍 Filtrar</button>
                 <button class="btn btn-warning" onclick="limparFiltros()">🗑️ Limpar</button>
             </div>
-            <button class="btn btn-info professor-only" onclick="atualizarDados()">🔄 Atualizar</button>
+            <button class="btn btn-info" onclick="atualizarDados()">🔄 Atualizar</button>
         </div>
 
         <!-- Tabela de Aulas -->
@@ -1084,7 +1083,6 @@ const turmasRef = doc(db, 'turmas', 'principal'); // mesmo documento usado na Pr
         let aulaAtualId = null;
         let statusAtual = 'todos';
         let atualizandoControlador = false;
-        let modoVisitante = false;
 
         // Cache de descrições para acesso rápido
         const descricoesCache = new Map();
@@ -1185,30 +1183,6 @@ const turmasRef = doc(db, 'turmas', 'principal'); // mesmo documento usado na Pr
                     turmasAtuais = data.lista;
                 }
                 sincronizarControlador();
-            });
-        }
-
-        // Modo visitante: apenas escuta o documento já sincronizado pelo professor,
-        // sem rodar getDoc/setDoc (que seriam bloqueados pelas regras do Firestore).
-        function carregarControladorSomenteLeitura() {
-            onSnapshot(controladorRef, (docSnap) => {
-                const data = docSnap.exists() ? docSnap.data() : null;
-                aulasControlador = data?.aulas || [];
-
-                if (data && data.aulaAtualId) {
-                    aulaAtualId = data.aulaAtualId;
-                    aulaSelecionada = aulasControlador.find(a => a.id === aulaAtualId);
-                }
-
-                aulasFiltradas = [...aulasControlador];
-                atualizarInterface();
-            });
-        }
-
-        // Mostra/esconde os controles de edição (botões, formulários) conforme o modo atual.
-        function aplicarModoVisitanteUI() {
-            document.querySelectorAll('.professor-only').forEach(el => {
-                el.style.display = modoVisitante ? 'none' : '';
             });
         }
 
@@ -1540,10 +1514,8 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
                     currentLesson.classList.remove('highlight');
                 }, 2000);
                 
-                // Salvar no Firebase (só professor logado — visitante apenas navega localmente)
-                if (!modoVisitante) {
-                    salvarControladorNoFirebase();
-                }
+                // Salvar no Firebase
+                salvarControladorNoFirebase();
             }
         };
 
@@ -1700,7 +1672,7 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
                         <td class="data-cell">${formatarData(aula.prazo)}</td>
                         <td class="acoes-cell" onclick="event.stopPropagation();">
                             <button class="btn-icon btn-view" onclick="visualizarAula('${aula.id}')" title="Visualizar descrição completa">👁️</button>
-                            ${modoVisitante ? '' : `<button class="btn-icon btn-edit" onclick="editarAula('${aula.id}')" title="Editar">✏️</button>`}
+                            <button class="btn-icon btn-edit" onclick="editarAula('${aula.id}')" title="Editar">✏️</button>
                         </td>
                     </tr>
                 `;
@@ -1894,34 +1866,25 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
             }, timeout);
         }
 
-        // Professores logados têm acesso completo; visitantes sem conta veem tudo
-        // em modo somente-leitura, sem nenhum controle de edição.
+        // 🔒 Exige login para acessar esta página
         onAuthStateChanged(auth, (user) => {
             const userPanel = document.getElementById("userPanel");
             const userEmail = document.getElementById("userEmail");
             const logoutBtn = document.getElementById("logoutBtn");
-            const loginLink = document.getElementById("loginLink");
 
             if (!user) {
-                modoVisitante = true;
-                userPanel.style.display = "none";
-                loginLink.style.display = "flex";
-                aplicarModoVisitanteUI();
-                carregarControladorSomenteLeitura();
+                window.location.href = "login.html";
                 return;
             }
 
-            modoVisitante = false;
             userPanel.style.display = "flex";
-            loginLink.style.display = "none";
             userEmail.textContent = user.displayName || user.email;
             logoutBtn.onclick = async () => {
                 await signOut(auth);
                 window.location.href = "login.html";
             };
-            aplicarModoVisitanteUI();
 
-            // Só sincroniza (leitura + escrita) depois de confirmar que é professor logado
+            // Só carrega os dados depois de confirmar que o professor está logado
             carregarDadosFirebase();
             carregarTurmasFirebase();
         });

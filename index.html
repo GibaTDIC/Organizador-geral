@@ -1039,7 +1039,6 @@ button {
   <span id="userEmail" style="opacity:0.85;"></span>
   <button id="logoutBtn" style="padding:6px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.3); background:transparent; color:inherit; cursor:pointer;">Sair</button>
 </div>
-<a id="loginLink" href="login.html" style="display:none; align-items:center; justify-content:flex-end; gap:6px; margin-bottom:10px; font-size:14px; text-decoration:none; color:inherit; opacity:0.85;">🔑 Entrar</a>
             <h1>📅 Programação Diária - Educação Física</h1>
             <p>Visualize e gerencie suas aulas</p>
         </div>
@@ -1092,7 +1091,7 @@ button {
         </div>
 
         <!-- Modo de Edição -->
-        <div class="modo-edicao-bar professor-only">
+        <div class="modo-edicao-bar">
             <span class="modo-edicao-title">✋ Modo de Edição:</span>
             <div class="modo-edicao-buttons">
                 <button class="btn btn-primary" onclick="habilitarArrastar()" id="btnArrastar">Ativar Arrastar</button>
@@ -1102,7 +1101,7 @@ button {
         </div>
 
         <!-- Gerenciamento de Turmas - Lista Suspensa -->
-        <div class="turmas-management professor-only" id="turmasManagement">
+        <div class="turmas-management" id="turmasManagement">
             <div class="turmas-header" onclick="toggleTurmasLista()">
                 <h3>
                     <span>📋 Gerenciar Turmas</span>
@@ -1134,7 +1133,7 @@ button {
         <div class="info-compact">
             <div class="info-compact-header">
                 <h3>📌 Bimestres e Unidades Temáticas</h3>
-                <button class="btn btn-primary professor-only" onclick="abrirConfigModal()">⚙️ Configurar</button>
+                <button class="btn btn-primary" onclick="abrirConfigModal()">⚙️ Configurar</button>
             </div>
             <div class="bimestres-compact" id="bimestresCompact">
                 <!-- Renderizado via JavaScript -->
@@ -1200,7 +1199,6 @@ const turmasRef = doc(db, 'turmas', 'principal');
         let itemArrastando = null;
         let gradeHorarios = null;
         let turmas = [];
-        let modoVisitante = false;
 
         // Itens especiais fixos (não podem ser removidos)
         const itensEspeciaisFixos = [
@@ -1930,13 +1928,6 @@ const turmasRef = doc(db, 'turmas', 'principal');
     }
 };
 
-        // Mostra/esconde os controles de edição (botões, formulários) conforme o modo atual.
-        function aplicarModoVisitanteUI() {
-            document.querySelectorAll('.professor-only').forEach(el => {
-                el.style.display = modoVisitante ? 'none' : '';
-            });
-        }
-
         // Mostrar mensagem
         function mostrarMensagem(texto, tipo) {
             const mensagemDiv = document.createElement('div');
@@ -1967,21 +1958,14 @@ onAuthStateChanged(auth, (user) => {
     const userPanel = document.getElementById("userPanel");
     const userEmail = document.getElementById("userEmail");
     const logoutBtn = document.getElementById("logoutBtn");
-    const loginLink = document.getElementById("loginLink");
 
     if (!user) {
-        // Visitante sem conta: mantém a página em modo somente-leitura
-        modoVisitante = true;
-        userPanel.style.display = "none";
-        loginLink.style.display = "flex";
-        aplicarModoVisitanteUI();
+        // 🔒 Bloqueia acesso direto
+        window.location.href = "login.html";
     } else {
-        // Professor logado: libera edição
-        modoVisitante = false;
+        // ✅ Libera sistema
         userPanel.style.display = "flex";
-        loginLink.style.display = "none";
         userEmail.textContent = user.displayName || user.email;
-        aplicarModoVisitanteUI();
 
         logoutBtn.onclick = async () => {
             await signOut(auth);
