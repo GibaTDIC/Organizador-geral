@@ -1,0 +1,39 @@
+/*
+  PROF+ — pf-btn. Componente de botão reutilizável para uso em elementos
+  novos (layout, futuros módulos). Não substitui os botões já existentes
+  em index.html/controlador.html/planejamento.html: cada arquivo usa
+  ".btn"/".btn-primary" com cores diferentes entre si (verde num, dois
+  azuis diferentes nos outros dois), então unificar essas classes in-place
+  mudaria a cor de botões existentes sem necessidade. O pf-btn fica
+  disponível como padrão daqui pra frente sem repintar o que já funciona.
+*/
+.pf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pf-space-2);
+    padding: var(--pf-space-2) var(--pf-space-4);
+    border: none;
+    border-radius: var(--pf-radius-md);
+    font-family: var(--pf-font-family);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pf-btn:hover {
+    transform: translateY(-1px);
+}
+
+.pf-btn--primary { background: var(--pf-blue-700); color: var(--pf-white); }
+.pf-btn--primary:hover { background: var(--pf-blue-500); }
+
+.pf-btn--success { background: var(--pf-success); color: var(--pf-white); }
+.pf-btn--danger { background: var(--pf-danger); color: var(--pf-white); }
+.pf-btn--info { background: var(--pf-info); color: var(--pf-white); }
+.pf-btn--warning { background: var(--pf-warning); color: var(--pf-gray-900); }
+
+.pf-btn--secondary {
+    background: transparent;
+    color: var(--pf-gray-700);
+    border: 1px solid var(--pf-gray-300);
+}

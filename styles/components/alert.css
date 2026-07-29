@@ -1,0 +1,29 @@
+/*
+  PROF+ — pf-alert (toast). Unifica as 3 implementações de "mostrarMensagem"
+  que existiam soltas em index.html/controlador.html/planejamento.html
+  (cada uma com posição e cores levemente diferentes) num visual único.
+*/
+.pf-alert {
+    position: fixed;
+    top: var(--pf-space-4);
+    right: var(--pf-space-4);
+    z-index: 2000;
+    padding: var(--pf-space-3) var(--pf-space-4);
+    border-radius: var(--pf-radius-md);
+    color: var(--pf-white);
+    font-weight: 500;
+    box-shadow: var(--pf-shadow-md);
+    max-width: 400px;
+    line-height: 1.5;
+    animation: pf-alert-slide-in 0.3s ease;
+}
+
+.pf-alert--success { background: var(--pf-success); }
+.pf-alert--error { background: var(--pf-danger); }
+.pf-alert--info { background: var(--pf-info); }
+.pf-alert--warning { background: var(--pf-warning); color: var(--pf-gray-900); }
+
+@keyframes pf-alert-slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

@@ -1,0 +1,51 @@
+/*
+  PROF+ — pf-modal. Chrome visual compartilhado para modais.
+  Usado pelo componente <pf-modal> (Fase 4, só no modal de configuração de
+  bimestres da Programação Diária) e disponível como referência de tokens
+  para os modais bespoke do Controlador/Planejamento, que não são
+  reescritos nesta fase.
+*/
+.pf-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: var(--pf-space-3);
+}
+
+.pf-modal-overlay.pf-modal--open {
+    display: flex;
+}
+
+.pf-modal {
+    background: var(--pf-white);
+    border-radius: var(--pf-radius-lg);
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.pf-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--pf-space-4);
+    background: var(--pf-blue-700);
+    color: var(--pf-white);
+}
+
+.pf-modal-body {
+    padding: var(--pf-space-4);
+}
+
+.pf-modal-footer {
+    display: flex;
+    gap: var(--pf-space-2);
+    justify-content: flex-end;
+    padding: var(--pf-space-4);
+    border-top: 1px solid var(--pf-gray-200);
+}

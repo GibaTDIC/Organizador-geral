@@ -1,0 +1,183 @@
+/*
+  PROF+ — Layout base compartilhado: cabeçalho + menu lateral + área
+  principal. Substitui o cabeçalho e o .nav-tabs que cada página de
+  módulo duplicava com sua própria marcação.
+*/
+.pf-app-shell {
+    display: grid;
+    grid-template-columns: var(--pf-sidebar-width) 1fr;
+    grid-template-rows: var(--pf-header-height) 1fr;
+    grid-template-areas:
+        "sidebar header"
+        "sidebar main";
+    min-height: 100vh;
+}
+
+.pf-app-main {
+    grid-area: main;
+    overflow-y: auto;
+    padding: var(--pf-space-4);
+}
+
+/* Cabeçalho */
+pf-header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--pf-space-4);
+    background: var(--pf-slate-900);
+    color: var(--pf-ice-50);
+}
+
+.pf-header__left {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-space-3);
+}
+
+.pf-header__menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--pf-ice-50);
+    font-size: 20px;
+    cursor: pointer;
+    padding: var(--pf-space-2);
+}
+
+.pf-header__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-space-2);
+}
+
+.pf-header__mark {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--pf-radius-md);
+    background: rgba(249, 115, 22, 0.1);
+    border: 2px solid rgba(249, 115, 22, 0.3);
+    color: var(--pf-orange-500);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pf-header__wordmark {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+}
+
+.pf-header__plus {
+    color: var(--pf-orange-500);
+}
+
+.pf-header__login-link {
+    color: var(--pf-orange-500);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.pf-header__login-link:hover {
+    text-decoration: underline;
+}
+
+.pf-header__user {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-space-3);
+    font-size: 14px;
+}
+
+.pf-header__email {
+    opacity: 0.85;
+}
+
+.pf-header__logout {
+    padding: var(--pf-space-2) var(--pf-space-3);
+    border-radius: var(--pf-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-family: var(--pf-font-family);
+}
+
+/* Menu lateral */
+pf-sidebar {
+    grid-area: sidebar;
+    background: var(--pf-slate-800);
+    overflow-y: auto;
+}
+
+.pf-sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    padding: var(--pf-space-3);
+    gap: var(--pf-space-1);
+}
+
+.pf-sidebar__link {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-space-3);
+    padding: var(--pf-space-3);
+    border-radius: var(--pf-radius-md);
+    color: var(--pf-gray-300);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.pf-sidebar__link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--pf-ice-50);
+}
+
+.pf-sidebar__link--active {
+    background: rgba(249, 115, 22, 0.15);
+    color: var(--pf-orange-400);
+}
+
+.pf-sidebar__link--planned {
+    opacity: 0.5;
+}
+
+.pf-sidebar__icon {
+    font-size: 16px;
+}
+
+/* Responsivo: menu lateral vira gaveta em telas estreitas */
+@media (max-width: 900px) {
+    .pf-app-shell {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "header"
+            "main";
+    }
+
+    .pf-header__menu-toggle {
+        display: block;
+    }
+
+    pf-sidebar {
+        position: fixed;
+        top: var(--pf-header-height);
+        left: 0;
+        bottom: 0;
+        width: var(--pf-sidebar-width);
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 999;
+        box-shadow: var(--pf-shadow-md);
+    }
+
+    pf-sidebar.pf-sidebar--open {
+        transform: translateX(0);
+    }
+}

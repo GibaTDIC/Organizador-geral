@@ -1,0 +1,62 @@
+/*
+  PROF+ — Tokens de design.
+  Reconcilia a paleta já existente em login.html (slate/laranja) com os
+  hex fixos repetidos nas outras páginas (azul de cabeçalho, cores de
+  status, cores categóricas dos bimestres). Nenhuma cor nova é inventada.
+*/
+:root {
+  /* Marca — vem de login.html, agora canônica */
+  --pf-slate-900: #0f172a;
+  --pf-slate-800: #1e293b;
+  --pf-slate-700: #334155;
+  --pf-slate-600: #475569;
+  --pf-orange-500: #f97316;
+  --pf-orange-400: #fb923c;
+  --pf-orange-100: #fed7aa;
+  --pf-ice-50: #f1f5f9;
+
+  /* Acento secundário — o azul já dominante nos cabeçalhos das 3 páginas */
+  --pf-blue-700: #1e3c72;
+  --pf-blue-500: #2a5298;
+
+  /* Neutros */
+  --pf-gray-900: #333333;
+  --pf-gray-700: #495057;
+  --pf-gray-500: #6c757d;
+  --pf-gray-300: #dee2e6;
+  --pf-gray-200: #e9ecef;
+  --pf-gray-100: #f8f9fa;
+  --pf-white: #ffffff;
+
+  /* Status semântico */
+  --pf-success: #28a745;
+  --pf-danger: #dc3545;
+  --pf-info: #17a2b8;
+  --pf-warning: #ffc107;
+
+  /* Categórico (abas de bimestre) — dado, não status */
+  --pf-bimestre-1: #E63946;
+  --pf-bimestre-2: #2A9D8F;
+  --pf-bimestre-3: #E9C46A;
+  --pf-bimestre-4: #9C89B8;
+
+  --pf-font-family: 'Segoe UI', 'Inter', Tahoma, Geneva, Verdana, sans-serif;
+
+  --pf-space-1: 4px;
+  --pf-space-2: 8px;
+  --pf-space-3: 12px;
+  --pf-space-4: 16px;
+  --pf-space-6: 24px;
+  --pf-space-8: 32px;
+
+  --pf-radius-sm: 4px;
+  --pf-radius-md: 8px;
+  --pf-radius-lg: 12px;
+
+  --pf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --pf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  --pf-header-height: 60px;
+  --pf-sidebar-width: 240px;
+  --pf-sidebar-width-collapsed: 64px;
+}

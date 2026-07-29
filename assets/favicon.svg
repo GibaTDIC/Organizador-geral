@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- PROF+ favicon: transcrição do símbolo "G" já desenhado em CSS em login.html (.logo-symbol) -->
+  <rect width="64" height="64" rx="20" fill="#0f172a"/>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="none" stroke="#f97316" stroke-opacity="0.35" stroke-width="2"/>
+  <text x="32" y="45" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="700"
+        fill="#f97316" text-anchor="middle">G</text>
+</svg>

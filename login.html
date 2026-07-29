@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gibabit · Login</title>
-    
+    <title>PROF+ · Login</title>
+    <meta name="description" content="PROF+ — assistente inteligente para planejamento e organização do trabalho docente.">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
     <!-- Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -556,11 +558,11 @@
         <div class="logo">
             <div class="logo-symbol"></div>
             <div class="logo-text">
-                Giba<span>bit</span>
+                PROF<span>+</span>
             </div>
             <div class="logo-tagline">
                 <span class="line"></span>
-                IA · Educação · Futuro
+                por Gibabit · IA · Educação
                 <span class="line"></span>
             </div>
         </div>
@@ -619,31 +621,14 @@
     </div>
 
     <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    import { 
-        getAuth, 
-        signInWithEmailAndPassword, 
-        createUserWithEmailAndPassword,
-        GoogleAuthProvider,
-        signInWithPopup,
-        onAuthStateChanged,
-        sendPasswordResetEmail,
-        signOut
-    } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-
-    // Configuração Firebase
-    const firebaseConfig = {
-        apiKey: "AIzaSyBnwbnCSPLH8yjkYrgLgK5Q8g1Q8RoDz1s",
-        authDomain: "sistema-edf.firebaseapp.com",
-        databaseURL: "https://sistema-edf-default-rtdb.firebaseio.com",
-        projectId: "sistema-edf",
-        storageBucket: "sistema-edf.firebasestorage.app",
-        messagingSenderId: "1021164434404",
-        appId: "1:1021164434404:web:768123da370f7f56cc0df1"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    import {
+        entrarComEmailSenha,
+        criarContaComEmailSenha,
+        entrarComGoogle,
+        enviarEmailRecuperacaoSenha,
+        sair,
+        observarEstadoAuth
+    } from "./scripts/services/auth-service.js";
 
     // UI Helpers
     function showError(message) {
@@ -676,7 +661,7 @@
     }
 
     // Auth state - Verifica se usuário já está logado
-    onAuthStateChanged(auth, (user) => {
+    observarEstadoAuth((user) => {
         if (user) {
             // Usuário já está logado, redireciona para index
             console.log("Usuário já logado:", user.email);
@@ -697,7 +682,7 @@
         setLoading('btnLogin', true);
 
         try {
-            await signInWithEmailAndPassword(auth, email, senha);
+            await entrarComEmailSenha(email, senha);
             showSuccess('Login realizado! Redirecionando...');
             setTimeout(() => {
                 window.location.replace("index.html");
@@ -743,10 +728,10 @@
         setLoading('btnCadastrar', true);
 
         try {
-            await createUserWithEmailAndPassword(auth, email, senha);
-            // createUserWithEmailAndPassword já efetua login automaticamente;
+            await criarContaComEmailSenha(email, senha);
+            // criarContaComEmailSenha já efetua login automaticamente;
             // desloga para que o professor volte à tela de login e entre com a senha recém-criada.
-            await signOut(auth);
+            await sair();
             showSuccess('Conta criada! Redirecionando para login...');
             setTimeout(() => {
                 window.location.replace("login.html");
@@ -773,11 +758,10 @@
 
     // Função de Login com Google
     window.loginGoogle = async function() {
-        const provider = new GoogleAuthProvider();
         setLoading('btnGoogle', true);
 
         try {
-            await signInWithPopup(auth, provider);
+            await entrarComGoogle();
             showSuccess('Login Google OK! Redirecionando...');
             setTimeout(() => {
                 window.location.replace("index.html");
@@ -808,7 +792,7 @@
         setLoading('btnLogin', true);
 
         try {
-            await sendPasswordResetEmail(auth, email);
+            await enviarEmailRecuperacaoSenha(email);
             showSuccess('Se este e-mail estiver cadastrado, um link de recuperação foi enviado. Verifique também a caixa de spam.');
             setLoading('btnLogin', false);
         } catch (error) {

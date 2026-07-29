@@ -1,0 +1,11 @@
+/* PROF+ — pf-card. Contêiner reutilizável para painéis/cartões. */
+.pf-card {
+    background: var(--pf-white);
+    border-radius: var(--pf-radius-lg);
+    padding: var(--pf-space-4);
+    box-shadow: var(--pf-shadow-sm);
+}
+
+.pf-card--elevated {
+    box-shadow: var(--pf-shadow-md);
+}
