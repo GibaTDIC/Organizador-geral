@@ -627,7 +627,8 @@
         GoogleAuthProvider,
         signInWithPopup,
         onAuthStateChanged,
-        sendPasswordResetEmail
+        sendPasswordResetEmail,
+        signOut
     } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
     // Configuração Firebase
@@ -743,6 +744,9 @@
 
         try {
             await createUserWithEmailAndPassword(auth, email, senha);
+            // createUserWithEmailAndPassword já efetua login automaticamente;
+            // desloga para que o professor volte à tela de login e entre com a senha recém-criada.
+            await signOut(auth);
             showSuccess('Conta criada! Redirecionando para login...');
             setTimeout(() => {
                 window.location.replace("login.html");
@@ -805,10 +809,25 @@
 
         try {
             await sendPasswordResetEmail(auth, email);
-            showSuccess('E-mail de recuperação enviado!');
+            showSuccess('Se este e-mail estiver cadastrado, um link de recuperação foi enviado. Verifique também a caixa de spam.');
             setLoading('btnLogin', false);
         } catch (error) {
-            showError('Erro ao enviar recuperação');
+            let msg = 'Erro ao enviar recuperação: ';
+            switch (error.code) {
+                case 'auth/invalid-email':
+                    msg += 'e-mail inválido';
+                    break;
+                case 'auth/too-many-requests':
+                    msg += 'muitas tentativas, aguarde alguns minutos';
+                    break;
+                case 'auth/missing-email':
+                    msg += 'digite um e-mail';
+                    break;
+                default:
+                    msg += error.message;
+            }
+            console.error('recuperarSenha:', error.code, error.message);
+            showError(msg);
             setLoading('btnLogin', false);
         }
     };

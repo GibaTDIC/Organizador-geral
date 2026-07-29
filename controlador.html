@@ -829,6 +829,11 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
+            <div id="userPanel" style="display:none; align-items:center; justify-content:flex-end; gap:12px; margin-bottom:10px; font-size:14px;">
+                <span id="userEmail" style="opacity:0.85;"></span>
+                <button id="logoutBtn" style="padding:6px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.3); background:transparent; color:inherit; cursor:pointer;">Sair</button>
+            </div>
+            <a id="loginLink" href="login.html" style="display:none; align-items:center; justify-content:flex-end; gap:6px; margin-bottom:10px; font-size:14px; text-decoration:none; color:inherit; opacity:0.85;">🔑 Entrar</a>
             <h1>🏫 Controlador de Tarefas - Educação Física</h1>
             <p>Gerencie a execução das aulas por turma, acompanhe prazos e status</p>
         </div>
@@ -890,7 +895,7 @@
                         <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
                     </div>
                 </div>
-                <button class="btn-executar" id="btnIniciarAulaTopo" onclick="iniciarAulaSelecionada()" disabled>
+                <button class="btn-executar professor-only" id="btnIniciarAulaTopo" onclick="iniciarAulaSelecionada()" disabled>
                     <span class="btn-icon-large">▶️</span>
                     <span class="btn-text">Iniciar Aula</span>
                 </button>
@@ -919,7 +924,7 @@
                 <button class="btn btn-primary" onclick="aplicarFiltros()">🔍 Filtrar</button>
                 <button class="btn btn-warning" onclick="limparFiltros()">🗑️ Limpar</button>
             </div>
-            <button class="btn btn-info" onclick="atualizarDados()">🔄 Atualizar</button>
+            <button class="btn btn-info professor-only" onclick="atualizarDados()">🔄 Atualizar</button>
         </div>
 
         <!-- Tabela de Aulas -->
@@ -1048,6 +1053,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
 import { getFirestore, collection, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
 // Configuração
 const firebaseConfig = {
@@ -1064,10 +1070,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 // 🔗 Referências Firestore
 const aulasRef = collection(db, 'aulas');
 const controladorRef = doc(db, 'controlador', 'principal');
+const turmasRef = doc(db, 'turmas', 'principal'); // mesmo documento usado na Programação Diária
         // Estado da aplicação
         let aulasFirebase = [];
         let aulasControlador = [];
@@ -1076,15 +1084,15 @@ const controladorRef = doc(db, 'controlador', 'principal');
         let aulaAtualId = null;
         let statusAtual = 'todos';
         let atualizandoControlador = false;
+        let modoVisitante = false;
 
         // Cache de descrições para acesso rápido
         const descricoesCache = new Map();
 
-        // Lista de todas as turmas de 6º ano (10 turmas)
-        const TURMAS_SEXTO_ANO = [
-            '6ºA', '6ºB', '6ºC', '6ºD', '6ºE', 
-            '6ºF', '6ºG', '6ºH', '6ºI', '6ºJ'
-        ];
+        // Turmas cadastradas pelo professor. Começa com um padrão e é
+        // atualizada em tempo real a partir do Firestore (mesma fonte do
+        // index.html), então turmas novas/removidas aparecem aqui também.
+        let turmasAtuais = ["6º A","6º B","6º C","6º D","6º E","6º F","6º G","6º H","6º I","6º J"];
 
         // Função para gerar ID único para cada aula/turma
         function gerarIdUnico(tituloAula, turma, index) {
@@ -1108,7 +1116,7 @@ const controladorRef = doc(db, 'controlador', 'principal');
             // Para cada aula base
             aulasBase.forEach((aulaBase, indexAula) => {
                 // Criar uma entrada para CADA turma
-                TURMAS_SEXTO_ANO.forEach((turma) => {
+                turmasAtuais.forEach((turma) => {
                     // Calcular data de início baseada no índice da aula (espaçada em dias)
                     const dataInicio = new Date();
                     dataInicio.setDate(dataInicio.getDate() + (indexAula * 3)); // Espaço de 3 dias entre aulas
@@ -1140,45 +1148,89 @@ const controladorRef = doc(db, 'controlador', 'principal');
                 });
             });
             
-            console.log(`Total de aulas distribuídas: ${todasAulasDistribuidas.length} (${aulasBase.length} aulas × ${TURMAS_SEXTO_ANO.length} turmas)`);
+            console.log(`Total de aulas distribuídas: ${todasAulasDistribuidas.length} (${aulasBase.length} aulas × ${turmasAtuais.length} turmas)`);
             return todasAulasDistribuidas;
         }
 
        // Carregar dados do Firebase
+        // Carrega as aulas cadastradas no Planejamento (coleção 'aulas') em tempo real.
+        // Sempre que uma aula é criada, editada ou excluída lá, o Controlador é ressincronizado aqui.
         function carregarDadosFirebase() {
-    onSnapshot(controladorRef, async (docSnap) => {
+            onSnapshot(aulasRef, (snapshot) => {
+                aulasFirebase = snapshot.docs.map(docSnap => {
+                    const data = docSnap.data();
 
-    if (atualizandoControlador) return;
-        aulasFirebase = snapshot.docs.map(docSnap => {
-            const data = docSnap.data();
+                    if (data.descricao) {
+                        descricoesCache.set(docSnap.id, data.descricao);
+                    }
 
-            if (data.descricao) {
-                descricoesCache.set(docSnap.id, data.descricao);
-            }
+                    return {
+                        id: docSnap.id,
+                        ...data
+                    };
+                });
 
-            return {
-                id: docSnap.id,
-                ...data
-            };
-        });
+                console.log('Aulas carregadas do Firestore:', aulasFirebase.length);
 
-        console.log('Aulas carregadas do Firestore:', aulasFirebase.length);
+                sincronizarControlador();
+            });
+        }
 
-        carregarControladorFirebase();
-    });
-}
+        // Escuta as turmas cadastradas (mesma fonte do index.html) e ressincroniza
+        // o Controlador sempre que uma turma for adicionada ou removida.
+        function carregarTurmasFirebase() {
+            onSnapshot(turmasRef, (docSnap) => {
+                const data = docSnap.data();
+                if (data && data.lista && data.lista.length) {
+                    turmasAtuais = data.lista;
+                }
+                sincronizarControlador();
+            });
+        }
 
-        // Carregar controlador do Firebase
-        function carregarControladorFirebase() {
-    onSnapshot(controladorRef, async (docSnap) => {
-        const data = docSnap.data();
+        // Modo visitante: apenas escuta o documento já sincronizado pelo professor,
+        // sem rodar getDoc/setDoc (que seriam bloqueados pelas regras do Firestore).
+        function carregarControladorSomenteLeitura() {
+            onSnapshot(controladorRef, (docSnap) => {
+                const data = docSnap.exists() ? docSnap.data() : null;
+                aulasControlador = data?.aulas || [];
+
+                if (data && data.aulaAtualId) {
+                    aulaAtualId = data.aulaAtualId;
+                    aulaSelecionada = aulasControlador.find(a => a.id === aulaAtualId);
+                }
+
+                aulasFiltradas = [...aulasControlador];
+                atualizarInterface();
+            });
+        }
+
+        // Mostra/esconde os controles de edição (botões, formulários) conforme o modo atual.
+        function aplicarModoVisitanteUI() {
+            document.querySelectorAll('.professor-only').forEach(el => {
+                el.style.display = modoVisitante ? 'none' : '';
+            });
+        }
+
+        // Recalcula a lista do Controlador (uma entrada por aula x turma) e salva
+        // no Firestore só quando algo realmente muda. Usa leitura única (getDoc) em vez
+        // de abrir um novo listener a cada chamada, evitando acúmulo de assinaturas.
+        async function sincronizarControlador() {
+            if (atualizandoControlador) return;
+            if (aulasFirebase.length === 0 && turmasAtuais.length === 0) return;
+
+            atualizandoControlador = true;
+            try {
+
+            const docSnap = await getDoc(controladorRef);
+            const data = docSnap.exists() ? docSnap.data() : null;
 
         let controladorBanco = data?.aulas || [];
         let alterou = false;
 
         aulasFirebase.forEach((aulaBase, indexAula) => {
 
-            TURMAS_SEXTO_ANO.forEach((turma) => {
+            turmasAtuais.forEach((turma) => {
 
                 const jaExiste = controladorBanco.find(a =>
                     a.firebaseId === aulaBase.id && a.turma === turma
@@ -1230,15 +1282,11 @@ const controladorRef = doc(db, 'controlador', 'principal');
         }
 
         if (alterou) {
-    atualizandoControlador = true;
-
     await setDoc(controladorRef, {
         aulas: controladorBanco,
         aulaAtualId: data?.aulaAtualId || null,
         ultimaAtualizacao: new Date().toISOString()
     });
-
-    atualizandoControlador = false;
 }
 
         aulasControlador = controladorBanco;
@@ -1250,8 +1298,10 @@ const controladorRef = doc(db, 'controlador', 'principal');
 
         aulasFiltradas = [...aulasControlador];
         atualizarInterface();
-    });
-}
+        } finally {
+            atualizandoControlador = false;
+        }
+        }
         // Inicializar dados padrão com descrições completas e distribuir para todas as turmas
         function inicializarDadosPadrao() {
             // Aulas base (cada uma será distribuída para todas as turmas)
@@ -1406,7 +1456,7 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
             aulasControlador = distribuirAulasParaTodasTurmas(aulasBase);
             aulasFiltradas = [...aulasControlador];
             
-            console.log('Dados padrão inicializados:', aulasControlador.length, 'aulas (', aulasBase.length, 'aulas ×', TURMAS_SEXTO_ANO.length, 'turmas)');
+            console.log('Dados padrão inicializados:', aulasControlador.length, 'aulas (', aulasBase.length, 'aulas ×', turmasAtuais.length, 'turmas)');
             
             // Salvar no Firebase
             salvarControladorNoFirebase();
@@ -1490,8 +1540,10 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
                     currentLesson.classList.remove('highlight');
                 }, 2000);
                 
-                // Salvar no Firebase
-                salvarControladorNoFirebase();
+                // Salvar no Firebase (só professor logado — visitante apenas navega localmente)
+                if (!modoVisitante) {
+                    salvarControladorNoFirebase();
+                }
             }
         };
 
@@ -1648,7 +1700,7 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
                         <td class="data-cell">${formatarData(aula.prazo)}</td>
                         <td class="acoes-cell" onclick="event.stopPropagation();">
                             <button class="btn-icon btn-view" onclick="visualizarAula('${aula.id}')" title="Visualizar descrição completa">👁️</button>
-                            <button class="btn-icon btn-edit" onclick="editarAula('${aula.id}')" title="Editar">✏️</button>
+                            ${modoVisitante ? '' : `<button class="btn-icon btn-edit" onclick="editarAula('${aula.id}')" title="Editar">✏️</button>`}
                         </td>
                     </tr>
                 `;
@@ -1823,7 +1875,7 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
         };
 
         window.atualizarDados = function() {
-            carregarDadosFirebase();
+            sincronizarControlador();
             mostrarMensagem('Dados atualizados com sucesso!', 'success');
         };
 
@@ -1842,8 +1894,37 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
             }, timeout);
         }
 
-        // Carregar dados ao iniciar
-        carregarDadosFirebase();
+        // Professores logados têm acesso completo; visitantes sem conta veem tudo
+        // em modo somente-leitura, sem nenhum controle de edição.
+        onAuthStateChanged(auth, (user) => {
+            const userPanel = document.getElementById("userPanel");
+            const userEmail = document.getElementById("userEmail");
+            const logoutBtn = document.getElementById("logoutBtn");
+            const loginLink = document.getElementById("loginLink");
+
+            if (!user) {
+                modoVisitante = true;
+                userPanel.style.display = "none";
+                loginLink.style.display = "flex";
+                aplicarModoVisitanteUI();
+                carregarControladorSomenteLeitura();
+                return;
+            }
+
+            modoVisitante = false;
+            userPanel.style.display = "flex";
+            loginLink.style.display = "none";
+            userEmail.textContent = user.displayName || user.email;
+            logoutBtn.onclick = async () => {
+                await signOut(auth);
+                window.location.href = "login.html";
+            };
+            aplicarModoVisitanteUI();
+
+            // Só sincroniza (leitura + escrita) depois de confirmar que é professor logado
+            carregarDadosFirebase();
+            carregarTurmasFirebase();
+        });
     </script>
 </body>
 </html>

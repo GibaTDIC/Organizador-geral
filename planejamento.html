@@ -400,6 +400,10 @@
 <body>
     <div class="container">
         <header>
+            <div id="userPanel" style="display:none; align-items:center; justify-content:flex-end; gap:12px; margin-bottom:10px; font-size:14px;">
+                <span id="userEmail" style="opacity:0.85;"></span>
+                <button id="logoutBtn" style="padding:6px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:transparent; color:inherit; cursor:pointer;">Sair</button>
+            </div>
             <h1>📚 Programa de Aulas - Educação Física</h1>
             <p>Sistema de planejamento baseado na BNCC para Educação Física - Ensino Fundamental</p>
         </header>
@@ -530,6 +534,7 @@
         import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc } 
         from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
         // Configuração do Firebase
         const firebaseConfig = {
@@ -546,6 +551,7 @@
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
+        const auth = getAuth(app);
         const aulasRef = collection(db, 'aulas');
 
         // Elementos DOM
@@ -1483,8 +1489,8 @@
             try {
                 if (aulaEditando) {
                     // Atualizar aula existente
-                    const aulaRef = ref(database, `aulas/${aulaEditando}`);
-                    await update(aulaRef, aulaData);
+                    const aulaRef = doc(db, 'aulas', aulaEditando);
+                    await updateDoc(aulaRef, aulaData);
                     mostrarMensagem('Aula atualizada com sucesso!', 'success');
                     aulaEditando = null;
                 } else {
@@ -1589,8 +1595,8 @@ ${aula.descricao}
         window.excluirAula = async (id) => {
             if (confirm('Tem certeza que deseja excluir esta aula?')) {
                 try {
-                    const aulaRef = doc(db, 'aulas', aulaEditando);
-                     await updateDoc(aulaRef, aulaData);
+                    const aulaRef = doc(db, 'aulas', id);
+                    await deleteDoc(aulaRef);
                     mostrarMensagem('Aula excluída com sucesso!', 'success');
                 } catch (error) {
                     console.error('Erro ao excluir aula:', error);
@@ -1622,11 +1628,28 @@ ${aula.descricao}
         filterUnidade.addEventListener('change', aplicarFiltros);
         filterEspecificacao.addEventListener('change', aplicarFiltros);
 
-        // Carregar aulas ao iniciar
-        carregarAulas();
-        
-        // Inicializar selects
-        atualizarUnidadesTematicas();
+        // 🔒 Exige login para acessar esta página
+        onAuthStateChanged(auth, (user) => {
+            const userPanel = document.getElementById("userPanel");
+            const userEmail = document.getElementById("userEmail");
+            const logoutBtn = document.getElementById("logoutBtn");
+
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            userPanel.style.display = "flex";
+            userEmail.textContent = user.displayName || user.email;
+            logoutBtn.onclick = async () => {
+                await signOut(auth);
+                window.location.href = "login.html";
+            };
+
+            // Só carrega os dados depois de confirmar que o professor está logado
+            carregarAulas();
+            atualizarUnidadesTematicas();
+        });
     </script>
 </body>
 </html>
