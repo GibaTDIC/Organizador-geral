@@ -9,48 +9,882 @@
     <link rel="stylesheet" href="../../styles/tokens.css">
     <link rel="stylesheet" href="../../styles/reset.css">
     <link rel="stylesheet" href="../../styles/base.css">
+    <link rel="stylesheet" href="../../styles/layout.css">
+    <link rel="stylesheet" href="../../styles/components/alert.css">
+    <link rel="stylesheet" href="../../styles/components/card.css">
+    <link rel="stylesheet" href="../../styles/components/button.css">
+    <link rel="stylesheet" href="../../styles/components/progress-bar.css">
     <style>
         body {
-            min-height: 100vh;
+            background: var(--pf-gray-100);
+        }
+
+        .dash-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--pf-space-4);
+            align-items: start;
+        }
+
+        .dash-card--full {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 900px) {
+            .dash-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .dash-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .dash-card-titulo {
+            font-size: 1.05rem;
+            color: var(--pf-gray-900);
+            margin-bottom: var(--pf-space-3);
+            display: flex;
+            align-items: center;
+            gap: var(--pf-space-2);
+        }
+
+        .dash-estado-vazio {
+            color: var(--pf-gray-500);
+            font-size: 0.9rem;
+            padding: var(--pf-space-2) 0;
+        }
+
+        .dash-estado-vazio a {
+            color: var(--pf-blue-700);
+            font-weight: 600;
+        }
+
+        /* Cabeçalho */
+        .dash-cabecalho {
+            background: linear-gradient(135deg, var(--pf-blue-700) 0%, var(--pf-blue-500) 100%);
+            color: var(--pf-white);
+        }
+
+        .dash-cabecalho h1 {
+            font-size: clamp(1.2rem, 3vw, 1.6rem);
+            margin-bottom: var(--pf-space-1);
+        }
+
+        .dash-cabecalho p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        /* Minha Rotina Hoje */
+        .dash-rotina-lista {
+            display: flex;
+            flex-direction: column;
+            gap: var(--pf-space-2);
+        }
+
+        .dash-rotina-periodo {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--pf-gray-500);
+            margin-top: var(--pf-space-2);
+        }
+
+        .dash-rotina-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--pf-space-3);
+            padding: var(--pf-space-2) var(--pf-space-3);
+            border-radius: var(--pf-radius-md);
+            background: var(--pf-gray-100);
+            border-left: 4px solid var(--pf-blue-700);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .dash-rotina-item:hover {
+            background: var(--pf-gray-200);
+        }
+
+        .dash-rotina-item__horario {
+            font-size: 0.75rem;
+            color: var(--pf-gray-500);
+            min-width: 52px;
+        }
+
+        .dash-rotina-item__turma {
+            font-weight: 600;
+            color: var(--pf-gray-900);
+            flex: 1;
+        }
+
+        /* Badges de status — compartilhados entre Rotina, Próxima Aula e Pendências */
+        .dash-badge {
+            display: inline-block;
+            padding: 2px var(--pf-space-2);
+            border-radius: var(--pf-radius-lg);
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .dash-badge--concluida { background: var(--pf-success); color: var(--pf-white); }
+        .dash-badge--em-andamento { background: var(--pf-warning); color: var(--pf-gray-900); }
+        .dash-badge--nao-iniciada { background: var(--pf-info); color: var(--pf-white); }
+        .dash-badge--sem-planejamento { background: var(--pf-gray-300); color: var(--pf-gray-700); }
+
+        /* Próxima Aula */
+        .dash-proxima-destaque {
+            display: flex;
+            flex-direction: column;
+            gap: var(--pf-space-2);
+            padding: var(--pf-space-4);
+            border-radius: var(--pf-radius-md);
+            background: var(--pf-orange-100);
+            border-left: 6px solid var(--pf-orange-500);
+        }
+
+        .dash-proxima-turma {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--pf-slate-900);
+        }
+
+        .dash-proxima-meta {
+            font-size: 0.85rem;
+            color: var(--pf-gray-700);
+        }
+
+        /* Pendências */
+        .dash-pendencias-secao + .dash-pendencias-secao {
+            margin-top: var(--pf-space-3);
+        }
+
+        .dash-pendencias-titulo {
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: var(--pf-space-2);
+        }
+
+        .dash-pendencias-titulo--atrasada { color: var(--pf-danger); }
+        .dash-pendencias-titulo--proxima { color: #b45309; }
+
+        .dash-pendencia-item {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--pf-space-2);
+            padding: var(--pf-space-2) var(--pf-space-3);
+            border-radius: var(--pf-radius-md);
+            background: var(--pf-gray-100);
+            margin-bottom: var(--pf-space-1);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .dash-pendencia-item:hover { background: var(--pf-gray-200); }
+        .dash-pendencia-item--atrasada { border-left: 4px solid var(--pf-danger); }
+        .dash-pendencia-item--proxima { border-left: 4px solid var(--pf-warning); }
+
+        /* Progresso do Planejamento */
+        .dash-progresso-item + .dash-progresso-item {
+            margin-top: var(--pf-space-3);
+        }
+
+        .dash-progresso-cabecalho {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: var(--pf-space-1);
+            color: var(--pf-gray-700);
+        }
+
+        /* Resumo Estatístico */
+        .dash-resumo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: var(--pf-space-3);
+        }
+
+        .dash-stat {
+            text-align: center;
+            padding: var(--pf-space-3);
+            border-radius: var(--pf-radius-md);
+            background: var(--pf-gray-100);
+        }
+
+        .dash-stat__numero {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--pf-blue-700);
+        }
+
+        .dash-stat__label {
+            font-size: 0.7rem;
+            color: var(--pf-gray-500);
+            text-transform: uppercase;
+        }
+
+        /* Acesso Rápido */
+        .dash-acesso-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: var(--pf-space-3);
+        }
+
+        .dash-acesso-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--pf-space-1);
+            padding: var(--pf-space-3);
+            border-radius: var(--pf-radius-md);
+            background: var(--pf-gray-100);
+            text-decoration: none;
+            color: var(--pf-gray-900);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            transition: transform 0.15s, background 0.15s;
+        }
+
+        .dash-acesso-link:hover {
+            background: var(--pf-gray-200);
+            transform: translateY(-2px);
+        }
+
+        .dash-acesso-link__icone {
+            font-size: 1.5rem;
+        }
+
+        .dash-acesso-link--planned {
+            opacity: 0.55;
+        }
+
+        /* Calendário do Bimestre */
+        .dash-cal-semana, .dash-cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+
+        .dash-cal-semana {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--pf-gray-500);
+            margin-bottom: var(--pf-space-2);
+        }
+
+        .dash-cal-dia {
+            aspect-ratio: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--pf-slate-900);
-            padding: var(--pf-space-4);
+            border-radius: var(--pf-radius-sm);
+            font-size: 0.8rem;
+            color: var(--pf-gray-700);
+            background: var(--pf-gray-100);
         }
-        .em-breve {
-            text-align: center;
-            color: var(--pf-ice-50);
-            max-width: 420px;
+
+        .dash-cal-dia--vazio {
+            background: transparent;
         }
-        .em-breve .icone {
-            font-size: 48px;
-            margin-bottom: var(--pf-space-4);
+
+        .dash-cal-dia--hoje {
+            outline: 2px solid var(--pf-blue-700);
+            font-weight: 700;
         }
-        .em-breve h1 {
-            font-size: 1.5rem;
-            margin-bottom: var(--pf-space-2);
+
+        .dash-cal-dia--bimestre-1 { background: var(--pf-bimestre-1); color: var(--pf-white); }
+        .dash-cal-dia--bimestre-2 { background: var(--pf-bimestre-2); color: var(--pf-white); }
+        .dash-cal-dia--bimestre-3 { background: var(--pf-bimestre-3); color: var(--pf-white); }
+        .dash-cal-dia--bimestre-4 { background: var(--pf-bimestre-4); color: var(--pf-white); }
+
+        .dash-cal-legenda {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--pf-space-3);
+            margin-top: var(--pf-space-3);
+            font-size: 0.72rem;
+            color: var(--pf-gray-500);
         }
-        .em-breve p {
-            color: var(--pf-gray-300);
-            margin-bottom: var(--pf-space-6);
+
+        .dash-cal-legenda span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
-        .em-breve a {
-            color: var(--pf-orange-500);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .em-breve a:hover {
-            text-decoration: underline;
+
+        .dash-cal-legenda i {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
-    <div class="em-breve">
-        <div class="icone">🏠</div>
-        <h1>Dashboard</h1>
-        <p>Este módulo do Prof GB ainda está em desenvolvimento.</p>
-        <a href="../programacao-diaria/index.html">← Voltar para a Programação Diária</a>
+    <div class="pf-app-shell">
+        <pf-header></pf-header>
+        <pf-sidebar active="dashboard"></pf-sidebar>
+        <div class="pf-app-main">
+            <div class="container">
+                <div class="dash-grid">
+
+                    <!-- Cabeçalho -->
+                    <section class="pf-card pf-card--elevated dash-cabecalho dash-card--full">
+                        <h1 id="dashSaudacao">Olá!</h1>
+                        <p id="dashData">Carregando data…</p>
+                    </section>
+
+                    <!-- Minha Rotina Hoje -->
+                    <section class="pf-card">
+                        <h2 class="dash-card-titulo">📋 Minha Rotina Hoje</h2>
+                        <div id="dashRotinaLista" class="dash-rotina-lista">
+                            <p class="dash-estado-vazio">Carregando rotina de hoje…</p>
+                        </div>
+                    </section>
+
+                    <!-- Próxima Aula -->
+                    <section class="pf-card">
+                        <h2 class="dash-card-titulo">▶️ Próxima Aula</h2>
+                        <div id="dashProximaAula">
+                            <p class="dash-estado-vazio">Carregando…</p>
+                        </div>
+                    </section>
+
+                    <!-- Pendências -->
+                    <section class="pf-card">
+                        <h2 class="dash-card-titulo">⚠️ Pendências</h2>
+                        <div id="dashPendencias">
+                            <p class="dash-estado-vazio">Carregando pendências…</p>
+                        </div>
+                    </section>
+
+                    <!-- Progresso do Planejamento -->
+                    <section class="pf-card">
+                        <h2 class="dash-card-titulo">📈 Progresso do Planejamento</h2>
+                        <div class="dash-progresso-item">
+                            <div class="dash-progresso-cabecalho">
+                                <span>Anual</span>
+                                <span id="dashProgressoAnualLabel">—</span>
+                            </div>
+                            <div class="pf-progress-track">
+                                <div class="pf-progress-fill" id="dashProgressoAnualFill" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="dash-progresso-item">
+                            <div class="dash-progresso-cabecalho">
+                                <span id="dashProgressoBimestralTitulo">Bimestral</span>
+                                <span id="dashProgressoBimestralLabel">—</span>
+                            </div>
+                            <div class="pf-progress-track">
+                                <div class="pf-progress-fill" id="dashProgressoBimestralFill" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="dash-progresso-item">
+                            <div class="dash-progresso-cabecalho">
+                                <span>Semanal</span>
+                                <span id="dashProgressoSemanalLabel">—</span>
+                            </div>
+                            <div class="pf-progress-track">
+                                <div class="pf-progress-fill" id="dashProgressoSemanalFill" style="width:0%"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Resumo Estatístico -->
+                    <section class="pf-card">
+                        <h2 class="dash-card-titulo">📊 Resumo Estatístico</h2>
+                        <div class="dash-resumo-grid" id="dashResumoGrid">
+                            <p class="dash-estado-vazio">Carregando estatísticas…</p>
+                        </div>
+                    </section>
+
+                    <!-- Acesso Rápido -->
+                    <section class="pf-card">
+                        <h2 class="dash-card-titulo">🚀 Acesso Rápido</h2>
+                        <div class="dash-acesso-grid" id="dashAcessoGrid"></div>
+                    </section>
+
+                    <!-- Calendário do Bimestre -->
+                    <section class="pf-card dash-card--full">
+                        <h2 class="dash-card-titulo">🗓️ Calendário — <span id="dashCalendarioMes">—</span></h2>
+                        <div class="dash-cal-semana">
+                            <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+                        </div>
+                        <div class="dash-cal-grid" id="dashCalendarioGrid"></div>
+                        <div class="dash-cal-legenda" id="dashCalendarioLegenda"></div>
+                    </section>
+
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script type="module">
+        import "../../scripts/layout/page-shell.js";
+        import "../../scripts/services/escola-context.js";
+        import { requireAuth } from "../../scripts/services/auth-guard.js";
+        import { ouvirGrade } from "../../scripts/services/grade-service.js";
+        import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
+        import { ouvirControlador } from "../../scripts/services/controlador-service.js";
+        import { MODULES } from "../../scripts/utils/constants.js";
+
+        // ---------- Estado ----------
+        let escolaAtualId = null;
+        let unsubGrade = null;
+        let unsubConfiguracoes = null;
+        let unsubControlador = null;
+
+        let gradeAtual = { matutino: [], vespertino: [] };
+        let bimestresAtual = null; // null = ainda não configurado
+        let controladorAtual = { aulas: [], aulaAtualId: null };
+
+        let gradeCarregada = false;
+        let configCarregada = false;
+        let controladorCarregado = false;
+
+        let nomeUsuario = null;
+
+        // ---------- Constantes ----------
+        const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+        const SLOTS_ESPECIAIS = ['Folga', 'Planejamento', 'CEMFOR', '---'];
+        const DIAS_SEMANA_EXTENSO = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const MESES_EXTENSO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        // ---------- Helpers de data ----------
+        // Duplicado de propósito de programacao-diaria/index.html — este
+        // codebase trata funções puras pequenas como seguras para duplicar
+        // em vez de extrair um util compartilhado nesta etapa.
+        function stringParaData(dataStr) {
+            const [dia, mes, ano] = dataStr.split('/').map(Number);
+            return new Date(ano, mes - 1, dia);
+        }
+
+        // Variante local de determinarBimestre: diferente da versão de
+        // programacao-diaria (que retorna 0 como padrão), esta retorna null
+        // quando a data não cai em nenhum bimestre. Necessário porque o
+        // Calendário desenha o mês inteiro — incluindo fins de semana e
+        // recesso fora do ano letivo — e colori-los como "1º Bimestre" por
+        // padrão seria enganoso.
+        function determinarBimestre(bimestres, data) {
+            if (!bimestres || !data) return null;
+            for (let i = 0; i < bimestres.length; i++) {
+                const inicio = stringParaData(bimestres[i].inicio);
+                const fim = stringParaData(bimestres[i].fim);
+                fim.setHours(23, 59, 59, 999);
+                if (data >= inicio && data <= fim) return i;
+            }
+            return null;
+        }
+
+        // Mesma lógica de formatação de programacao-diaria/controlador.
+        function formatarData(data) {
+            if (!data) return '-';
+            const [ano, mes, dia] = data.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function obterChaveDiaHoje() {
+            const idx = new Date().getDay(); // 0=domingo..6=sábado
+            return DIA_CHAVES[idx - 1] || null; // sábado/domingo => null
+        }
+
+        function formatarDataCompleta(data) {
+            return `${DIAS_SEMANA_EXTENSO[data.getDay()]}, ${data.getDate()} de ${MESES_EXTENSO[data.getMonth()]} de ${data.getFullYear()}`;
+        }
+
+        function obterSaudacao(nome) {
+            const hora = new Date().getHours();
+            const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+            return nome ? `${periodo}, ${nome}!` : `${periodo}!`;
+        }
+
+        // ---------- Regra de junção grade × controlador ----------
+        function derivarStatusTurma(turma, controlador) {
+            const entradas = (controlador.aulas || []).filter(a => a.turma === turma);
+            if (entradas.length === 0) {
+                return { status: 'Sem planejamento', entrada: null };
+            }
+            if (controlador.aulaAtualId) {
+                const atual = entradas.find(a => a.id === controlador.aulaAtualId);
+                if (atual) return { status: atual.status || 'Não iniciada', entrada: atual };
+            }
+            const pendentes = entradas
+                .filter(a => a.status !== 'Concluída')
+                .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
+            if (pendentes.length > 0) {
+                return { status: pendentes[0].status || 'Não iniciada', entrada: pendentes[0] };
+            }
+            const maisRecente = entradas.slice()
+                .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''))[0];
+            return { status: 'Concluída', entrada: maisRecente };
+        }
+
+        function montarSlotsDoDia(diaChave) {
+            if (!diaChave) return [];
+            const slots = [];
+            ['matutino', 'vespertino'].forEach(periodo => {
+                (gradeAtual[periodo] || []).forEach((linha, ordinal) => {
+                    slots.push({ periodo, ordinal, horario: linha.horario, valor: linha[diaChave] });
+                });
+            });
+            return slots;
+        }
+
+        function montarRotinaHoje() {
+            const diaChave = obterChaveDiaHoje();
+            return montarSlotsDoDia(diaChave)
+                .filter(slot => slot.valor && !SLOTS_ESPECIAIS.includes(slot.valor))
+                .map(slot => ({ ...slot, ...derivarStatusTurma(slot.valor, controladorAtual) }));
+        }
+
+        function calcularProximaAula() {
+            return montarRotinaHoje().find(item => item.status !== 'Concluída') || null;
+        }
+
+        // ---------- Pendências — mesmo critério de data do Controlador ----------
+        function calcularPendencias() {
+            const hoje = new Date();
+            const tresDias = new Date(hoje.getTime() + 3 * 24 * 60 * 60 * 1000);
+            const aulas = controladorAtual.aulas || [];
+
+            const atrasadas = aulas.filter(a => {
+                if (!a.prazo || a.status === 'Concluída') return false;
+                const prazo = new Date(a.prazo + 'T12:00:00');
+                return prazo < hoje;
+            }).sort((a, b) => a.prazo.localeCompare(b.prazo));
+
+            const proximas = aulas.filter(a => {
+                if (!a.prazo || a.status === 'Concluída') return false;
+                const prazo = new Date(a.prazo + 'T12:00:00');
+                return prazo > hoje && prazo <= tresDias;
+            }).sort((a, b) => a.prazo.localeCompare(b.prazo));
+
+            return { atrasadas, proximas };
+        }
+
+        // ---------- Progresso do Planejamento ----------
+        function calcularProgressoAnual() {
+            if (!bimestresAtual || bimestresAtual.length === 0) return null;
+            const inicioAno = stringParaData(bimestresAtual[0].inicio);
+            const fimAno = stringParaData(bimestresAtual[bimestresAtual.length - 1].fim);
+            fimAno.setHours(23, 59, 59, 999);
+            const totalMs = fimAno - inicioAno;
+            if (totalMs <= 0) return null;
+            const hoje = new Date();
+            const decorridoMs = Math.min(Math.max(hoje - inicioAno, 0), totalMs);
+            return Math.round((decorridoMs / totalMs) * 100);
+        }
+
+        function calcularProgressoBimestral() {
+            if (!bimestresAtual || bimestresAtual.length === 0) {
+                return { percentual: 0, rotulo: 'Bimestral', semDados: true };
+            }
+            const hoje = new Date();
+            for (const b of bimestresAtual) {
+                const inicio = stringParaData(b.inicio);
+                const fim = stringParaData(b.fim);
+                fim.setHours(23, 59, 59, 999);
+                if (hoje >= inicio && hoje <= fim) {
+                    return { percentual: Math.round(((hoje - inicio) / (fim - inicio)) * 100), rotulo: `${b.numero}º Bimestre` };
+                }
+            }
+            const primeiro = stringParaData(bimestresAtual[0].inicio);
+            if (hoje < primeiro) return { percentual: 0, rotulo: 'Ano letivo ainda não iniciado' };
+            const ultimo = stringParaData(bimestresAtual[bimestresAtual.length - 1].fim);
+            if (hoje > ultimo) return { percentual: 100, rotulo: 'Ano letivo encerrado' };
+            return { percentual: 100, rotulo: 'Recesso entre bimestres' };
+        }
+
+        function calcularProgressoSemanal() {
+            let total = 0, concluidos = 0;
+            ['matutino', 'vespertino'].forEach(periodo => {
+                (gradeAtual[periodo] || []).forEach(linha => {
+                    DIA_CHAVES.forEach(dia => {
+                        const valor = linha[dia];
+                        if (!valor || SLOTS_ESPECIAIS.includes(valor)) return;
+                        total++;
+                        if (derivarStatusTurma(valor, controladorAtual).status === 'Concluída') concluidos++;
+                    });
+                });
+            });
+            return total === 0 ? null : Math.round((concluidos / total) * 100);
+        }
+
+        // ---------- Resumo Estatístico ----------
+        function calcularResumo() {
+            const rotina = montarRotinaHoje();
+            const turmasHoje = new Set(rotina.map(s => s.valor));
+            const aulas = controladorAtual.aulas || [];
+            return {
+                turmasAtivasHoje: turmasHoje.size,
+                concluidas: aulas.filter(a => a.status === 'Concluída').length,
+                emAndamento: aulas.filter(a => a.status === 'Em Andamento').length,
+                aulasMinistradas: aulas.reduce((soma, a) => soma + (a.aulasExecutadas || 0), 0),
+                aulasPlanejadas: aulas.reduce((soma, a) => soma + (a.numAulas || 0), 0),
+            };
+        }
+
+        // ---------- Renderização ----------
+        function classeBadge(status) {
+            switch (status) {
+                case 'Concluída': return 'dash-badge--concluida';
+                case 'Em Andamento': return 'dash-badge--em-andamento';
+                case 'Sem planejamento': return 'dash-badge--sem-planejamento';
+                default: return 'dash-badge--nao-iniciada';
+            }
+        }
+
+        window.irParaControlador = function () {
+            window.location.href = '../controlador/index.html';
+        };
+
+        function renderizarRotinaHoje() {
+            const container = document.getElementById('dashRotinaLista');
+            const diaChave = obterChaveDiaHoje();
+
+            if (!diaChave) {
+                container.innerHTML = '<p class="dash-estado-vazio">Hoje é fim de semana — sem aulas na grade. 🎉</p>';
+                return;
+            }
+            if ((gradeAtual.matutino || []).length === 0 && (gradeAtual.vespertino || []).length === 0) {
+                container.innerHTML = '<p class="dash-estado-vazio">Grade ainda não configurada. Configure na <a href="../programacao-diaria/index.html">Programação Diária</a>.</p>';
+                return;
+            }
+
+            const rotina = montarRotinaHoje();
+            if (rotina.length === 0) {
+                container.innerHTML = '<p class="dash-estado-vazio">Nenhuma aula prevista para hoje (folga/planejamento).</p>';
+                return;
+            }
+
+            let periodoAtual = null;
+            container.innerHTML = rotina.map(item => {
+                let cabecalho = '';
+                if (item.periodo !== periodoAtual) {
+                    periodoAtual = item.periodo;
+                    cabecalho = `<div class="dash-rotina-periodo">${item.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'}</div>`;
+                }
+                return `
+                    ${cabecalho}
+                    <div class="dash-rotina-item" onclick="irParaControlador()">
+                        <span class="dash-rotina-item__horario">${item.horario}</span>
+                        <span class="dash-rotina-item__turma">${item.valor}</span>
+                        <span class="dash-badge ${classeBadge(item.status)}">${item.status}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderizarProximaAula() {
+            const container = document.getElementById('dashProximaAula');
+            const diaChave = obterChaveDiaHoje();
+
+            if (!diaChave) {
+                container.innerHTML = '<p class="dash-estado-vazio">Sem aulas hoje.</p>';
+                return;
+            }
+
+            const proxima = calcularProximaAula();
+            if (!proxima) {
+                container.innerHTML = '<p class="dash-estado-vazio">Todas as aulas de hoje foram concluídas! 🎉</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="dash-proxima-destaque">
+                    <span class="dash-badge ${classeBadge(proxima.status)}">${proxima.status}</span>
+                    <span class="dash-proxima-turma">${proxima.valor}</span>
+                    <span class="dash-proxima-meta">${proxima.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'} · ${proxima.horario}</span>
+                    <button class="pf-btn pf-btn--primary" onclick="irParaControlador()">▶️ Iniciar Aula</button>
+                </div>
+            `;
+        }
+
+        function renderizarPendencias() {
+            const container = document.getElementById('dashPendencias');
+            const { atrasadas, proximas } = calcularPendencias();
+
+            if (atrasadas.length === 0 && proximas.length === 0) {
+                container.innerHTML = '<p class="dash-estado-vazio">Nenhuma pendência! Tudo em dia. ✅</p>';
+                return;
+            }
+
+            const listar = (lista, tipo) => lista.map(a => `
+                <div class="dash-pendencia-item dash-pendencia-item--${tipo}" onclick="irParaControlador()">
+                    <span>${a.turma} — ${a.titulo}</span>
+                    <span>${formatarData(a.prazo)}</span>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                ${atrasadas.length > 0 ? `
+                    <div class="dash-pendencias-secao">
+                        <div class="dash-pendencias-titulo dash-pendencias-titulo--atrasada">🔴 Atrasadas (${atrasadas.length})</div>
+                        ${listar(atrasadas, 'atrasada')}
+                    </div>` : ''}
+                ${proximas.length > 0 ? `
+                    <div class="dash-pendencias-secao">
+                        <div class="dash-pendencias-titulo dash-pendencias-titulo--proxima">🟡 Prazo em até 3 dias (${proximas.length})</div>
+                        ${listar(proximas, 'proxima')}
+                    </div>` : ''}
+            `;
+        }
+
+        function renderizarProgresso() {
+            const anual = calcularProgressoAnual();
+            const anualFill = document.getElementById('dashProgressoAnualFill');
+            const anualLabel = document.getElementById('dashProgressoAnualLabel');
+            if (anual === null) {
+                anualFill.style.width = '0%';
+                anualLabel.textContent = 'Configure os bimestres';
+            } else {
+                anualFill.style.width = `${anual}%`;
+                anualLabel.textContent = `${anual}%`;
+            }
+
+            const bimestral = calcularProgressoBimestral();
+            document.getElementById('dashProgressoBimestralTitulo').textContent = bimestral.rotulo;
+            document.getElementById('dashProgressoBimestralFill').style.width = `${bimestral.percentual}%`;
+            document.getElementById('dashProgressoBimestralLabel').textContent = bimestral.semDados ? '—' : `${bimestral.percentual}%`;
+
+            const semanal = calcularProgressoSemanal();
+            const semanalFill = document.getElementById('dashProgressoSemanalFill');
+            const semanalLabel = document.getElementById('dashProgressoSemanalLabel');
+            if (semanal === null) {
+                semanalFill.style.width = '0%';
+                semanalLabel.textContent = 'Sem grade configurada';
+            } else {
+                semanalFill.style.width = `${semanal}%`;
+                semanalLabel.textContent = `${semanal}%`;
+            }
+        }
+
+        function renderizarResumo() {
+            const r = calcularResumo();
+            document.getElementById('dashResumoGrid').innerHTML = `
+                <div class="dash-stat"><div class="dash-stat__numero">${r.turmasAtivasHoje}</div><div class="dash-stat__label">Turmas hoje</div></div>
+                <div class="dash-stat"><div class="dash-stat__numero">${r.concluidas}</div><div class="dash-stat__label">Concluídas</div></div>
+                <div class="dash-stat"><div class="dash-stat__numero">${r.emAndamento}</div><div class="dash-stat__label">Em andamento</div></div>
+                <div class="dash-stat"><div class="dash-stat__numero">${r.aulasMinistradas}/${r.aulasPlanejadas}</div><div class="dash-stat__label">Aulas ministradas</div></div>
+            `;
+        }
+
+        function renderizarAcessoRapido() {
+            const container = document.getElementById('dashAcessoGrid');
+            container.innerHTML = MODULES
+                .filter(m => m.id !== 'dashboard')
+                .map(m => `
+                    <a class="dash-acesso-link${m.status === 'planned' ? ' dash-acesso-link--planned' : ''}" href="${m.path}">
+                        <span class="dash-acesso-link__icone">${m.icon}</span>
+                        <span>${m.label}</span>
+                    </a>
+                `).join('');
+        }
+
+        function renderizarCalendario() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = hoje.getMonth();
+            const primeiroDia = new Date(ano, mes, 1);
+            const ultimoDia = new Date(ano, mes + 1, 0);
+            const dias = [];
+            for (let i = 0; i < primeiroDia.getDay(); i++) dias.push(null);
+            for (let d = 1; d <= ultimoDia.getDate(); d++) dias.push(new Date(ano, mes, d));
+
+            document.getElementById('dashCalendarioMes').textContent = `${MESES_EXTENSO[mes]} de ${ano}`;
+            document.getElementById('dashCalendarioGrid').innerHTML = dias.map(data => {
+                if (!data) return '<div class="dash-cal-dia dash-cal-dia--vazio"></div>';
+                const idxBimestre = determinarBimestre(bimestresAtual, data);
+                const classes = ['dash-cal-dia'];
+                if (idxBimestre !== null) classes.push(`dash-cal-dia--bimestre-${idxBimestre + 1}`);
+                if (data.toDateString() === hoje.toDateString()) classes.push('dash-cal-dia--hoje');
+                return `<div class="${classes.join(' ')}">${data.getDate()}</div>`;
+            }).join('');
+
+            document.getElementById('dashCalendarioLegenda').innerHTML = (bimestresAtual && bimestresAtual.length > 0)
+                ? bimestresAtual.map((b, i) => `<span><i class="dash-cal-dia--bimestre-${i + 1}"></i>${b.numero}º Bimestre</span>`).join('')
+                : '<span>Configure os bimestres na Programação Diária para colorir o calendário.</span>';
+        }
+
+        function renderizarCabecalho() {
+            document.getElementById('dashSaudacao').textContent = obterSaudacao(nomeUsuario);
+            document.getElementById('dashData').textContent = formatarDataCompleta(new Date());
+        }
+
+        function renderizarDashboard() {
+            if (!gradeCarregada || !configCarregada || !controladorCarregado) return;
+            renderizarRotinaHoje();
+            renderizarProximaAula();
+            renderizarPendencias();
+            renderizarProgresso();
+            renderizarResumo();
+            renderizarCalendario();
+        }
+
+        // ---------- Carregamento Firestore ----------
+        function carregarGrade() {
+            return ouvirGrade(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                gradeAtual = (data && data.matutino && data.vespertino) ? data : { matutino: [], vespertino: [] };
+                gradeCarregada = true;
+                renderizarDashboard();
+            });
+        }
+
+        function carregarConfiguracoes() {
+            return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                bimestresAtual = (data && data.bimestres) ? data.bimestres : null;
+                configCarregada = true;
+                renderizarDashboard();
+            });
+        }
+
+        function carregarControlador() {
+            return ouvirControlador(escolaAtualId, (docSnap) => {
+                const data = docSnap.exists() ? docSnap.data() : null;
+                controladorAtual = (data && Array.isArray(data.aulas)) ? data : { aulas: [], aulaAtualId: null };
+                controladorCarregado = true;
+                renderizarDashboard();
+            });
+        }
+
+        // ---------- Inicialização ----------
+        requireAuth({
+            loginPath: '../../login.html',
+            onReady: (user) => {
+                nomeUsuario = (user.displayName || user.email || '').split(/[\s@]/)[0];
+                renderizarCabecalho();
+                renderizarAcessoRapido();
+                // Recalcula cabeçalho + tudo que depende do relógio (hoje,
+                // prazos, bimestre atual, calendário) a cada minuto — sem
+                // isso a página ficaria "presa" no estado em que foi aberta
+                // se deixada aberta atravessando meia-noite ou um prazo,
+                // já que onSnapshot só dispara quando o Firestore muda.
+                setInterval(() => {
+                    renderizarCabecalho();
+                    renderizarDashboard();
+                }, 60000);
+            }
+        });
+
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+            gradeCarregada = configCarregada = controladorCarregado = false;
+            if (unsubGrade) unsubGrade();
+            if (unsubConfiguracoes) unsubConfiguracoes();
+            if (unsubControlador) unsubControlador();
+            unsubGrade = carregarGrade();
+            unsubConfiguracoes = carregarConfiguracoes();
+            unsubControlador = carregarControlador();
+        });
+    </script>
 </body>
 </html>

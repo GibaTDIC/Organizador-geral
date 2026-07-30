@@ -3,7 +3,7 @@
 // precise listar os módulos disponíveis sem duplicar essa informação.
 // Caminhos são relativos a partir de dentro de modules/<algum-modulo>/.
 export const MODULES = [
-  { id: 'dashboard', label: 'Dashboard', icon: '🏠', path: '../dashboard/index.html', status: 'planned' },
+  { id: 'dashboard', label: 'Dashboard', icon: '🏠', path: '../dashboard/index.html', status: 'active' },
   { id: 'programacao-diaria', label: 'Programação Diária', icon: '📅', path: '../programacao-diaria/index.html', status: 'active' },
   { id: 'planejamento', label: 'Planejamento', icon: '📚', path: '../planejamento/index.html', status: 'active' },
   { id: 'controlador', label: 'Controlador', icon: '✅', path: '../controlador/index.html', status: 'active' },
