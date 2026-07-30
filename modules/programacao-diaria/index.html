@@ -383,10 +383,10 @@
             if (entradas.length === 0) {
                 return { status: 'Sem planejamento', entrada: null };
             }
-            if (controlador.aulaAtualId) {
-                const atual = entradas.find(a => a.id === controlador.aulaAtualId);
-                if (atual) return { status: atual.status || 'Não iniciada', entrada: atual };
-            }
+            // Nota: aulaAtualId não é mais escrito por nenhuma tela (o Controlador
+            // deixou de ter seleção manual de aula) — não priorizar mais por ele,
+            // senão uma entrada antiga fica "grudada" pra sempre. Só o fallback
+            // por pendente mais antigo abaixo.
             const pendentes = entradas
                 .filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada')
                 .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));

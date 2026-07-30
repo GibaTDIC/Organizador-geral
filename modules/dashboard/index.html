@@ -343,6 +343,12 @@
                         <p id="dashData">Carregando data…</p>
                     </section>
 
+                    <!-- Alertas Inteligentes (some quando não há nenhum) -->
+                    <section class="pf-card dash-card--full" style="display:none;">
+                        <h2 class="dash-card-titulo">🔔 Alertas</h2>
+                        <div id="dashAlertas" style="font-size:0.85rem;color:var(--pf-gray-700);"></div>
+                    </section>
+
                     <!-- Minha Rotina Hoje -->
                     <section class="pf-card">
                         <h2 class="dash-card-titulo">📋 Minha Rotina Hoje</h2>
@@ -435,6 +441,8 @@
         import { ouvirGrade } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { ouvirControlador } from "../../scripts/services/controlador-service.js";
+        import { ouvirPlanejamentosBimestrais } from "../../scripts/services/planejamento-bimestral-service.js";
+        import { habilidadesBNCC } from "../../data/bncc-curriculum.js";
         import { MODULES } from "../../scripts/utils/constants.js";
 
         // ---------- Estado ----------
@@ -442,13 +450,16 @@
         let unsubGrade = null;
         let unsubConfiguracoes = null;
         let unsubControlador = null;
+        let unsubBimestrais = null;
 
         let gradeAtual = { matutino: [], vespertino: [] };
         let bimestresAtual = null; // null = ainda não configurado
         let controladorAtual = { aulas: [], aulaAtualId: null };
+        let planejamentosBimestrais = [];
 
         let gradeCarregada = false;
         let configCarregada = false;
+        let bimestraisCarregado = false;
         let controladorCarregado = false;
 
         let nomeUsuario = null;
@@ -515,10 +526,10 @@
             if (entradas.length === 0) {
                 return { status: 'Sem planejamento', entrada: null };
             }
-            if (controlador.aulaAtualId) {
-                const atual = entradas.find(a => a.id === controlador.aulaAtualId);
-                if (atual) return { status: atual.status || 'Não iniciada', entrada: atual };
-            }
+            // Nota: aulaAtualId não é mais escrito por nenhuma tela (o Controlador
+            // deixou de ter seleção manual de aula) — não priorizar mais por ele,
+            // senão uma entrada antiga fica "grudada" pra sempre. Só o fallback
+            // por pendente mais antigo abaixo.
             const pendentes = entradas
                 .filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada')
                 .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
@@ -748,6 +759,91 @@
             `;
         }
 
+        // ---------- Alertas Inteligentes (duplicado do Controlador por convenção
+        // já estabelecida no repo — regras simples, sem IA) ----------
+        function serieDaTurma(turmaFisica) {
+            const m = /^(\d+)º/.exec(turmaFisica || '');
+            return m ? `${m[1]}º Ano` : null;
+        }
+
+        function habilidadesNaoContempladasResumo() {
+            const turmasPresentes = [...new Set((controladorAtual.aulas || []).map(a => a.turma).filter(Boolean))];
+            let total = 0;
+            turmasPresentes.forEach(turmaFisica => {
+                const serie = serieDaTurma(turmaFisica);
+                if (!serie || !habilidadesBNCC[serie]) return;
+                const trabalhadas = new Set();
+                (controladorAtual.aulas || [])
+                    .filter(a => a.turma === turmaFisica)
+                    .forEach(a => (a.habilidades || []).forEach(h => trabalhadas.add(h.codigo || h)));
+                Object.values(habilidadesBNCC[serie]).forEach(especMap => {
+                    Object.values(especMap).forEach(lista => {
+                        lista.forEach(h => { if (!trabalhadas.has(h.codigo)) total++; });
+                    });
+                });
+            });
+            return total;
+        }
+
+        function calcularAlertas() {
+            const alertas = [];
+            const aulas = controladorAtual.aulas || [];
+            const total = aulas.length;
+
+            if (total > 0) {
+                const hoje = new Date();
+                const atrasadas = aulas.filter(a => {
+                    if (!a.prazo || a.status === 'Concluída' || a.status === 'Cancelada') return false;
+                    return new Date(a.prazo + 'T12:00:00') < hoje;
+                }).length;
+                if (atrasadas / total > 0.2) {
+                    alertas.push(`🔴 ${atrasadas} de ${total} conteúdos estão atrasados.`);
+                }
+                const canceladas = aulas.filter(a => a.status === 'Cancelada').length;
+                if (canceladas / total > 0.2) {
+                    alertas.push(`⚠️ Muitas aulas canceladas: ${canceladas} de ${total}.`);
+                }
+            }
+
+            const totalLacunas = habilidadesNaoContempladasResumo();
+            if (totalLacunas > 0) {
+                alertas.push(`📌 ${totalLacunas} habilidade(s) da BNCC ainda não foram contempladas.`);
+            }
+
+            if (bimestresAtual) {
+                const hoje = new Date();
+                const bimestreAtivo = bimestresAtual.find(b => {
+                    const inicio = stringParaData(b.inicio), fim = stringParaData(b.fim);
+                    fim.setHours(23, 59, 59, 999);
+                    return hoje >= inicio && hoje <= fim;
+                });
+                if (bimestreAtivo) {
+                    const series = [...new Set((aulas.map(a => a.turma).filter(Boolean)).map(serieDaTurma).filter(Boolean))];
+                    const semPlano = series.filter(serie => {
+                        const plano = planejamentosBimestrais.find(p => p.turma === serie && p.bimestre === bimestreAtivo.numero);
+                        return !plano || !plano.objetivos;
+                    });
+                    if (semPlano.length > 0) {
+                        alertas.push(`📝 Planejamento do ${bimestreAtivo.numero}º Bimestre incompleto para: ${semPlano.join(', ')}.`);
+                    }
+                }
+            }
+
+            return alertas;
+        }
+
+        function renderizarAlertas() {
+            const container = document.getElementById('dashAlertas');
+            if (!container) return;
+            const alertas = calcularAlertas();
+            if (alertas.length === 0) {
+                container.closest('.dash-card--full').style.display = 'none';
+                return;
+            }
+            container.closest('.dash-card--full').style.display = '';
+            container.innerHTML = alertas.map(a => `<p style="margin-bottom:6px;">${a}</p>`).join('');
+        }
+
         function renderizarProgresso() {
             const anual = calcularProgressoAnual();
             const anualFill = document.getElementById('dashProgressoAnualFill');
@@ -830,13 +926,14 @@
         }
 
         function renderizarDashboard() {
-            if (!gradeCarregada || !configCarregada || !controladorCarregado) return;
+            if (!gradeCarregada || !configCarregada || !controladorCarregado || !bimestraisCarregado) return;
             renderizarRotinaHoje();
             renderizarProximaAula();
             renderizarPendencias();
             renderizarProgresso();
             renderizarResumo();
             renderizarCalendario();
+            renderizarAlertas();
         }
 
         // ---------- Carregamento Firestore ----------
@@ -867,6 +964,14 @@
             });
         }
 
+        function carregarBimestrais() {
+            return ouvirPlanejamentosBimestrais(escolaAtualId, (snapshot) => {
+                planejamentosBimestrais = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                bimestraisCarregado = true;
+                renderizarDashboard();
+            });
+        }
+
         // ---------- Inicialização ----------
         requireAuth({
             loginPath: '../../login.html',
@@ -888,13 +993,15 @@
 
         document.addEventListener('pf-escola-ready', (evento) => {
             escolaAtualId = evento.detail.escolaId;
-            gradeCarregada = configCarregada = controladorCarregado = false;
+            gradeCarregada = configCarregada = controladorCarregado = bimestraisCarregado = false;
             if (unsubGrade) unsubGrade();
             if (unsubConfiguracoes) unsubConfiguracoes();
             if (unsubControlador) unsubControlador();
+            if (unsubBimestrais) unsubBimestrais();
             unsubGrade = carregarGrade();
             unsubConfiguracoes = carregarConfiguracoes();
             unsubControlador = carregarControlador();
+            unsubBimestrais = carregarBimestrais();
         });
     </script>
 </body>

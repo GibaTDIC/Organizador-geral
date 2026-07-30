@@ -11,787 +11,96 @@
     <link rel="stylesheet" href="../../styles/base.css">
     <link rel="stylesheet" href="../../styles/layout.css">
     <link rel="stylesheet" href="../../styles/components/alert.css">
+    <link rel="stylesheet" href="../../styles/components/card.css">
+    <link rel="stylesheet" href="../../styles/components/button.css">
+    <link rel="stylesheet" href="../../styles/components/filter.css">
+    <link rel="stylesheet" href="../../styles/components/table.css">
+    <link rel="stylesheet" href="../../styles/components/progress-bar.css">
+    <link rel="stylesheet" href="../../styles/components/modal.css">
     <style>
-        /* (mantenha todos os estilos iguais ao código anterior) */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        body { background: var(--pf-gray-100); }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            padding: 20px;
-        }
+        .ctrl-header { margin-bottom: var(--pf-space-4); }
+        .ctrl-header h1 { font-size: 1.5rem; color: var(--pf-gray-900); }
+        .ctrl-header p { color: var(--pf-gray-500); font-size: 0.9rem; }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 25px 30px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            font-size: 2.2em;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1em;
-        }
-
-        /* ESTILOS PARA O NOVO LAYOUT DO TOPO */
-        .current-lesson {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            border-left: 5px solid #4CAF50;
-            scroll-margin-top: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .current-lesson.highlight {
-            box-shadow: 0 0 0 3px #4CAF50, 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .current-lesson h2 {
-            color: #333;
-            margin-bottom: 20px;
+        .ctrl-alertas { margin-bottom: var(--pf-space-4); display: flex; flex-direction: column; gap: var(--pf-space-2); }
+        .ctrl-alerta {
+            padding: var(--pf-space-3) var(--pf-space-4);
+            border-radius: var(--pf-radius-md);
+            color: var(--pf-white);
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 1.5em;
+            gap: var(--pf-space-2);
         }
+        .ctrl-alerta--danger { background: var(--pf-danger); }
+        .ctrl-alerta--warning { background: var(--pf-warning); color: var(--pf-gray-900); }
+        .ctrl-alerta--info { background: var(--pf-info); }
 
-        /* Descrição em destaque */
-        .descricao-destaque {
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #e0e0e0;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .descricao-label {
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #1e3c72;
-            font-weight: 700;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .descricao-label::before {
-            content: '📄';
-            font-size: 16px;
-        }
-
-        .descricao-conteudo {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #333;
-            white-space: pre-line;
-            max-height: 300px;
-            overflow-y: auto;
-            padding-right: 10px;
-            scrollbar-width: thin;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .descricao-conteudo p {
-            margin-bottom: 10px;
-        }
-
-        .descricao-conteudo ul, .descricao-conteudo ol {
-            margin-left: 20px;
-            margin-bottom: 10px;
-        }
-
-        .descricao-conteudo::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .descricao-conteudo::-webkit-scrollbar-thumb {
-            background: #1e3c72;
-            border-radius: 10px;
-        }
-
-        /* Metadata compactado em linha */
-        .metadata-compact {
+        .ctrl-filtros {
             display: flex;
             flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
-            background: #f8f9fa;
-            border-radius: 50px;
-            padding: 8px 20px;
-            margin-bottom: 20px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .metadata-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 14px;
-        }
-
-        .metadata-icon {
-            font-size: 16px;
-        }
-
-        .metadata-label {
-            color: #666;
-            font-weight: 500;
-        }
-
-        .metadata-value {
-            color: #1e3c72;
-            font-weight: 700;
-        }
-
-        .metadata-divider {
-            width: 1px;
-            height: 20px;
-            background: #ddd;
-        }
-
-        /* Barra de progresso e ações */
-        .progress-actions {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .progress-info {
-            display: flex;
-            align-items: baseline;
-            gap: 5px;
-            min-width: 70px;
-        }
-
-        .aulas-count {
-            font-size: 20px;
-            font-weight: 800;
-            color: #1e3c72;
-        }
-
-        .aulas-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .progress-bar-container {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .progress-bar {
-            height: 12px;
-            background: #e0e0e0;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            border-radius: 20px;
-            transition: width 0.3s ease;
-            position: relative;
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.3));
-            border-radius: 20px;
-        }
-
-        .btn-executar {
-            padding: 12px 24px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            font-weight: 700;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
-            white-space: nowrap;
-        }
-
-        .btn-executar:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
-        }
-
-        .btn-executar:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .btn-icon-large {
-            font-size: 18px;
-        }
-
-        /* Barra de Ferramentas */
-        .toolbar {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
+            gap: var(--pf-space-3);
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: var(--pf-space-4);
         }
+        .ctrl-filtros-campos { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); }
+        .ctrl-filtros-acoes { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); }
 
-        .filters {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .filter-select {
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            min-width: 150px;
-            background: white;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .btn-warning {
-            background: #ff9800;
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background: #f57c00;
-            transform: translateY(-2px);
-        }
-
-        .btn-info {
-            background: #2196F3;
-            color: white;
-        }
-
-        .btn-info:hover {
-            background: #1976D2;
-            transform: translateY(-2px);
-        }
-
-        /* Tabela de Aulas */
-        .table-container {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
-        }
-
-        .bimestre-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 15px 20px;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-
-        .status-tabs {
-            display: flex;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            overflow-x: auto;
-        }
-
-        .status-tab {
-            padding: 12px 25px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            font-weight: 600;
-            color: #666;
-            white-space: nowrap;
-            transition: all 0.3s;
-        }
-
-        .status-tab:hover {
-            color: #1e3c72;
-        }
-
-        .status-tab.active {
-            color: #1e3c72;
-            border-bottom-color: #1e3c72;
-            background: white;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background: #f8f9fa;
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        tr:hover {
-            background: #f5f5f5;
-        }
-
-        tr.selected {
-            background-color: #e8f4fd;
-            border-left: 3px solid #2196F3;
-        }
-
-        .aula-info {
-            max-width: 350px;
-        }
-
-        .aula-titulo {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 3px;
-        }
-
-        .aula-desc {
-            font-size: 12px;
-            color: #666;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Estilo para o contador de aulas na tabela */
-        .aulas-progress {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 100px;
-        }
-
-        .aulas-progress-count {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1e3c72;
-            min-width: 45px;
-        }
-
-        .aulas-progress-bar {
-            flex: 1;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            min-width: 60px;
-        }
-
-        .aulas-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        }
-
-        .badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .badge-success {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .badge-warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .badge-danger {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .badge-info {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .data-cell {
-            font-size: 13px;
-            color: #555;
-        }
-
-        .acoes-cell {
-            display: flex;
-            gap: 5px;
-        }
-
-        .btn-icon {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-
-        .btn-icon:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn-edit {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .btn-edit:hover {
-            background: #e0a800;
-        }
-
-        .btn-view {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .btn-view:hover {
-            background: #138496;
-        }
-
-        .btn-select {
-            background: #2196F3;
-            color: white;
-        }
-
-        .btn-select:hover {
-            background: #1976D2;
-        }
-
-        /* Seção de Estatísticas */
-        .stats-section {
+        .ctrl-indicadores {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-top: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: var(--pf-space-3);
+            margin-bottom: var(--pf-space-4);
         }
+        .ctrl-indicador { text-align: center; }
+        .ctrl-indicador-valor { font-size: 1.6rem; font-weight: 800; color: var(--pf-blue-700); }
+        .ctrl-indicador-label { font-size: 0.72rem; color: var(--pf-gray-500); text-transform: uppercase; letter-spacing: 0.4px; }
 
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: transform 0.3s;
-        }
+        .ctrl-progressos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--pf-space-4); margin-bottom: var(--pf-space-4); }
+        .ctrl-progresso-label { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--pf-gray-700); margin-bottom: var(--pf-space-1); }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
+        .ctrl-secao { margin-bottom: var(--pf-space-4); }
+        .ctrl-secao h2 { font-size: 1rem; color: var(--pf-gray-900); margin-bottom: var(--pf-space-3); }
 
-        .stat-card h4 {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
+        .ctrl-table-wrap { overflow-x: auto; }
+        .ctrl-th-ordenavel { cursor: pointer; user-select: none; white-space: nowrap; }
+        .ctrl-th-ordenavel:hover { color: var(--pf-blue-700); }
 
-        .stat-number {
-            font-size: 32px;
-            font-weight: bold;
-            color: #1e3c72;
-            margin-bottom: 5px;
-        }
+        .ctrl-badge { padding: 3px 8px; border-radius: var(--pf-radius-lg); font-size: 0.78rem; font-weight: 600; display: inline-block; white-space: nowrap; }
+        .ctrl-badge--concluido { background: #d4edda; color: #155724; }
+        .ctrl-badge--andamento { background: #fff3cd; color: #856404; }
+        .ctrl-badge--nao-iniciado { background: #f8d7da; color: #721c24; }
+        .ctrl-badge--nao-previsto { background: var(--pf-gray-200); color: var(--pf-gray-500); }
 
-        .stat-label {
-            font-size: 12px;
-            color: #999;
-        }
+        .ctrl-btn-comparar { background: none; border: none; cursor: pointer; font-size: 1rem; }
 
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid #dee2e6;
+        .ctrl-pendencia-item, .ctrl-timeline-item {
+            padding: var(--pf-space-3);
+            border-radius: var(--pf-radius-md);
+            background: var(--pf-gray-100);
+            margin-bottom: var(--pf-space-2);
+            font-size: 0.85rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
+            gap: var(--pf-space-2);
+        }
+        .ctrl-pendencia-item { cursor: pointer; }
+        .ctrl-pendencia-item:hover { background: var(--pf-gray-200); }
+
+        .ctrl-estado-vazio { color: var(--pf-gray-500); font-size: 0.85rem; padding: var(--pf-space-3); text-align: center; }
+
+        #modalJustificativa .pf-modal { max-width: 500px; }
+
+        @media print {
+            pf-header, pf-sidebar, .ctrl-filtros, .ctrl-alertas { display: none !important; }
         }
 
-        .modal-header h2 {
-            color: white;
-            font-size: 1.3em;
-        }
-
-        .close {
-            font-size: 28px;
-            cursor: pointer;
-            color: white;
-            opacity: 0.8;
-            transition: opacity 0.3s;
-        }
-
-        .close:hover {
-            opacity: 1;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .modal-footer {
-            padding: 20px;
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #1e3c72;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #1e3c72;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Mensagens */
-        .message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 2000;
-            animation: slideIn 0.3s ease;
-            white-space: pre-line;
-            max-width: 400px;
-            line-height: 1.5;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .message.success {
-            background: #4CAF50;
-        }
-
-        .message.error {
-            background: #f44336;
-        }
-
-        .message.info {
-            background: #2196F3;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        /* Responsividade */
-        @media (max-width: 768px) {
-            .table-container {
-                overflow-x: auto;
-            }
-            
-            table {
-                min-width: 1200px;
-            }
-            
-            .stats-section {
-                grid-template-columns: 1fr;
-            }
-
-            .metadata-compact {
-                border-radius: 12px;
-                padding: 12px;
-                gap: 12px;
-            }
-            
-            .metadata-item {
-                flex: 1 1 calc(50% - 20px);
-                min-width: 140px;
-            }
-            
-            .metadata-divider {
-                display: none;
-            }
-            
-            .progress-actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .btn-executar {
-                justify-content: center;
-            }
-            
-            .descricao-conteudo {
-                max-height: 200px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .metadata-item {
-                flex: 1 1 100%;
-            }
-            
-            .header h1 {
-                font-size: 1.5em;
-            }
+        @media (max-width: 700px) {
+            .ctrl-table-wrap table { min-width: 800px; }
         }
     </style>
 </head>
@@ -800,283 +109,207 @@
         <pf-header></pf-header>
         <pf-sidebar active="controlador"></pf-sidebar>
         <div class="pf-app-main">
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>🏫 Controlador de Tarefas - Educação Física</h1>
-            <p>Gerencie a execução das aulas por turma, acompanhe prazos e status</p>
-        </div>
+            <div class="container">
 
-        <!-- Aula Atual em Destaque -->
-        <div class="current-lesson" id="currentLesson">
-            <h2>📌 Aula em Andamento</h2>
-            
-            <!-- DESCRIÇÃO EM DESTAQUE -->
-            <div class="descricao-destaque">
-                <div class="descricao-label">📝 Descrição Completa da Aula</div>
-                <div class="descricao-conteudo" id="currentDescricao">
-                    Carregando descrição...
+                <div class="ctrl-header">
+                    <h1>✅ Controlador Pedagógico</h1>
+                    <p>Acompanhamento da execução do planejamento — o que realmente foi ensinado.</p>
                 </div>
-            </div>
-            
-            <!-- METADADOS COMPACTADOS -->
-            <div class="metadata-compact">
-                <div class="metadata-item">
-                    <span class="metadata-icon">👥</span>
-                    <span class="metadata-label">Turma:</span>
-                    <span class="metadata-value" id="currentTurma">-</span>
-                </div>
-                <div class="metadata-divider"></div>
-                <div class="metadata-item">
-                    <span class="metadata-icon">📚</span>
-                    <span class="metadata-label">Aula:</span>
-                    <span class="metadata-value" id="currentTitulo">-</span>
-                </div>
-                <div class="metadata-divider"></div>
-                <div class="metadata-item">
-                    <span class="metadata-icon">📅</span>
-                    <span class="metadata-label">Prazo:</span>
-                    <span class="metadata-value" id="currentPrazo">-</span>
-                </div>
-                <div class="metadata-divider"></div>
-                <div class="metadata-item">
-                    <span class="metadata-icon">📊</span>
-                    <span class="metadata-label">Progresso:</span>
-                    <span class="metadata-value" id="currentProgresso">0%</span>
-                </div>
-            </div>
-            
-            <!-- BARRA DE PROGRESSO E AÇÕES -->
-            <div class="progress-actions">
-                <div class="progress-info">
-                    <span class="aulas-count" id="currentAulasCount">0/0</span>
-                    <span class="aulas-label">aulas</span>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+
+                <div class="ctrl-alertas" id="ctrlAlertas"></div>
+
+                <div class="pf-card ctrl-filtros">
+                    <div class="ctrl-filtros-campos">
+                        <select class="pf-filter-select" id="ctrlFiltroTurma">
+                            <option value="">Todas as turmas</option>
+                        </select>
+                        <select class="pf-filter-select" id="ctrlFiltroBimestre">
+                            <option value="">Todos os bimestres</option>
+                            <option value="1">1º Bimestre</option>
+                            <option value="2">2º Bimestre</option>
+                            <option value="3">3º Bimestre</option>
+                            <option value="4">4º Bimestre</option>
+                        </select>
+                        <select class="pf-filter-select" id="ctrlFiltroSituacao">
+                            <option value="">Todas as situações</option>
+                            <option value="atrasado">🔴 Atrasado</option>
+                            <option value="andamento">🟡 Em andamento</option>
+                            <option value="em-dia">🟢 Em dia</option>
+                        </select>
+                    </div>
+                    <div class="ctrl-filtros-acoes">
+                        <button class="pf-btn pf-btn--info" onclick="exportarRelatorioCsv()">⬇️ Exportar Relatório</button>
+                        <button class="pf-btn pf-btn--secondary" onclick="window.print()">🖨️ Imprimir</button>
                     </div>
                 </div>
-                <button class="btn-executar" id="btnIniciarAulaTopo" onclick="iniciarAulaSelecionada()" disabled>
-                    <span class="btn-icon-large">▶️</span>
-                    <span class="btn-text">Iniciar Aula</span>
-                </button>
-            </div>
-        </div>
 
-        <!-- Barra de Ferramentas -->
-        <div class="toolbar">
-            <div class="filters">
-                <select class="filter-select" id="filterBimestre">
-                    <option value="">Todos os Bimestres</option>
-                    <option value="1">1º Bimestre</option>
-                    <option value="2">2º Bimestre</option>
-                    <option value="3">3º Bimestre</option>
-                    <option value="4">4º Bimestre</option>
-                </select>
-                <select class="filter-select" id="filterStatus">
-                    <option value="">Todos os Status</option>
-                    <option value="Concluída">Concluída</option>
-                    <option value="Em Andamento">Em Andamento</option>
-                    <option value="Não iniciada">Não iniciada</option>
-                    <option value="Cancelada">Cancelada</option>
-                    <option value="Reposição">Reposição</option>
-                </select>
-                <select class="filter-select" id="filterTurma">
-                    <option value="">Todas as Turmas</option>
-                </select>
-                <button class="btn btn-primary" onclick="aplicarFiltros()">🔍 Filtrar</button>
-                <button class="btn btn-warning" onclick="limparFiltros()">🗑️ Limpar</button>
-            </div>
-            <button class="btn btn-info" onclick="atualizarDados()">🔄 Atualizar</button>
-        </div>
+                <div class="pf-card ctrl-indicadores" id="ctrlIndicadores"></div>
 
-        <!-- Tabela de Aulas -->
-        <div class="table-container">
-            <div class="bimestre-header" id="bimestreHeader">
-                AULAS DO 6º ANO - TODAS AS TURMAS
-            </div>
-            
-            <div class="status-tabs">
-                <div class="status-tab active" onclick="filtrarPorStatus('todos', this)">📋 Todos</div>
-                <div class="status-tab" onclick="filtrarPorStatus('Concluída', this)">✅ Concluídas</div>
-                <div class="status-tab" onclick="filtrarPorStatus('Em Andamento', this)">⏳ Em Andamento</div>
-                <div class="status-tab" onclick="filtrarPorStatus('Não iniciada', this)">📅 Não iniciadas</div>
-            </div>
+                <div class="pf-card ctrl-progressos" id="ctrlProgressos"></div>
 
-            <table id="tabelaAulas">
-                <thead>
-                    <tr>
-                        <th>Aula / Objeto de Conhecimento</th>
-                        <th>Turma</th>
-                        <th>Status</th>
-                        <th>Progresso</th>
-                        <th>Data de Início</th>
-                        <th>Prazo</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelaBody">
-                    <!-- Dados serão inseridos aqui via JavaScript -->
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px;">
-                            <div class="loading">
-                                <div class="loading-spinner"></div>
-                                <p>Carregando aulas...</p>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                <div class="pf-card ctrl-secao">
+                    <h2>📋 Acompanhamento de Conteúdos</h2>
+                    <div class="ctrl-table-wrap">
+                        <table class="pf-table" id="ctrlTabela">
+                            <thead>
+                                <tr>
+                                    <th class="ctrl-th-ordenavel" onclick="ordenarPor('unidadeTematica')">Unidade Temática</th>
+                                    <th class="ctrl-th-ordenavel" onclick="ordenarPor('objetoConhecimento')">Objeto de Conhecimento</th>
+                                    <th>Habilidade(s)</th>
+                                    <th class="ctrl-th-ordenavel" onclick="ordenarPor('numAulas')">Previstas</th>
+                                    <th class="ctrl-th-ordenavel" onclick="ordenarPor('aulasExecutadas')">Realizadas</th>
+                                    <th>Situação</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="ctrlTabelaBody"></tbody>
+                        </table>
+                    </div>
+                </div>
 
-        <!-- Seção de Estatísticas -->
-        <div class="stats-section">
-            <div class="stat-card">
-                <h4>🎯 Aulas com Prazo Próximo</h4>
-                <div class="stat-number" id="prazosProximos">0</div>
-                <div class="stat-label">nos próximos 3 dias</div>
-            </div>
-            <div class="stat-card">
-                <h4>📈 Aulas Atrasadas</h4>
-                <div class="stat-number" id="aulasAtrasadas">0</div>
-                <div class="stat-label">prazo vencido</div>
-            </div>
-            <div class="stat-card">
-                <h4>✅ Total Concluídas</h4>
-                <div class="stat-number" id="totalConcluidasStats">0</div>
-                <div class="stat-label">aulas finalizadas</div>
-            </div>
-        </div>
-    </div>
-        </div>
-    </div>
+                <div class="pf-card ctrl-secao">
+                    <h2>⏳ Pendências</h2>
+                    <div id="ctrlPendencias"></div>
+                </div>
 
-    <!-- Modal de Detalhes da Aula -->
-    <div class="modal" id="aulaModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitulo">Detalhes da Aula</h2>
-                <span class="close" onclick="fecharModal()">&times;</span>
-            </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Conteúdo dinâmico -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-warning" onclick="fecharModal()">Fechar</button>
+                <div class="pf-card ctrl-secao">
+                    <h2>🕓 Linha do Tempo</h2>
+                    <div id="ctrlTimeline"></div>
+                </div>
+
             </div>
         </div>
     </div>
 
-    <!-- Modal de Edição de Status -->
-    <div class="modal" id="editarModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>✏️ Atualizar Status da Aula</h2>
-                <span class="close" onclick="fecharEditarModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="editTitulo">Título da Aula</label>
-                    <input type="text" id="editTitulo" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="editTurma">Turma</label>
-                    <input type="text" id="editTurma" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="editStatus">Status</label>
-                    <select id="editStatus">
-                        <option value="Não iniciada">📅 Não iniciada</option>
-                        <option value="Em Andamento">⏳ Em Andamento</option>
-                        <option value="Concluída">✅ Concluída</option>
-                        <option value="Cancelada">🚫 Cancelada</option>
-                        <option value="Reposição">🔁 Reposição</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="editDataInicio">Data de Início</label>
-                    <input type="date" id="editDataInicio">
-                </div>
-                <div class="form-group">
-                    <label for="editPrazo">Prazo</label>
-                    <input type="date" id="editPrazo">
-                </div>
-                <div class="form-group">
-                    <label for="editObservacoes">Observações</label>
-                    <textarea id="editObservacoes" rows="3" placeholder="Anotações sobre o andamento da aula..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-warning" onclick="fecharEditarModal()">Cancelar</button>
-                <button class="btn btn-primary" onclick="salvarEdicao()">💾 Salvar</button>
+    <pf-modal id="modalJustificativa">
+        <div class="pf-modal-header">
+            <h2 style="font-size:1.1rem;">⚖️ Justificar Alteração</h2>
+            <span style="cursor:pointer;" onclick="document.getElementById('modalJustificativa').close()">&times;</span>
+        </div>
+        <div class="pf-modal-body">
+            <p id="ctrlComparativoTexto" style="font-size:0.85rem;color:var(--pf-gray-700);margin-bottom:var(--pf-space-3);"></p>
+            <div class="pf-field">
+                <label>Justificativa</label>
+                <textarea id="ctrlJustificativaTexto" rows="4"></textarea>
             </div>
         </div>
-    </div>
+        <div class="pf-modal-footer">
+            <button class="pf-btn pf-btn--secondary" onclick="document.getElementById('modalJustificativa').close()">Cancelar</button>
+            <button class="pf-btn pf-btn--success" onclick="salvarJustificativa()">💾 Salvar</button>
+        </div>
+    </pf-modal>
 
-    <!-- Firebase SDK -->
     <script type="module">
-        // Importar Firebase
         import "../../scripts/layout/page-shell.js";
+        import "../../scripts/components/pf-modal.js";
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirAulas } from "../../scripts/services/aulas-service.js";
         import { ouvirTurmas } from "../../scripts/services/turmas-service.js";
+        import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { salvarControlador } from "../../scripts/services/controlador-service.js";
         import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
-        // Estado da aplicação
+        import { ouvirPlanejamentosBimestrais } from "../../scripts/services/planejamento-bimestral-service.js";
+        import { ouvirPlanejamentosMensais } from "../../scripts/services/planejamento-mensal-service.js";
+        import { habilidadesBNCC } from "../../data/bncc-curriculum.js";
+
+        // ---------- Estado ----------
         let escolaAtualId = null;
-        let unsubAulas = null;
-        let unsubTurmas = null;
+        let unsubAulas = null, unsubTurmas = null, unsubConfiguracoes = null;
+        let unsubBimestrais = null, unsubMensais = null;
+
         let aulasFirebase = [];
+        let turmasAtuais = [];
         let aulasControlador = [];
-        let aulasFiltradas = [];
-        let aulaSelecionada = null;
-        let aulaAtualId = null;
-        let statusAtual = 'todos';
-        // A reconciliação em si (sincronizarControlador) só deve rodar depois
-        // que os DOIS listeners entregaram seu primeiro snapshot real — chamar
-        // antes disso (com aulasFirebase ainda no valor inicial []) apagaria
-        // entradas válidas do Controlador via o filtro de remoção.
-        let aulasCarregadas = false;
-        let turmasCarregadas = false;
+        let bimestresConfig = [];
+        let planejamentosBimestrais = [];
+        let planejamentosMensais = [];
 
-        // Cache de descrições para acesso rápido
-        const descricoesCache = new Map();
+        let aulasCarregadas = false, turmasCarregadas = false;
+        // Preservado só pra não apagar o campo ao regravar o doc (setDoc sem
+        // merge) — não é mais lido/priorizado por nenhuma tela (ver achado 1
+        // do plano: aulaAtualId ficou órfão desde que o Controlador deixou de
+        // ter seleção manual de aula).
+        let aulaAtualIdAtual = null;
 
-        // Turmas cadastradas pelo professor. Começa com um padrão e é
-        // atualizada em tempo real a partir do Firestore (mesma fonte do
-        // index.html), então turmas novas/removidas aparecem aqui também.
-        let turmasAtuais = ["6º A","6º B","6º C","6º D","6º E","6º F","6º G","6º H","6º I","6º J"];
+        let filtroTurma = '', filtroBimestre = '', filtroSituacao = '';
+        let ordenacaoColuna = null, ordenacaoDirecao = 1;
+        let entradaEmJustificativa = null;
 
-       // Carregar dados do Firebase
-        // Carrega as aulas cadastradas no Planejamento (coleção 'aulas') em tempo real.
-        // Sempre que uma aula é criada, editada ou excluída lá, o Controlador é ressincronizado aqui.
+        // ---------- Helpers ----------
+        function mostrarMensagem(texto, tipo) {
+            showToast(texto, tipo);
+        }
+
+        function formatarData(data) {
+            if (!data) return '-';
+            const [ano, mes, dia] = data.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        // As entradas do Controlador guardam a turma FÍSICA ("6º A"), mas os
+        // dados da BNCC (data/bncc-curriculum.js) e a hierarquia de Planejamento
+        // são indexados pela SÉRIE ("6º Ano") — essa conversão é necessária
+        // sempre que for cruzar uma entrada do Controlador com esses dois.
+        function serieDaTurma(turmaFisica) {
+            const m = /^(\d+)º/.exec(turmaFisica || '');
+            return m ? `${m[1]}º Ano` : null;
+        }
+
+        // Todos os códigos de habilidade que a BNCC prevê pra uma série —
+        // direto de habilidadesBNCC[serie], sem cruzar com os dicionários
+        // genéricos (que não sabem quais combinações existem pra cada série).
+        const cacheCodigosSerie = new Map();
+        function todosCodigosDaSerie(serie) {
+            if (!serie || !habilidadesBNCC[serie]) return new Set();
+            if (cacheCodigosSerie.has(serie)) return cacheCodigosSerie.get(serie);
+            const codigos = new Set();
+            Object.values(habilidadesBNCC[serie]).forEach(especMap => {
+                Object.values(especMap).forEach(lista => {
+                    lista.forEach(h => codigos.add(h.codigo));
+                });
+            });
+            cacheCodigosSerie.set(serie, codigos);
+            return codigos;
+        }
+
+        function codigosTrabalhadosNaTurma(turmaFisica) {
+            const codigos = new Set();
+            aulasControlador
+                .filter(a => a.turma === turmaFisica)
+                .forEach(a => (a.habilidades || []).forEach(h => codigos.add(h.codigo || h)));
+            return codigos;
+        }
+
+        function habilidadesNaoContempladas(turmaFisica) {
+            const serie = serieDaTurma(turmaFisica);
+            const todas = todosCodigosDaSerie(serie);
+            const trabalhadas = codigosTrabalhadosNaTurma(turmaFisica);
+            return [...todas].filter(c => !trabalhadas.has(c));
+        }
+
+        // "Em dia" / "Em andamento" / "Atrasado" — Concluída e Cancelada não
+        // entram em nenhum dos 3 (mesma decisão "neutra" já usada no resto do app).
+        function situacaoDaEntrada(aula) {
+            if (aula.status === 'Concluída' || aula.status === 'Cancelada') return null;
+            if (aula.status === 'Em Andamento' || aula.status === 'Reposição') return 'andamento';
+            if (aula.prazo) {
+                const prazo = new Date(aula.prazo + 'T12:00:00');
+                if (prazo < new Date()) return 'atrasado';
+            }
+            return 'em-dia';
+        }
+
+        // ---------- Carregamento Firestore ----------
         function carregarDadosFirebase() {
             return ouvirAulas(escolaAtualId, (snapshot) => {
-                aulasFirebase = snapshot.docs.map(docSnap => {
-                    const data = docSnap.data();
-
-                    if (data.descricao) {
-                        descricoesCache.set(docSnap.id, data.descricao);
-                    }
-
-                    return {
-                        id: docSnap.id,
-                        ...data
-                    };
-                });
-
-                console.log('Aulas carregadas do Firestore:', aulasFirebase.length);
-
+                aulasFirebase = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
                 aulasCarregadas = true;
                 reconciliarESincronizar();
             });
         }
 
-        // Escuta as turmas cadastradas (mesma fonte do index.html) e ressincroniza
-        // o Controlador sempre que uma turma for adicionada ou removida.
         function carregarTurmasFirebase() {
             return ouvirTurmas(escolaAtualId, (docSnap) => {
                 const data = docSnap.data();
@@ -1088,473 +321,463 @@
             });
         }
 
-        // Chama a reconciliação compartilhada (controlador-sync.js) só depois
-        // que aulas E turmas já entregaram seu primeiro snapshot real, e
-        // aplica o resultado na tela local.
         async function reconciliarESincronizar() {
             if (!aulasCarregadas || !turmasCarregadas) return;
-
-            const resultado = await sincronizarControlador({
-                escolaId: escolaAtualId,
-                aulasFirebase,
-                turmasAtuais
-            });
+            const resultado = await sincronizarControlador({ escolaId: escolaAtualId, aulasFirebase, turmasAtuais });
             if (!resultado) return;
-
             aulasControlador = resultado.aulas;
-
-            if (resultado.aulaAtualId) {
-                aulaAtualId = resultado.aulaAtualId;
-                aulaSelecionada = aulasControlador.find(a => a.id === aulaAtualId);
-            }
-
-            aulasFiltradas = [...aulasControlador];
-            atualizarInterface();
+            aulaAtualIdAtual = resultado.aulaAtualId || null;
+            renderizarTudo();
         }
 
-        // Salvar controlador no Firebase
-        function salvarControladorNoFirebase() {
-            const data = {
-                aulas: aulasControlador,
-                aulaAtualId: aulaAtualId,
-                ultimaAtualizacao: new Date().toISOString()
-            };
-            salvarControlador(escolaAtualId, data).catch(error => {
-                console.error('Erro ao salvar no Firebase:', error);
+        function carregarConfiguracoes() {
+            return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                bimestresConfig = (data && data.bimestres) ? data.bimestres : [];
+                renderizarTudo();
             });
         }
 
-        // Buscar descrição completa do Firebase
-        function buscarDescricaoCompleta(aula) {
-            if (!aula) return 'Descrição não disponível';
-            
-            // Se já tem descrição, retorna
-            if (aula.descricao) return aula.descricao;
-            
-            // Tentar encontrar no cache pelo firebaseId
-            if (aula.firebaseId && descricoesCache.has(aula.firebaseId)) {
-                const descricao = descricoesCache.get(aula.firebaseId);
-                aula.descricao = descricao; // Guardar para próximas vezes
-                return descricao;
-            }
-            
-            // Tentar encontrar em aulasFirebase pelo id
-            if (aula.firebaseId) {
-                const aulaFirebase = aulasFirebase.find(af => af.id === aula.firebaseId);
-                if (aulaFirebase && aulaFirebase.descricao) {
-                    descricoesCache.set(aula.firebaseId, aulaFirebase.descricao);
-                    aula.descricao = aulaFirebase.descricao;
-                    return aulaFirebase.descricao;
-                }
-            }
-            
-            return 'Descrição não disponível para esta aula.';
+        function carregarBimestrais() {
+            return ouvirPlanejamentosBimestrais(escolaAtualId, (snapshot) => {
+                planejamentosBimestrais = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderizarTudo();
+            });
         }
 
-        // Selecionar aula
-        window.selecionarAula = function(id) {
-            const aula = aulasControlador.find(a => a.id === id);
-            if (aula) {
-                aulaAtualId = id;
-                aulaSelecionada = aula;
-                
-                // Destacar linha selecionada
-                document.querySelectorAll('#tabelaBody tr').forEach(tr => {
-                    tr.classList.remove('selected');
-                });
-                const linhaSelecionada = document.querySelector(`[data-aula-id="${id}"]`);
-                if (linhaSelecionada) {
-                    linhaSelecionada.classList.add('selected');
-                }
-                
-                // Atualizar interface da aula atual
-                atualizarAulaAtual();
-                
-                // Habilitar botão de iniciar aula
-                const btnIniciar = document.getElementById('btnIniciarAulaTopo');
-                if (btnIniciar) {
-                    btnIniciar.disabled = false;
-                }
-                
-                // Rolar até o campo "Aula em Andamento"
-                document.getElementById('currentLesson').scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start' 
-                });
-                
-                // Destacar visualmente
-                const currentLesson = document.getElementById('currentLesson');
-                currentLesson.classList.add('highlight');
-                setTimeout(() => {
-                    currentLesson.classList.remove('highlight');
-                }, 2000);
-                
-                // Salvar no Firebase
-                salvarControladorNoFirebase();
-            }
-        };
-
-        // Iniciar aula selecionada
-        window.iniciarAulaSelecionada = function() {
-            if (aulaSelecionada) {
-                executarAula(aulaSelecionada.id);
-            } else {
-                mostrarMensagem('Selecione uma aula primeiro!', 'info');
-            }
-        };
-
-        // Atualizar aula atual
-        function atualizarAulaAtual() {
-            const aula = aulaAtualId ? aulasControlador.find(a => a.id === aulaAtualId) : null;
-            
-            if (aula) {
-                document.getElementById('currentTurma').textContent = aula.turma;
-                document.getElementById('currentTitulo').textContent = aula.titulo;
-                document.getElementById('currentPrazo').textContent = formatarData(aula.prazo);
-                
-                // Buscar descrição completa
-                const descricaoCompleta = buscarDescricaoCompleta(aula);
-                
-                // Formatar descrição com quebras de linha e markdown simples
-                const descricaoFormatada = descricaoCompleta
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n/g, '<br>')
-                    .replace(/- /g, '• ');
-                
-                document.getElementById('currentDescricao').innerHTML = descricaoFormatada;
-                
-                // Calcular progresso
-                const aulasExecutadas = aula.aulasExecutadas || 0;
-                const totalAulas = aula.numAulas || 2;
-                const progresso = Math.min(100, Math.round((aulasExecutadas / totalAulas) * 100));
-                
-                document.getElementById('currentProgresso').textContent = progresso + '%';
-                document.getElementById('progressFill').style.width = progresso + '%';
-                document.getElementById('currentAulasCount').textContent = `${aulasExecutadas}/${totalAulas}`;
-                
-            } else {
-                document.getElementById('currentTurma').textContent = '-';
-                document.getElementById('currentTitulo').textContent = '-';
-                document.getElementById('currentPrazo').textContent = '-';
-                document.getElementById('currentDescricao').innerHTML = 'Selecione uma aula na tabela abaixo para visualizar a descrição completa.';
-                document.getElementById('currentProgresso').textContent = '0%';
-                document.getElementById('progressFill').style.width = '0%';
-                document.getElementById('currentAulasCount').textContent = '0/0';
-            }
+        function carregarMensais() {
+            return ouvirPlanejamentosMensais(escolaAtualId, (snapshot) => {
+                planejamentosMensais = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderizarTudo();
+            });
         }
 
-        // Executar aula (incrementar contador)
-        window.executarAula = function(id) {
-            const aula = aulasControlador.find(a => a.id === id);
-            if (aula) {
-                if (!aula.aulasExecutadas) {
-                    aula.aulasExecutadas = 0;
-                }
-                
-                const totalAulas = aula.numAulas || 2;
-                
-                if (aula.aulasExecutadas >= totalAulas) {
-                    mostrarMensagem(`Esta aula já foi concluída para a turma ${aula.turma}!`, 'info');
-                    return;
-                }
-                
-                // Incrementar contador
-                aula.aulasExecutadas++;
-                
-                // Atualizar data de início se for a primeira execução
-                if (aula.aulasExecutadas === 1) {
-                    aula.dataInicio = new Date().toISOString().split('T')[0];
-                }
-                
-                if (aula.aulasExecutadas >= totalAulas) {
-                    aula.status = 'Concluída';
-                    aula.aulasExecutadas = totalAulas;
-                    mostrarMensagem(`✅ Aula concluída! ${aula.titulo} - Turma ${aula.turma}`, 'success');
-                } else {
-                    aula.status = 'Em Andamento';
-                    mostrarMensagem(`▶️ Aula ${aula.aulasExecutadas}/${totalAulas} executada: ${aula.titulo} - Turma ${aula.turma}`, 'success');
-                }
-                
-                // Salvar no Firebase
-                salvarControladorNoFirebase();
-                
-                // Atualizar interface
-                atualizarInterface();
-            }
-        };
-
-        // Atualizar interface
-        function atualizarInterface() {
+        function renderizarTudo() {
             atualizarFiltroTurmas();
-            atualizarTabela();
-            atualizarAulaAtual();
-            atualizarEstatisticas();
+            renderizarAlertas();
+            renderizarIndicadores();
+            renderizarProgressos();
+            renderizarTabela();
+            renderizarPendencias();
+            renderizarTimeline();
         }
 
-        // Atualizar filtro de turmas
         function atualizarFiltroTurmas() {
-            const turmas = [...new Set(aulasControlador.map(a => a.turma).filter(Boolean))];
-            const select = document.getElementById('filterTurma');
-            select.innerHTML = '<option value="">Todas as Turmas</option>';
-            turmas.sort().forEach(turma => {
-                const option = document.createElement('option');
-                option.value = turma;
-                option.textContent = turma;
-                select.appendChild(option);
-            });
+            const select = document.getElementById('ctrlFiltroTurma');
+            const valorAtual = select.value;
+            const turmas = [...new Set(aulasControlador.map(a => a.turma).filter(Boolean))].sort();
+            select.innerHTML = '<option value="">Todas as turmas</option>' + turmas.map(t => `<option value="${t}">${t}</option>`).join('');
+            select.value = valorAtual;
         }
 
-        // Atualizar tabela
-        function atualizarTabela() {
-            const tbody = document.getElementById('tabelaBody');
-            
-            if (aulasFiltradas.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px;">
-                            Nenhuma aula encontrada
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = aulasFiltradas.map(aula => {
-                const aulasExecutadas = aula.aulasExecutadas || 0;
-                const totalAulas = aula.numAulas || 2;
-                const progresso = Math.min(100, Math.round((aulasExecutadas / totalAulas) * 100));
-                const selecionada = aula.id === aulaAtualId ? 'selected' : '';
-                
-                return `
-                    <tr data-aula-id="${aula.id}" class="${selecionada}" onclick="selecionarAula('${aula.id}')" style="cursor: pointer;">
-                        <td class="aula-info">
-                            <div class="aula-titulo">${aula.titulo}</div>
-                            <div class="aula-desc">${aula.objetoConhecimento || ''}</div>
-                        </td>
-                        <td><span class="badge badge-info">${aula.turma}</span></td>
-                        <td>
-                            <span class="badge ${getStatusClass(aula.status)}">${aula.status || 'Não iniciada'}</span>
-                        </td>
-                        <td>
-                            <div class="aulas-progress">
-                                <span class="aulas-progress-count">${aulasExecutadas}/${totalAulas}</span>
-                                <div class="aulas-progress-bar">
-                                    <div class="aulas-progress-fill" style="width: ${progresso}%;"></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="data-cell">${formatarData(aula.dataInicio)}</td>
-                        <td class="data-cell">${formatarData(aula.prazo)}</td>
-                        <td class="acoes-cell" onclick="event.stopPropagation();">
-                            <button class="btn-icon btn-view" onclick="visualizarAula('${aula.id}')" title="Visualizar descrição completa">👁️</button>
-                            <button class="btn-icon btn-edit" onclick="editarAula('${aula.id}')" title="Editar">✏️</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+        function inicializarFiltros() {
+            document.getElementById('ctrlFiltroTurma').addEventListener('change', (e) => { filtroTurma = e.target.value; renderizarTabela(); });
+            document.getElementById('ctrlFiltroBimestre').addEventListener('change', (e) => { filtroBimestre = e.target.value; renderizarTabela(); renderizarIndicadores(); renderizarProgressos(); });
+            document.getElementById('ctrlFiltroSituacao').addEventListener('change', (e) => { filtroSituacao = e.target.value; renderizarTabela(); });
         }
 
-        // Classe CSS para status
-        function getStatusClass(status) {
-            switch(status) {
-                case 'Concluída': return 'badge-success';
-                case 'Em Andamento': return 'badge-warning';
-                case 'Reposição': return 'badge-info';
-                case 'Cancelada': return 'badge-danger';
-                default: return 'badge-danger'; // Não iniciada
+        window.ordenarPor = function (coluna) {
+            if (ordenacaoColuna === coluna) {
+                ordenacaoDirecao *= -1;
+            } else {
+                ordenacaoColuna = coluna;
+                ordenacaoDirecao = 1;
             }
-        }
-
-        // Formatar data
-        function formatarData(data) {
-            if (!data) return '-';
-            const [ano, mes, dia] = data.split('-');
-            return `${dia}/${mes}/${ano}`;
-        }
-
-        // Atualizar estatísticas
-        function atualizarEstatisticas() {
-            const hoje = new Date();
-            const tresDias = new Date(hoje.getTime() + 3 * 24 * 60 * 60 * 1000);
-            
-            // "Cancelada" é neutra: não conta como pendente/atrasada (não é
-            // mais algo a fazer), mas também não conta como concluída.
-            const prazosProximos = aulasControlador.filter(a => {
-                if (!a.prazo || a.status === 'Concluída' || a.status === 'Cancelada') return false;
-                const prazo = new Date(a.prazo + 'T12:00:00');
-                return prazo > hoje && prazo <= tresDias;
-            }).length;
-            document.getElementById('prazosProximos').textContent = prazosProximos;
-
-            const aulasAtrasadas = aulasControlador.filter(a => {
-                if (!a.prazo || a.status === 'Concluída' || a.status === 'Cancelada') return false;
-                const prazo = new Date(a.prazo + 'T12:00:00');
-                return prazo < hoje;
-            }).length;
-            document.getElementById('aulasAtrasadas').textContent = aulasAtrasadas;
-            
-            const totalConcluidas = aulasControlador.filter(a => a.status === 'Concluída').length;
-            document.getElementById('totalConcluidasStats').textContent = totalConcluidas;
-        }
-
-        // Funções de filtro
-        window.aplicarFiltros = function() {
-            const bimestre = document.getElementById('filterBimestre').value;
-            const status = document.getElementById('filterStatus').value;
-            const turma = document.getElementById('filterTurma').value;
-            
-            aulasFiltradas = aulasControlador.filter(aula => {
-                if (bimestre && aula.bimestre != bimestre) return false;
-                if (status && aula.status !== status) return false;
-                if (turma && aula.turma !== turma) return false;
-                return true;
-            });
-            
-            if (statusAtual !== 'todos') {
-                aulasFiltradas = aulasFiltradas.filter(a => a.status === statusAtual);
-            }
-            
-            atualizarTabela();
+            renderizarTabela();
         };
 
-        window.limparFiltros = function() {
-            document.getElementById('filterBimestre').value = '';
-            document.getElementById('filterStatus').value = '';
-            document.getElementById('filterTurma').value = '';
-            aulasFiltradas = [...aulasControlador];
-            statusAtual = 'todos';
-            
-            document.querySelectorAll('.status-tab').forEach(tab => {
-                tab.classList.remove('active');
-                if (tab.textContent.includes('Todos')) {
-                    tab.classList.add('active');
-                }
-            });
-            
-            atualizarTabela();
-        };
+        // ---------- Inicialização ----------
+        inicializarFiltros();
 
-        window.filtrarPorStatus = function(status, element) {
-            statusAtual = status;
-            
-            document.querySelectorAll('.status-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            element.classList.add('active');
-            
-            aulasFiltradas = aulasControlador.filter(aula => {
-                if (status === 'todos') return true;
-                return aula.status === status;
-            });
-            
-            aplicarFiltros();
-        };
-
-        // Funções de visualização/edição
-        window.visualizarAula = function(id) {
-            const aula = aulasControlador.find(a => a.id === id);
-            if (aula) {
-                aulaSelecionada = aula;
-                
-                const descricaoCompleta = buscarDescricaoCompleta(aula);
-                const descricaoFormatada = descricaoCompleta
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n/g, '<br>')
-                    .replace(/- /g, '• ');
-
-                // aula.habilidades (array) é o campo real gravado pelo Planejamento;
-                // aula.habilidade (singular) só existe em entradas antigas, pré-fix.
-                const habilidadesTexto = Array.isArray(aula.habilidades) && aula.habilidades.length > 0
-                    ? aula.habilidades.map(h => h.codigo || h).join(', ')
-                    : (aula.habilidade || 'Não definida');
-
-                document.getElementById('modalTitulo').textContent = aula.titulo;
-                document.getElementById('modalBody').innerHTML = `
-                    <div style="margin-bottom: 20px;">
-                        <p><strong>Turma:</strong> ${aula.turma}</p>
-                        <p><strong>Unidade Temática:</strong> ${aula.unidadeTematica || 'Ginásticas'}</p>
-                        <p><strong>Objeto de Conhecimento:</strong> ${aula.objetoConhecimento || '-'}</p>
-                        <p><strong>Habilidade(s):</strong> ${habilidadesTexto}</p>
-                        <p><strong>Status:</strong> <span class="badge ${getStatusClass(aula.status)}">${aula.status || 'Não iniciada'}</span></p>
-                        <p><strong>Nº de Aulas:</strong> ${aula.numAulas || 2}</p>
-                        <p><strong>Aulas Executadas:</strong> ${aula.aulasExecutadas || 0}/${aula.numAulas || 2}</p>
-                        <p><strong>Data de Início:</strong> ${formatarData(aula.dataInicio)}</p>
-                        <p><strong>Prazo:</strong> ${formatarData(aula.prazo)}</p>
-                    </div>
-                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                        <strong style="display: block; margin-bottom: 10px;">📝 Descrição Completa:</strong>
-                        <div style="white-space: pre-line; line-height: 1.6;">${descricaoFormatada}</div>
-                    </div>
-                `;
-                document.getElementById('aulaModal').classList.add('active');
-            }
-        };
-
-        window.editarAula = function(id) {
-            const aula = aulasControlador.find(a => a.id === id);
-            if (aula) {
-                aulaSelecionada = aula;
-                document.getElementById('editTitulo').value = aula.titulo || '';
-                document.getElementById('editTurma').value = aula.turma || '';
-                document.getElementById('editStatus').value = aula.status || 'Não iniciada';
-                document.getElementById('editDataInicio').value = aula.dataInicio || new Date().toISOString().split('T')[0];
-                document.getElementById('editPrazo').value = aula.prazo || '';
-                document.getElementById('editObservacoes').value = aula.observacoes || '';
-                
-                document.getElementById('editarModal').classList.add('active');
-            }
-        };
-
-        window.salvarEdicao = function() {
-            if (aulaSelecionada) {
-                aulaSelecionada.status = document.getElementById('editStatus').value;
-                aulaSelecionada.dataInicio = document.getElementById('editDataInicio').value;
-                aulaSelecionada.prazo = document.getElementById('editPrazo').value;
-                aulaSelecionada.observacoes = document.getElementById('editObservacoes').value;
-                
-                // Salvar no Firebase
-                salvarControladorNoFirebase();
-                
-                mostrarMensagem('Aula atualizada com sucesso!', 'success');
-                fecharEditarModal();
-                atualizarInterface();
-            }
-        };
-
-        window.fecharModal = function() {
-            document.getElementById('aulaModal').classList.remove('active');
-            aulaSelecionada = null;
-        };
-
-        window.fecharEditarModal = function() {
-            document.getElementById('editarModal').classList.remove('active');
-            aulaSelecionada = null;
-        };
-
-        window.atualizarDados = function() {
-            reconciliarESincronizar();
-            mostrarMensagem('Dados atualizados com sucesso!', 'success');
-        };
-
-        // Função para mostrar mensagens
-        function mostrarMensagem(texto, tipo, timeout = 5000) {
-            showToast(texto, tipo, timeout);
-        }
-
-        // 🔒 Exige login para acessar esta página
         requireAuth({ loginPath: '../../login.html' });
 
-        // Só carrega os dados depois de confirmar login E qual escola está ativa.
-        // Ao trocar de escola, cancela os listeners antigos antes de abrir os novos.
         document.addEventListener('pf-escola-ready', (evento) => {
             escolaAtualId = evento.detail.escolaId;
             aulasCarregadas = false;
             turmasCarregadas = false;
             if (unsubAulas) unsubAulas();
             if (unsubTurmas) unsubTurmas();
+            if (unsubConfiguracoes) unsubConfiguracoes();
+            if (unsubBimestrais) unsubBimestrais();
+            if (unsubMensais) unsubMensais();
             unsubAulas = carregarDadosFirebase();
             unsubTurmas = carregarTurmasFirebase();
+            unsubConfiguracoes = carregarConfiguracoes();
+            unsubBimestrais = carregarBimestrais();
+            unsubMensais = carregarMensais();
         });
+
+        // ---------- Filtro compartilhado (indicadores + tabela + exportação) ----------
+        function entradasFiltradas() {
+            return aulasControlador.filter(a => {
+                if (filtroTurma && a.turma !== filtroTurma) return false;
+                if (filtroBimestre && String(a.bimestre) !== filtroBimestre) return false;
+                if (filtroSituacao && situacaoDaEntrada(a) !== filtroSituacao) return false;
+                return true;
+            });
+        }
+
+        // ---------- Indicadores ----------
+        function renderizarIndicadores() {
+            const entradas = entradasFiltradas();
+            const aulasPrevistas = entradas.reduce((s, a) => s + (a.numAulas || 0), 0);
+            const aulasMinistradas = entradas.reduce((s, a) => s + (a.aulasExecutadas || 0), 0);
+            const conteudosConcluidos = entradas.filter(a => a.status === 'Concluída').length;
+
+            const indicadores = [
+                { valor: aulasPrevistas, label: 'Aulas Previstas' },
+                { valor: aulasMinistradas, label: 'Aulas Ministradas' },
+                { valor: Math.max(0, aulasPrevistas - aulasMinistradas), label: 'Aulas Pendentes' },
+                { valor: entradas.length, label: 'Conteúdos Previstos' },
+                { valor: conteudosConcluidos, label: 'Conteúdos Concluídos' },
+            ];
+
+            document.getElementById('ctrlIndicadores').innerHTML = indicadores.map(i => `
+                <div class="ctrl-indicador">
+                    <div class="ctrl-indicador-valor">${i.valor}</div>
+                    <div class="ctrl-indicador-label">${i.label}</div>
+                </div>
+            `).join('');
+        }
+
+        // ---------- Progresso do Bimestre / Ano (mesma lógica do Dashboard, duplicada por convenção) ----------
+        function stringParaData(dataStr) {
+            const [dia, mes, ano] = dataStr.split('/').map(Number);
+            return new Date(ano, mes - 1, dia);
+        }
+
+        function calcularProgressoAnual() {
+            if (!bimestresConfig || bimestresConfig.length === 0) return null;
+            const inicioAno = stringParaData(bimestresConfig[0].inicio);
+            const fimAno = stringParaData(bimestresConfig[bimestresConfig.length - 1].fim);
+            fimAno.setHours(23, 59, 59, 999);
+            const totalMs = fimAno - inicioAno;
+            if (totalMs <= 0) return null;
+            const hoje = new Date();
+            const decorridoMs = Math.min(Math.max(hoje - inicioAno, 0), totalMs);
+            return Math.round((decorridoMs / totalMs) * 100);
+        }
+
+        function calcularProgressoBimestral() {
+            if (!bimestresConfig || bimestresConfig.length === 0) {
+                return { percentual: 0, rotulo: 'Bimestral', semDados: true };
+            }
+            const alvo = filtroBimestre
+                ? bimestresConfig.find(b => String(b.numero) === filtroBimestre)
+                : null;
+            const hoje = new Date();
+
+            const calcular = (b) => {
+                const inicio = stringParaData(b.inicio);
+                const fim = stringParaData(b.fim);
+                fim.setHours(23, 59, 59, 999);
+                const percentual = Math.round((Math.min(Math.max(hoje - inicio, 0), fim - inicio) / (fim - inicio)) * 100);
+                return { percentual, rotulo: `${b.numero}º Bimestre` };
+            };
+
+            if (alvo) return calcular(alvo);
+
+            for (const b of bimestresConfig) {
+                const inicio = stringParaData(b.inicio);
+                const fim = stringParaData(b.fim);
+                fim.setHours(23, 59, 59, 999);
+                if (hoje >= inicio && hoje <= fim) return calcular(b);
+            }
+            const primeiro = stringParaData(bimestresConfig[0].inicio);
+            if (hoje < primeiro) return { percentual: 0, rotulo: 'Ano letivo ainda não iniciado' };
+            return { percentual: 100, rotulo: 'Bimestre encerrado' };
+        }
+
+        function renderizarProgressos() {
+            const anual = calcularProgressoAnual();
+            const bimestral = calcularProgressoBimestral();
+            const container = document.getElementById('ctrlProgressos');
+            container.innerHTML = `
+                <div>
+                    <div class="ctrl-progresso-label"><span>${bimestral.rotulo}</span><span>${bimestral.percentual}%</span></div>
+                    <div class="pf-progress-track"><div class="pf-progress-fill" style="width:${bimestral.percentual}%;"></div></div>
+                </div>
+                <div>
+                    <div class="ctrl-progresso-label"><span>Ano Letivo</span><span>${anual === null ? '-' : anual + '%'}</span></div>
+                    <div class="pf-progress-track"><div class="pf-progress-fill" style="width:${anual || 0}%;"></div></div>
+                </div>
+            `;
+        }
+
+        // ---------- Alertas Inteligentes (regras simples, sem IA) ----------
+        function calcularAlertas() {
+            const alertas = [];
+            const total = aulasControlador.length;
+
+            if (total > 0) {
+                const atrasadas = aulasControlador.filter(a => situacaoDaEntrada(a) === 'atrasado').length;
+                if (atrasadas / total > 0.2) {
+                    alertas.push({ tipo: 'danger', texto: `${atrasadas} de ${total} conteúdos estão atrasados (${Math.round(atrasadas / total * 100)}%).` });
+                }
+                const canceladas = aulasControlador.filter(a => a.status === 'Cancelada').length;
+                if (canceladas / total > 0.2) {
+                    alertas.push({ tipo: 'warning', texto: `Muitas aulas canceladas: ${canceladas} de ${total} (${Math.round(canceladas / total * 100)}%).` });
+                }
+            }
+
+            const turmasPresentes = [...new Set(aulasControlador.map(a => a.turma).filter(Boolean))];
+            const totalLacunas = turmasPresentes.reduce((s, t) => s + habilidadesNaoContempladas(t).length, 0);
+            if (totalLacunas > 0) {
+                alertas.push({ tipo: 'warning', texto: `${totalLacunas} habilidade(s) da BNCC ainda não foram contempladas.` });
+            }
+
+            const hoje = new Date();
+            const bimestreAtivo = bimestresConfig.find(b => {
+                const inicio = stringParaData(b.inicio), fim = stringParaData(b.fim);
+                fim.setHours(23, 59, 59, 999);
+                return hoje >= inicio && hoje <= fim;
+            });
+            if (bimestreAtivo) {
+                const series = [...new Set(turmasPresentes.map(serieDaTurma).filter(Boolean))];
+                const seriesSemPlano = series.filter(serie => {
+                    const plano = planejamentosBimestrais.find(p => p.turma === serie && p.bimestre === bimestreAtivo.numero);
+                    return !plano || !plano.objetivos;
+                });
+                if (seriesSemPlano.length > 0) {
+                    alertas.push({ tipo: 'info', texto: `Planejamento do ${bimestreAtivo.numero}º Bimestre incompleto para: ${seriesSemPlano.join(', ')}.` });
+                }
+            }
+
+            return alertas;
+        }
+
+        function renderizarAlertas() {
+            const alertas = calcularAlertas();
+            const container = document.getElementById('ctrlAlertas');
+            container.innerHTML = alertas.map(a => `<div class="ctrl-alerta ctrl-alerta--${a.tipo}">⚠️ ${a.texto}</div>`).join('');
+        }
+
+        // ---------- Tabela de Acompanhamento ----------
+        function situacaoEmojiHtml(status) {
+            switch (status) {
+                case 'Concluída': return '<span class="ctrl-badge ctrl-badge--concluido">🟢 Concluído</span>';
+                case 'Em Andamento':
+                case 'Reposição': return '<span class="ctrl-badge ctrl-badge--andamento">🟡 Em andamento</span>';
+                case 'Cancelada': return '<span class="ctrl-badge ctrl-badge--nao-previsto">🚫 Cancelada</span>';
+                default: return '<span class="ctrl-badge ctrl-badge--nao-iniciado">🔴 Não iniciado</span>';
+            }
+        }
+
+        // Combinações (unidade × especificação) da BNCC da série da turma que
+        // NUNCA tiveram nenhuma habilidade trabalhada em nenhuma entrada —
+        // vira linha virtual "⚪ Não previsto" na tabela.
+        function combinacoesNaoPrevistas(turmaFisica) {
+            const serie = serieDaTurma(turmaFisica);
+            if (!serie || !habilidadesBNCC[serie]) return [];
+            const trabalhadas = codigosTrabalhadosNaTurma(turmaFisica);
+            const resultado = [];
+            Object.entries(habilidadesBNCC[serie]).forEach(([unidade, especMap]) => {
+                Object.entries(especMap).forEach(([especificacao, lista]) => {
+                    const algumTrabalhado = lista.some(h => trabalhadas.has(h.codigo));
+                    if (!algumTrabalhado) {
+                        resultado.push({ unidadeTematica: unidade, objetoConhecimento: especificacao, habilidades: lista, turma: turmaFisica, virtual: true });
+                    }
+                });
+            });
+            return resultado;
+        }
+
+        function habilidadesTexto(habilidades) {
+            if (!Array.isArray(habilidades) || habilidades.length === 0) return '-';
+            return habilidades.map(h => h.codigo || h).join(', ');
+        }
+
+        function renderizarTabela() {
+            let linhas = entradasFiltradas().map(a => ({ ...a, virtual: false }));
+
+            // Linhas virtuais "Não previsto" — só fazem sentido quando não há
+            // filtro de situação específico (elas não têm status real).
+            if (!filtroSituacao) {
+                const turmas = filtroTurma ? [filtroTurma] : [...new Set(aulasControlador.map(a => a.turma).filter(Boolean))];
+                turmas.forEach(t => { linhas = linhas.concat(combinacoesNaoPrevistas(t)); });
+            }
+
+            if (ordenacaoColuna) {
+                linhas.sort((a, b) => {
+                    const va = a[ordenacaoColuna] ?? -Infinity;
+                    const vb = b[ordenacaoColuna] ?? -Infinity;
+                    if (typeof va === 'string') return va.localeCompare(vb) * ordenacaoDirecao;
+                    return (va - vb) * ordenacaoDirecao;
+                });
+            }
+
+            const tbody = document.getElementById('ctrlTabelaBody');
+            if (linhas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7"><p class="ctrl-estado-vazio">Nenhum conteúdo encontrado com os filtros atuais.</p></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = linhas.map(a => {
+                if (a.virtual) {
+                    return `
+                        <tr style="opacity:0.6;">
+                            <td>${a.unidadeTematica}</td>
+                            <td>${a.objetoConhecimento}</td>
+                            <td>${habilidadesTexto(a.habilidades)}</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td><span class="ctrl-badge ctrl-badge--nao-previsto">⚪ Não previsto</span></td>
+                            <td></td>
+                        </tr>
+                    `;
+                }
+                const divergencia = a.conteudoMinistrado && a.conteudoMinistrado.trim() &&
+                    a.conteudoMinistrado.trim() !== (a.titulo || '').trim() &&
+                    a.conteudoMinistrado.trim() !== (a.objetoConhecimento || '').trim();
+                return `
+                    <tr>
+                        <td>${a.unidadeTematica || '-'}</td>
+                        <td>${a.objetoConhecimento || '-'}</td>
+                        <td>${habilidadesTexto(a.habilidades)}</td>
+                        <td>${a.numAulas ?? '-'}</td>
+                        <td>${a.aulasExecutadas ?? 0}</td>
+                        <td>${situacaoEmojiHtml(a.status)}</td>
+                        <td>${divergencia ? `<button class="ctrl-btn-comparar" title="Conteúdo executado diverge do planejado — justificar" onclick="abrirJustificativa('${a.id}')">⚖️</button>` : ''}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ---------- Pendências ----------
+        function renderizarPendencias() {
+            const itens = [];
+
+            aulasControlador.filter(a => situacaoDaEntrada(a) === 'atrasado').forEach(a => {
+                itens.push({ texto: `🔴 Atrasada: ${a.titulo} — ${a.turma} (prazo ${formatarData(a.prazo)})`, destino: '../programacao-diaria/index.html' });
+            });
+            aulasControlador.filter(a => a.status === 'Reposição').forEach(a => {
+                itens.push({ texto: `🔁 Necessita reposição: ${a.titulo} — ${a.turma}`, destino: '../programacao-diaria/index.html' });
+            });
+
+            const turmasPresentes = [...new Set(aulasControlador.map(a => a.turma).filter(Boolean))];
+            turmasPresentes.forEach(t => {
+                const faltando = habilidadesNaoContempladas(t);
+                if (faltando.length > 0) {
+                    itens.push({ texto: `📌 ${faltando.length} habilidade(s) da BNCC não contempladas em ${t}`, destino: '../planejamento/index.html' });
+                }
+            });
+
+            const series = [...new Set(turmasPresentes.map(serieDaTurma).filter(Boolean))];
+            const hoje = new Date();
+            series.forEach(serie => {
+                bimestresConfig.forEach(b => {
+                    const inicio = stringParaData(b.inicio);
+                    if (inicio > hoje) return; // bimestre futuro, ainda não cobrar
+                    const plano = planejamentosBimestrais.find(p => p.turma === serie && p.bimestre === b.numero);
+                    if (!plano || !plano.objetivos) {
+                        itens.push({ texto: `📝 Planejamento do ${b.numero}º Bimestre incompleto — ${serie}`, destino: '../planejamento/index.html' });
+                    }
+                });
+            });
+
+            window._pendenciasAtuais = itens;
+            const container = document.getElementById('ctrlPendencias');
+            if (itens.length === 0) {
+                container.innerHTML = '<p class="ctrl-estado-vazio">Nenhuma pendência encontrada. 🎉</p>';
+                return;
+            }
+            container.innerHTML = itens.map((item, i) => `
+                <div class="ctrl-pendencia-item" onclick="acionarPendencia(${i})">
+                    <span>${item.texto}</span>
+                    <span>→</span>
+                </div>
+            `).join('');
+        }
+
+        window.acionarPendencia = function (i) {
+            const item = window._pendenciasAtuais && window._pendenciasAtuais[i];
+            if (item) window.location.href = item.destino;
+        };
+
+        // ---------- Linha do Tempo ----------
+        // Só eventos com timestamp real (cancelamento/reposição, já gravados
+        // pela Programação Diária) — não reconstrói "aula realizada" como
+        // evento individual (não existe timestamp discreto de cada execução).
+        function renderizarTimeline() {
+            const eventos = [];
+            aulasControlador.forEach(a => {
+                (a.historico || []).forEach(h => {
+                    eventos.push({ data: h.data, tipo: h.tipo, motivo: h.motivo, titulo: a.titulo, turma: a.turma });
+                });
+            });
+            eventos.sort((x, y) => (y.data || '').localeCompare(x.data || ''));
+
+            const container = document.getElementById('ctrlTimeline');
+            if (eventos.length === 0) {
+                container.innerHTML = '<p class="ctrl-estado-vazio">Nenhum evento registrado ainda.</p>';
+                return;
+            }
+            const rotuloTipo = { cancelamento: '🚫 Cancelamento', reposicao: '🔁 Reposição' };
+            container.innerHTML = eventos.slice(0, 30).map(e => {
+                const data = e.data ? new Date(e.data) : null;
+                const dataTexto = data
+                    ? `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')} ${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`
+                    : '-';
+                return `
+                    <div class="ctrl-timeline-item">
+                        <span>${rotuloTipo[e.tipo] || e.tipo} — ${e.titulo} (${e.turma})${e.motivo ? ': ' + e.motivo : ''}</span>
+                        <span style="color:var(--pf-gray-500);font-size:0.75rem;">${dataTexto}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ---------- Comparativo Planejado × Executado / Justificativa ----------
+        window.abrirJustificativa = function (id) {
+            entradaEmJustificativa = aulasControlador.find(a => a.id === id);
+            if (!entradaEmJustificativa) return;
+            document.getElementById('ctrlComparativoTexto').innerHTML = `
+                <strong>Planejado:</strong> ${entradaEmJustificativa.titulo || entradaEmJustificativa.objetoConhecimento || '-'}<br>
+                <strong>Executado:</strong> ${entradaEmJustificativa.conteudoMinistrado}
+            `;
+            document.getElementById('ctrlJustificativaTexto').value = entradaEmJustificativa.justificativaAlteracao || '';
+            document.getElementById('modalJustificativa').open();
+        };
+
+        window.salvarJustificativa = async function () {
+            if (!entradaEmJustificativa) return;
+            const texto = document.getElementById('ctrlJustificativaTexto').value;
+            const entrada = aulasControlador.find(a => a.id === entradaEmJustificativa.id);
+            if (!entrada) return;
+            entrada.justificativaAlteracao = texto;
+            try {
+                await salvarControlador(escolaAtualId, {
+                    aulas: aulasControlador,
+                    aulaAtualId: aulaAtualIdAtual,
+                    ultimaAtualizacao: new Date().toISOString()
+                });
+                mostrarMensagem('Justificativa salva!', 'success');
+                document.getElementById('modalJustificativa').close();
+            } catch (erro) {
+                mostrarMensagem('Erro ao salvar: ' + erro.message, 'error');
+            }
+        };
+
+        // ---------- Exportação ----------
+        window.exportarRelatorioCsv = function () {
+            const entradas = entradasFiltradas();
+            const linhas = [
+                ['Unidade Temática', 'Objeto de Conhecimento', 'Turma', 'Habilidades', 'Previstas', 'Realizadas', 'Status'],
+                ...entradas.map(a => [
+                    a.unidadeTematica || '', a.objetoConhecimento || '', a.turma || '',
+                    habilidadesTexto(a.habilidades), a.numAulas ?? '', a.aulasExecutadas ?? 0, a.status || ''
+                ])
+            ];
+            const csv = linhas.map(linha => linha.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `controlador-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            mostrarMensagem('Relatório exportado!', 'success');
+        };
     </script>
 </body>
 </html>
