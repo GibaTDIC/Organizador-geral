@@ -84,10 +84,6 @@
         .ba-habilidade-checkbox input[type="checkbox"] { width: auto; margin-top: 3px; flex-shrink: 0; }
         .ba-habilidade-descricao { font-size: 0.8rem; color: var(--pf-gray-500); }
 
-        .ba-arquivos-lista { display: flex; flex-direction: column; gap: 4px; margin-top: var(--pf-space-2); }
-        .ba-arquivo-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; background: var(--pf-gray-100); padding: 6px 10px; border-radius: var(--pf-radius-md); }
-        .ba-arquivo-item button { background: none; border: none; color: var(--pf-danger); cursor: pointer; }
-
         @media (max-width: 700px) {
             .ba-grid { grid-template-columns: 1fr; }
         }
@@ -194,13 +190,8 @@
                     </select>
                 </div>
                 <div class="pf-field">
-                    <label for="baLinkExterno">Link externo (opcional, ex: vídeo no YouTube)</label>
+                    <label for="baLinkExterno">Link externo (opcional, ex: Google Drive, YouTube)</label>
                     <input type="url" id="baLinkExterno" placeholder="https://...">
-                </div>
-                <div class="pf-field">
-                    <label for="baArquivoInput">Anexar arquivo(s)</label>
-                    <input type="file" id="baArquivoInput" multiple>
-                    <div class="ba-arquivos-lista" id="baArquivosLista"></div>
                 </div>
                 <button type="submit" class="pf-btn pf-btn--success">💾 Salvar Atividade</button>
             </form>
@@ -218,7 +209,6 @@
             ouvirAtividades, criarAtividade, atualizarAtividade, excluirAtividade,
             duplicarAtividade, favoritar, desfavoritar, arquivar, desarquivar
         } from "../../scripts/services/atividades-service.js";
-        import { uploadArquivo, excluirArquivo } from "../../scripts/services/storage-service.js";
         import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
 
         // ---------- Constantes ----------
@@ -242,8 +232,6 @@
         let mostrarArquivadas = false;
 
         let atividadeEditando = null; // id da atividade em edição, null = criando nova
-        let arquivosExistentes = [];  // arquivos já salvos da atividade em edição
-        let arquivosNovos = [];       // File[] escolhidos agora, ainda não enviados
 
         // ---------- Helpers ----------
         function mostrarMensagem(texto, tipo) {
@@ -562,45 +550,11 @@
         }
 
         // ---------- Modal de cadastro/edição ----------
-        function renderizarArquivosLista() {
-            const container = document.getElementById('baArquivosLista');
-            const itensExistentes = arquivosExistentes.map((arq, i) => `
-                <div class="ba-arquivo-item">
-                    <span>📎 ${arq.nome}</span>
-                    <button type="button" onclick="removerArquivoExistente(${i})">✕</button>
-                </div>
-            `).join('');
-            const itensNovos = arquivosNovos.map((file, i) => `
-                <div class="ba-arquivo-item">
-                    <span>🆕 ${file.name}</span>
-                    <button type="button" onclick="removerArquivoNovo(${i})">✕</button>
-                </div>
-            `).join('');
-            container.innerHTML = itensExistentes + itensNovos;
-        }
-
-        // Remover um arquivo já salvo durante a edição só tira da lista local —
-        // não apaga do Storage aqui (o mesmo arquivo pode estar referenciado por
-        // uma duplicata; ver excluirAtividade no serviço, que já trata esse caso
-        // na exclusão da atividade inteira). O blob órfão é uma limitação aceita.
-        window.removerArquivoExistente = function (index) {
-            arquivosExistentes.splice(index, 1);
-            renderizarArquivosLista();
-        };
-
-        window.removerArquivoNovo = function (index) {
-            arquivosNovos.splice(index, 1);
-            renderizarArquivosLista();
-        };
-
         window.novaAtividade = function () {
             atividadeEditando = null;
-            arquivosExistentes = [];
-            arquivosNovos = [];
             document.getElementById('modalAtividadeTitulo').textContent = '➕ Nova Atividade';
             document.getElementById('formAtividade').reset();
             atualizarUnidadesTematicasBA();
-            renderizarArquivosLista();
             document.getElementById('modalAtividade').open();
         };
 
@@ -608,9 +562,7 @@
             const a = atividades.find(x => x.id === id);
             if (!a) return;
             atividadeEditando = id;
-            arquivosExistentes = (a.arquivos || []).filter(arq => arq.tipo !== 'link');
             const linkExistente = (a.arquivos || []).find(arq => arq.tipo === 'link');
-            arquivosNovos = [];
 
             document.getElementById('modalAtividadeTitulo').textContent = '✏️ Editar Atividade';
             document.getElementById('baTitulo').value = a.titulo || '';
@@ -630,7 +582,6 @@
             atualizarHabilidadesBA();
             habilidadesPreSelecionadasBA = null;
 
-            renderizarArquivosLista();
             document.getElementById('modalAtividade').open();
         };
 
@@ -654,26 +605,16 @@
                 autorNome: auth.currentUser?.displayName || auth.currentUser?.email || 'Professor(a)'
             };
 
+            dados.arquivos = linkExterno
+                ? [{ nome: linkExterno, caminhoStorage: null, url: linkExterno, tipo: 'link', tamanho: 0 }]
+                : [];
+
             try {
-                let id = atividadeEditando;
-                if (!id) {
-                    const ref = await criarAtividade(escolaAtualId, dados);
-                    id = ref.id;
+                if (!atividadeEditando) {
+                    await criarAtividade(escolaAtualId, dados);
                 } else {
-                    await atualizarAtividade(escolaAtualId, id, dados);
+                    await atualizarAtividade(escolaAtualId, atividadeEditando, dados);
                 }
-
-                // Sequenciamento obrigatório: só depois que o doc existe com um id
-                // real é que dá pra montar o path do Storage pros arquivos novos.
-                const arquivosEnviados = [];
-                for (const file of arquivosNovos) {
-                    arquivosEnviados.push(await uploadArquivo(escolaAtualId, id, file));
-                }
-                if (linkExterno) {
-                    arquivosEnviados.push({ nome: linkExterno, caminhoStorage: null, url: linkExterno, tipo: 'link', tamanho: 0 });
-                }
-
-                await atualizarAtividade(escolaAtualId, id, { arquivos: [...arquivosExistentes, ...arquivosEnviados] });
 
                 mostrarMensagem('Atividade salva!', 'success');
                 document.getElementById('modalAtividade').close();
@@ -716,7 +657,7 @@
         };
 
         window.excluirAtividadeAtual = async function (id) {
-            if (!confirm('Excluir esta atividade? Os arquivos anexados (se não usados em outra atividade) também serão apagados.')) return;
+            if (!confirm('Excluir esta atividade?')) return;
             try {
                 await excluirAtividade(escolaAtualId, id);
                 mostrarMensagem('Atividade excluída!', 'success');
@@ -750,11 +691,6 @@
         };
 
         document.getElementById('formAtividade').addEventListener('submit', salvarAtividade);
-        document.getElementById('baArquivoInput').addEventListener('change', (e) => {
-            arquivosNovos.push(...Array.from(e.target.files));
-            e.target.value = '';
-            renderizarArquivosLista();
-        });
     </script>
 </body>
 </html>

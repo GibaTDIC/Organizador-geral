@@ -243,7 +243,6 @@
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
         import { salvarComHistorico, ouvirHistorico, restaurarVersao } from "../../scripts/services/historico-service.js";
-        import { uploadArquivoPlanejamento } from "../../scripts/services/storage-service.js";
         import { criarImportacaoPlanejamento, atualizarImportacaoPlanejamento } from "../../scripts/services/importacoes-planejamento-service.js";
         import { parseArquivoDocxPlanejamento } from "../../scripts/services/docx-planejamento-parser.js";
         import { sugerirClassificacaoBNCC } from "../../scripts/services/bncc-sugestao.js";
@@ -1517,12 +1516,10 @@
             mostrarMensagem('Salvando importação...', 'info');
 
             try {
-                // 1) cria o registro da importação primeiro — o path do Storage
-                // (passo 2) precisa de um id real.
+                // 1) cria o registro da importação primeiro — as aulas (passo 2)
+                // referenciam o id dele em origemImportacao.
                 const refImportacao = await criarImportacaoPlanejamento(escolaAtualId, {
                     arquivoNome: imp.arquivoNome,
-                    arquivoCaminhoStorage: null,
-                    arquivoUrl: null,
                     importadoPorUid: uidAtual,
                     aulasGeradas: [],
                     camposExtraidos: {
@@ -1535,10 +1532,7 @@
                     }
                 });
 
-                // 2) upload do arquivo original
-                const infoArquivo = await uploadArquivoPlanejamento(escolaAtualId, refImportacao.id, imp.arquivo);
-
-                // 3) uma aula por semana incluída × série marcada
+                // 2) uma aula por semana incluída × série marcada
                 const aulasGeradasIds = [];
                 for (const serie of seriesMarcadas) {
                     for (const semana of semanasIncluidas) {
@@ -1563,10 +1557,8 @@
                     }
                 }
 
-                // 4) fecha o registro da importação com o arquivo e as aulas geradas
+                // 3) fecha o registro da importação com as aulas geradas
                 await atualizarImportacaoPlanejamento(escolaAtualId, refImportacao.id, {
-                    arquivoCaminhoStorage: infoArquivo.caminhoStorage,
-                    arquivoUrl: infoArquivo.url,
                     aulasGeradas: aulasGeradasIds
                 });
 

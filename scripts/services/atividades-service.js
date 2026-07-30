@@ -11,12 +11,10 @@ import {
     updateDoc,
     deleteDoc,
     getDoc,
-    getDocs,
     onSnapshot,
     arrayUnion,
     arrayRemove
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-import { excluirArquivo } from './storage-service.js';
 
 function atividadesRef(escolaId) {
     return collection(db, 'escolas', escolaId, 'atividades');
@@ -47,37 +45,11 @@ export function atualizarAtividade(escolaId, id, dados) {
     return updateDoc(atividadeDocRef(escolaId, id), { ...dados, atualizadoEm: new Date().toISOString() });
 }
 
-// Antes de apagar um arquivo do Storage, confirma que nenhuma OUTRA atividade
-// (ex: uma duplicata) ainda referencia o mesmo caminho — evita quebrar link
-// de uma cópia só porque a original foi excluída.
 export async function excluirAtividade(escolaId, id) {
-    const snap = await getDoc(atividadeDocRef(escolaId, id));
-    const dados = snap.exists() ? snap.data() : null;
-    const arquivos = (dados && dados.arquivos) || [];
-
-    if (arquivos.length > 0) {
-        const todasSnap = await getDocs(atividadesRef(escolaId));
-        const caminhosEmUsoPorOutras = new Set();
-        todasSnap.docs.forEach(d => {
-            if (d.id === id) return;
-            (d.data().arquivos || []).forEach(a => {
-                if (a.caminhoStorage) caminhosEmUsoPorOutras.add(a.caminhoStorage);
-            });
-        });
-
-        for (const arquivo of arquivos) {
-            if (!arquivo.caminhoStorage) continue; // tipo 'link', nada no Storage
-            if (caminhosEmUsoPorOutras.has(arquivo.caminhoStorage)) continue; // ainda referenciado por outra atividade
-            await excluirArquivo(arquivo.caminhoStorage);
-        }
-    }
-
     await deleteDoc(atividadeDocRef(escolaId, id));
 }
 
-// Duplica os METADADOS — referencia os MESMOS arquivos no Storage (copiar o
-// binário seria caro e desnecessário; excluirAtividade já protege contra
-// quebrar o link da duplicata se a original for excluída depois).
+// Duplica os METADADOS, incluindo os links externos já cadastrados.
 export async function duplicarAtividade(escolaId, id, overrides) {
     const snap = await getDoc(atividadeDocRef(escolaId, id));
     if (!snap.exists()) throw new Error('Atividade não encontrada.');
