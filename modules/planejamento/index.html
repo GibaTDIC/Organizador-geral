@@ -1563,6 +1563,16 @@
             }
         });
 
+        // Séries que já têm uma aula com este título exato — o título de uma
+        // semana importada é determinístico (numero + datas), então
+        // reimportar o MESMO arquivo gera o MESMO título, e isso é sinal
+        // confiável de "já importei essa semana pra essa série antes". Não é
+        // um bloqueio: só usado pra decidir o estado inicial do checkbox e
+        // avisar o professor — se ele marcar de novo, duplica de propósito.
+        function seriesComAulaImportada(titulo) {
+            return aulasTodas.filter(a => a.titulo === titulo).map(a => a.turma);
+        }
+
         function prepararRevisaoImportacao(file, extraido) {
             const seriesDetectadas = detectarSeriesNoTexto(extraido.turmaTexto);
             const candidatosBNCC = sugerirClassificacaoBNCC(extraido.codigosBNCC, extraido.especificacoesExtraidas);
@@ -1594,14 +1604,23 @@
                 semanas: (extraido.semanas || []).map(s => {
                     const bimestreInicio = sugerirBimestreParaData(s.dataInicio);
                     const bimestreFim = sugerirBimestreParaData(s.dataFim);
+                    const titulo = `Semana ${s.numero} — ${s.dataInicio} a ${s.dataFim}`;
+                    // Redundante = TODAS as séries detectadas já têm uma aula
+                    // com esse título — sinal de que essa semana já foi
+                    // importada antes pra elas. Desmarca por padrão pra não
+                    // duplicar sem querer; o professor pode remarcar se quiser
+                    // reimportar de propósito (ex: corrigiu o arquivo).
+                    const seriesJaImportadas = seriesComAulaImportada(titulo);
+                    const redundante = seriesDetectadas.length > 0 &&
+                        seriesDetectadas.every(serie => seriesJaImportadas.includes(serie));
                     return {
                         numero: s.numero,
                         dataInicio: s.dataInicio,
                         dataFim: s.dataFim,
-                        titulo: `Semana ${s.numero} — ${s.dataInicio} a ${s.dataFim}`,
+                        titulo,
                         descricaoCompleta: s.atividades.map(a => `${a.titulo}: ${a.descricao.join(' ')}`).join('\n\n'),
                         numeroAulas: 1,
-                        incluida: true,
+                        incluida: !redundante,
                         bimestreSugerido: bimestreInicio,
                         // A semana cruza a fronteira entre 2 bimestres (ex: data
                         // de início no 2º Bimestre, data de fim já no 3º) — a
@@ -1690,12 +1709,16 @@
                 </div>
 
                 <h3 style="margin-top:var(--pf-space-4);margin-bottom:var(--pf-space-2);font-size:0.95rem;">Semanas detectadas (${imp.semanas.length}) — cada uma vira uma aula por série marcada acima</h3>
-                ${imp.semanas.map((s, i) => `
+                ${imp.semanas.map((s, i) => {
+                    const seriesMarcadasAgora = imp.series.filter(x => x.marcada).map(x => x.serie);
+                    const seriesJaImportadas = seriesComAulaImportada(s.titulo).filter(serie => seriesMarcadasAgora.includes(serie));
+                    return `
                     <div class="pf-card" style="margin-bottom:var(--pf-space-2);">
                         <label style="display:flex;align-items:center;gap:6px;font-weight:600;">
                             <input type="checkbox" onchange="alternarSemanaImportacao(${i})" ${s.incluida ? 'checked' : ''}> Semana ${s.numero} (${s.dataInicio} a ${s.dataFim})${s.bimestreSugerido ? ` — sugestão: ${s.bimestreSugerido}º Bimestre` : ''}
                         </label>
                         ${s.cruzaBimestre ? `<p style="color:var(--pf-danger);font-size:0.8rem;font-weight:600;margin:2px 0 0;">⚠️ Essa semana atravessa a fronteira entre bimestres — confira o mês/bimestre da aula depois de importar.</p>` : ''}
+                        ${seriesJaImportadas.length > 0 ? `<p style="color:var(--pf-gray-500);font-size:0.8rem;margin:2px 0 0;">🔁 Já importada para: ${seriesJaImportadas.join(', ')} — mantendo marcada vai criar aula(s) duplicada(s) pra ${seriesJaImportadas.length > 1 ? 'essas séries' : 'essa série'}.</p>` : ''}
                         <div class="pf-field">
                             <label>Título</label>
                             <input type="text" id="impSemanaTitulo${i}" value="${s.titulo.replace(/"/g, '&quot;')}">
@@ -1709,7 +1732,8 @@
                             <input type="number" id="impSemanaNumAulas${i}" min="1" max="10" value="${s.numeroAulas}" style="width:80px;">
                         </div>
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
 
                 <div class="pl-acoes">
                     <button class="pf-btn pf-btn--success" onclick="aprovarESalvarImportacao()" ${podeSalvar ? '' : 'disabled'}>✅ Aprovar e Salvar</button>
