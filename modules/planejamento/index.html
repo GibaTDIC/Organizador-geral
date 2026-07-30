@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="../../styles/components/filter.css">
     <link rel="stylesheet" href="../../styles/components/form.css">
     <link rel="stylesheet" href="../../styles/components/search-field.css">
+    <link rel="stylesheet" href="../../styles/components/modal.css">
     <style>
         body { background: var(--pf-gray-100); }
 
@@ -199,7 +200,7 @@
                 <div class="pl-layout">
                     <aside class="pf-card" id="plArvoreCard">
                         <h3 style="font-size:0.85rem;color:var(--pf-blue-700);margin-bottom:var(--pf-space-2);">🌳 Planejamento</h3>
-                        <button class="pf-btn pf-btn--success" style="width:100%;margin-bottom:var(--pf-space-3);font-size:0.8rem;" onclick="novaAulaAvulsa()">➕ Nova Aula</button>
+                        <button class="pf-btn pf-btn--success" style="width:100%;margin-bottom:var(--pf-space-3);font-size:0.8rem;" onclick="document.getElementById('modalNovoPlanejamento').open()">➕ Novo Planejamento</button>
                         <div id="plArvore"><p class="pl-estado-vazio">Carregando…</p></div>
                     </aside>
 
@@ -216,8 +217,22 @@
         </div>
     </div>
 
+    <pf-modal id="modalNovoPlanejamento">
+        <div class="pf-modal-header">
+            <h2 style="font-size:1.1rem;">Como deseja criar o planejamento?</h2>
+            <span style="cursor:pointer;" onclick="document.getElementById('modalNovoPlanejamento').close()">&times;</span>
+        </div>
+        <div class="pf-modal-body" style="display:flex;flex-direction:column;gap:var(--pf-space-3);">
+            <button class="pf-btn pf-btn--success" onclick="document.getElementById('modalNovoPlanejamento').close(); novaAulaAvulsa();">✍️ Criar Manualmente</button>
+            <button class="pf-btn pf-btn--secondary" onclick="mostrarMensagem('O Assistente Pedagógico (IA) chega em breve.', 'info')">🤖 Criar com Assistente Pedagógico (IA)</button>
+            <button class="pf-btn pf-btn--info" onclick="document.getElementById('modalNovoPlanejamento').close(); document.getElementById('inputArquivoDocx').click();">📄 Importar Planejamento (Word)</button>
+        </div>
+    </pf-modal>
+    <input type="file" id="inputArquivoDocx" accept=".docx" style="display:none;">
+
     <script type="module">
         import "../../scripts/layout/page-shell.js";
+        import "../../scripts/components/pf-modal.js";
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
@@ -228,6 +243,10 @@
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
         import { salvarComHistorico, ouvirHistorico, restaurarVersao } from "../../scripts/services/historico-service.js";
+        import { uploadArquivoPlanejamento } from "../../scripts/services/storage-service.js";
+        import { criarImportacaoPlanejamento, atualizarImportacaoPlanejamento } from "../../scripts/services/importacoes-planejamento-service.js";
+        import { parseArquivoDocxPlanejamento } from "../../scripts/services/docx-planejamento-parser.js";
+        import { sugerirClassificacaoBNCC } from "../../scripts/services/bncc-sugestao.js";
         import {
             ouvirPlanejamentosAnuais, criarPlanejamentoAnual, atualizarPlanejamentoAnual,
             excluirPlanejamentoAnual, duplicarPlanejamentoAnual
@@ -243,6 +262,7 @@
 
         // ---------- Estado ----------
         let escolaAtualId = null;
+        let uidAtual = null;
         let unsubAulas = null, unsubConfiguracoes = null, unsubAnuais = null, unsubBimestrais = null, unsubMensais = null;
         let unsubHistoricoAtual = null, unsubAtividades = null;
 
@@ -262,6 +282,7 @@
         // começar com "novo:" pra representar um nó ainda não criado no Firestore.
         let selecionado = null;
         let aulaEditando = null; // id da aula sendo editada, null = criando nova
+        let importacaoAtual = null; // rascunho de importação de DOCX em revisão, fora da convenção selecionado.nivel
 
         const TURMAS_DISPONIVEIS = ["1º Ano","2º Ano","3º Ano","4º Ano","5º Ano","6º Ano","7º Ano","8º Ano","9º Ano"];
         const NOMES_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -547,6 +568,10 @@
 
         requireAuth({ loginPath: '../../login.html' });
 
+        document.addEventListener('pf-auth-ready', (evento) => {
+            uidAtual = evento.detail.user.uid;
+        });
+
         document.addEventListener('pf-escola-ready', (evento) => {
             escolaAtualId = evento.detail.escolaId;
             selecionado = null;
@@ -662,6 +687,7 @@
         // ---------- Área principal — dispatcher ----------
         function renderizarAreaPrincipal() {
             const container = document.getElementById('plAreaPrincipal');
+            if (importacaoAtual) return renderizarRevisaoImportacao(container);
             if (!selecionado) {
                 container.innerHTML = '<p class="pl-estado-vazio">Selecione um item na árvore ao lado.</p>';
                 return;
@@ -1263,6 +1289,295 @@
                 mostrarMensagem('Versão restaurada!', 'success');
             } catch (erro) {
                 mostrarMensagem('Erro ao restaurar: ' + erro.message, 'error');
+            }
+        };
+
+        // ---------- Importação de Planejamento via DOCX ----------
+        // Detecta quais séries conhecidas (TURMAS_DISPONIVEIS) aparecem citadas
+        // no texto bruto de "Turma" do documento (ex: "6º e 9° Ano" → ambas) —
+        // aceita "º"/"°" (o modelo de referência usa os dois no mesmo campo).
+        function detectarSeriesNoTexto(texto) {
+            if (!texto) return [];
+            return TURMAS_DISPONIVEIS.filter(serie => {
+                const numero = serie.match(/^(\d+)/)[1];
+                const re = new RegExp('\\b' + numero + '\\s*[ºo°]', 'i');
+                return re.test(texto);
+            });
+        }
+
+        // "diaMes" no formato "DD/MM" (sem ano, como vem do documento) — combina
+        // com o Ano Letivo já selecionado na barra superior pra achar em qual
+        // bimestre configurado a data cai. Só sugestão, sempre editável.
+        function sugerirBimestreParaData(diaMes) {
+            if (!diaMes) return null;
+            const [dia, mes] = diaMes.split('/').map(Number);
+            if (!dia || !mes) return null;
+            const data = new Date(anoLetivoAtual, mes - 1, dia);
+            const cfg = bimestresConfig.find(b => {
+                const inicio = stringParaData(b.inicio);
+                const fim = stringParaData(b.fim);
+                fim.setHours(23, 59, 59, 999);
+                return data >= inicio && data <= fim;
+            });
+            return cfg ? cfg.numero : null;
+        }
+
+        document.getElementById('inputArquivoDocx').addEventListener('change', async (evento) => {
+            const file = evento.target.files[0];
+            evento.target.value = '';
+            if (!file) return;
+            mostrarMensagem('Lendo o arquivo...', 'info');
+            try {
+                const extraido = await parseArquivoDocxPlanejamento(file);
+                prepararRevisaoImportacao(file, extraido);
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Erro ao ler o arquivo: ' + erro.message, 'error');
+            }
+        });
+
+        function prepararRevisaoImportacao(file, extraido) {
+            const seriesDetectadas = detectarSeriesNoTexto(extraido.turmaTexto);
+            const candidatosBNCC = sugerirClassificacaoBNCC(extraido.codigosBNCC, extraido.especificacoesExtraidas);
+
+            // Junta cada código com a descrição já extraída do texto de
+            // "Habilidades:" do documento (não inventa descrição nova).
+            const habilidades = (extraido.codigosBNCC || []).map(codigo => {
+                const linha = (extraido.habilidadesTexto || []).find(l => l.startsWith(codigo));
+                const descricao = linha ? linha.slice(codigo.length).replace(/^[\s-]+/, '') : '';
+                return { codigo, descricao };
+            });
+
+            importacaoAtual = {
+                arquivo: file,
+                arquivoNome: extraido.arquivoNome,
+                periodo: extraido.periodo,
+                areaConhecimento: extraido.areaConhecimento,
+                componenteCurricular: extraido.componenteCurricular,
+                docente: extraido.docente,
+                coordenador: extraido.coordenador,
+                turmaTexto: extraido.turmaTexto,
+                series: (seriesDetectadas.length > 0 ? seriesDetectadas : TURMAS_DISPONIVEIS).map(s => ({ serie: s, marcada: seriesDetectadas.includes(s) })),
+                candidatosBNCC,
+                candidatoEscolhidoIndex: candidatosBNCC.length > 0 ? 0 : -1,
+                habilidades,
+                objetoConhecimento: extraido.objetoConhecimento,
+                procedimentos: extraido.procedimentos,
+                recursos: extraido.recursos,
+                semanas: (extraido.semanas || []).map(s => ({
+                    numero: s.numero,
+                    dataInicio: s.dataInicio,
+                    dataFim: s.dataFim,
+                    titulo: `Semana ${s.numero} — ${s.dataInicio} a ${s.dataFim}`,
+                    descricaoCompleta: s.atividades.map(a => `${a.titulo}: ${a.descricao.join(' ')}`).join('\n\n'),
+                    numeroAulas: 1,
+                    incluida: true,
+                    bimestreSugerido: sugerirBimestreParaData(s.dataInicio)
+                }))
+            };
+
+            selecionado = null;
+            renderizarAreaPrincipal();
+            renderizarPainelAuxiliar();
+            renderizarArvore();
+        }
+
+        // Recolhe tudo que o professor pode ter editado nos campos da tela de
+        // revisão antes de re-renderizar (toggle de série/semana) ou salvar —
+        // sem isso, um clique num checkbox jogaria fora texto já corrigido.
+        function capturarEdicoesImportacao() {
+            if (!importacaoAtual) return;
+            const objEl = document.getElementById('impObjetoConhecimento');
+            const procEl = document.getElementById('impProcedimentos');
+            const recEl = document.getElementById('impRecursos');
+            if (objEl) importacaoAtual.objetoConhecimento = objEl.value;
+            if (procEl) importacaoAtual.procedimentos = procEl.value;
+            if (recEl) importacaoAtual.recursos = recEl.value;
+            importacaoAtual.semanas.forEach((s, i) => {
+                const tituloEl = document.getElementById(`impSemanaTitulo${i}`);
+                const descEl = document.getElementById(`impSemanaDescricao${i}`);
+                const numEl = document.getElementById(`impSemanaNumAulas${i}`);
+                if (tituloEl) s.titulo = tituloEl.value;
+                if (descEl) s.descricaoCompleta = descEl.value;
+                if (numEl) s.numeroAulas = parseInt(numEl.value, 10) || 1;
+            });
+        }
+
+        function renderizarRevisaoImportacao(container) {
+            const imp = importacaoAtual;
+            const seriesMarcadas = imp.series.filter(s => s.marcada).length;
+            const semanasIncluidas = imp.semanas.filter(s => s.incluida).length;
+            const podeSalvar = seriesMarcadas > 0 && semanasIncluidas > 0;
+
+            container.innerHTML = `
+                <h2>📄 Revisão da Importação — ${imp.arquivoNome}</h2>
+                <p class="pl-indicador">Confira e corrija os campos abaixo antes de aprovar. Nada é salvo até "Aprovar e Salvar".</p>
+
+                <div class="pf-field">
+                    <label>Período informado no cabeçalho do documento (só referência — as datas reais são as das semanas abaixo)</label>
+                    <input type="text" value="${(imp.periodo || '-').replace(/"/g, '&quot;')}" readonly style="background:var(--pf-gray-100);">
+                </div>
+                <div class="pf-field">
+                    <label>Série(s) detectada(s) no texto "${imp.turmaTexto || '-'}" — marque as que devem gerar aulas *</label>
+                    <div>${imp.series.map((s, i) => `
+                        <label class="pl-unidade-checkbox">
+                            <input type="checkbox" onchange="alternarSerieImportacao(${i})" ${s.marcada ? 'checked' : ''}> ${s.serie}
+                        </label>
+                    `).join('')}</div>
+                </div>
+                <div class="pf-field">
+                    <label>Classificação BNCC sugerida</label>
+                    ${imp.candidatosBNCC.length > 0 ? `
+                        <select id="impCandidatoBNCC" onchange="escolherCandidatoBNCC(this.value)">
+                            ${imp.candidatosBNCC.map((c, i) => `<option value="${i}" ${i === imp.candidatoEscolhidoIndex ? 'selected' : ''}>${c.unidade} — ${c.especificacao} (${c.serie})</option>`).join('')}
+                        </select>
+                    ` : '<p class="pl-estado-vazio">Nenhuma combinação da BNCC bateu com os códigos extraídos — pode ajustar depois em cada aula.</p>'}
+                </div>
+                <div class="pf-field">
+                    <label>Habilidades detectadas</label>
+                    <div class="habilidades-container">
+                        ${imp.habilidades.length > 0 ? imp.habilidades.map(h => `<div class="habilidade-checkbox"><label><strong>${h.codigo}</strong> — ${h.descricao || '(sem descrição extraída)'}</label></div>`).join('') : '<p style="color:#666;text-align:center;">Nenhum código encontrado no documento.</p>'}
+                    </div>
+                </div>
+                <div class="pf-field">
+                    <label>Objeto de Conhecimento</label>
+                    <textarea id="impObjetoConhecimento" rows="3">${imp.objetoConhecimento || ''}</textarea>
+                </div>
+                <div class="pf-field">
+                    <label>Descrição / Metodologia</label>
+                    <textarea id="impProcedimentos" rows="3">${imp.procedimentos || ''}</textarea>
+                </div>
+                <div class="pf-field">
+                    <label>Recursos Didáticos</label>
+                    <textarea id="impRecursos" rows="2">${imp.recursos || ''}</textarea>
+                </div>
+
+                <h3 style="margin-top:var(--pf-space-4);margin-bottom:var(--pf-space-2);font-size:0.95rem;">Semanas detectadas (${imp.semanas.length}) — cada uma vira uma aula por série marcada acima</h3>
+                ${imp.semanas.map((s, i) => `
+                    <div class="pf-card" style="margin-bottom:var(--pf-space-2);">
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:600;">
+                            <input type="checkbox" onchange="alternarSemanaImportacao(${i})" ${s.incluida ? 'checked' : ''}> Semana ${s.numero} (${s.dataInicio} a ${s.dataFim})${s.bimestreSugerido ? ` — sugestão: ${s.bimestreSugerido}º Bimestre` : ''}
+                        </label>
+                        <div class="pf-field">
+                            <label>Título</label>
+                            <input type="text" id="impSemanaTitulo${i}" value="${s.titulo.replace(/"/g, '&quot;')}">
+                        </div>
+                        <div class="pf-field">
+                            <label>Descrição</label>
+                            <textarea id="impSemanaDescricao${i}" rows="3">${s.descricaoCompleta}</textarea>
+                        </div>
+                        <div class="pf-field">
+                            <label>Quantidade de Aulas</label>
+                            <input type="number" id="impSemanaNumAulas${i}" min="1" max="10" value="${s.numeroAulas}" style="width:80px;">
+                        </div>
+                    </div>
+                `).join('')}
+
+                <div class="pl-acoes">
+                    <button class="pf-btn pf-btn--success" onclick="aprovarESalvarImportacao()" ${podeSalvar ? '' : 'disabled'}>✅ Aprovar e Salvar</button>
+                    <button class="pf-btn pf-btn--secondary" onclick="cancelarImportacao()">Cancelar</button>
+                </div>
+                ${!podeSalvar ? '<p style="font-size:0.78rem;color:var(--pf-danger);margin-top:var(--pf-space-2);">Marque ao menos 1 série e 1 semana pra habilitar o salvamento.</p>' : ''}
+            `;
+        }
+
+        window.alternarSerieImportacao = function (i) {
+            capturarEdicoesImportacao();
+            importacaoAtual.series[i].marcada = !importacaoAtual.series[i].marcada;
+            renderizarAreaPrincipal();
+        };
+
+        window.escolherCandidatoBNCC = function (indice) {
+            importacaoAtual.candidatoEscolhidoIndex = parseInt(indice, 10);
+        };
+
+        window.alternarSemanaImportacao = function (i) {
+            capturarEdicoesImportacao();
+            importacaoAtual.semanas[i].incluida = !importacaoAtual.semanas[i].incluida;
+            renderizarAreaPrincipal();
+        };
+
+        window.cancelarImportacao = function () {
+            importacaoAtual = null;
+            renderizarAreaPrincipal();
+            renderizarPainelAuxiliar();
+        };
+
+        window.aprovarESalvarImportacao = async function () {
+            capturarEdicoesImportacao();
+            const imp = importacaoAtual;
+            const seriesMarcadas = imp.series.filter(s => s.marcada).map(s => s.serie);
+            const semanasIncluidas = imp.semanas.filter(s => s.incluida);
+            if (seriesMarcadas.length === 0 || semanasIncluidas.length === 0) {
+                mostrarMensagem('Marque ao menos 1 série e 1 semana.', 'error');
+                return;
+            }
+
+            const candidato = imp.candidatoEscolhidoIndex >= 0 ? imp.candidatosBNCC[imp.candidatoEscolhidoIndex] : null;
+            mostrarMensagem('Salvando importação...', 'info');
+
+            try {
+                // 1) cria o registro da importação primeiro — o path do Storage
+                // (passo 2) precisa de um id real.
+                const refImportacao = await criarImportacaoPlanejamento(escolaAtualId, {
+                    arquivoNome: imp.arquivoNome,
+                    arquivoCaminhoStorage: null,
+                    arquivoUrl: null,
+                    importadoPorUid: uidAtual,
+                    aulasGeradas: [],
+                    camposExtraidos: {
+                        periodo: imp.periodo,
+                        areaConhecimento: imp.areaConhecimento,
+                        componenteCurricular: imp.componenteCurricular,
+                        docente: imp.docente,
+                        coordenador: imp.coordenador,
+                        turmaTexto: imp.turmaTexto
+                    }
+                });
+
+                // 2) upload do arquivo original
+                const infoArquivo = await uploadArquivoPlanejamento(escolaAtualId, refImportacao.id, imp.arquivo);
+
+                // 3) uma aula por semana incluída × série marcada
+                const aulasGeradasIds = [];
+                for (const serie of seriesMarcadas) {
+                    for (const semana of semanasIncluidas) {
+                        const aulaData = {
+                            titulo: semana.titulo,
+                            turma: serie,
+                            unidadeTematica: candidato ? candidato.unidade : '',
+                            especificacao: candidato ? candidato.especificacao : null,
+                            objetoConhecimento: imp.objetoConhecimento || '',
+                            habilidades: imp.habilidades,
+                            numeroAulas: semana.numeroAulas,
+                            descricao: semana.descricaoCompleta,
+                            recursos: imp.recursos || null,
+                            atividadesVinculadas: [],
+                            bimestre: semana.bimestreSugerido || null,
+                            planejamentoMensalId: null,
+                            origemImportacao: { importacaoId: refImportacao.id },
+                            timestamp: new Date().toISOString()
+                        };
+                        const refAula = await criarAula(escolaAtualId, aulaData);
+                        aulasGeradasIds.push(refAula.id);
+                    }
+                }
+
+                // 4) fecha o registro da importação com o arquivo e as aulas geradas
+                await atualizarImportacaoPlanejamento(escolaAtualId, refImportacao.id, {
+                    arquivoCaminhoStorage: infoArquivo.caminhoStorage,
+                    arquivoUrl: infoArquivo.url,
+                    aulasGeradas: aulasGeradasIds
+                });
+
+                mostrarMensagem(`${aulasGeradasIds.length} aula(s) importada(s) com sucesso!`, 'success');
+                importacaoAtual = null;
+                selecionado = null;
+                renderizarAreaPrincipal();
+                renderizarPainelAuxiliar();
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Erro ao salvar importação: ' + erro.message, 'error');
             }
         };
     </script>

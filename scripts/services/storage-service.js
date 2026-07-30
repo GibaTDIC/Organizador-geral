@@ -39,3 +39,20 @@ export async function excluirArquivo(caminhoStorage) {
     if (!caminhoStorage) return; // recursos do tipo "link" não têm arquivo no Storage
     await deleteObject(ref(storage, caminhoStorage));
 }
+
+// Upload do arquivo .docx/.pdf original de um planejamento importado — path
+// próprio (não reaproveita uploadArquivo, que é hardcoded pra atividades).
+export async function uploadArquivoPlanejamento(escolaId, importacaoId, file) {
+    const nomeSanitizado = sanitizarNomeArquivo(file.name);
+    const caminhoStorage = `escolas/${escolaId}/importacoesPlanejamento/${importacaoId}/${Date.now()}-${nomeSanitizado}`;
+    const storageRef = ref(storage, caminhoStorage);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+    return {
+        nome: file.name,
+        caminhoStorage,
+        url,
+        tipo: file.type || 'application/octet-stream',
+        tamanho: file.size
+    };
+}
