@@ -483,6 +483,11 @@
                         <textarea id="descricao" required placeholder="Descreva os objetivos, atividades e metodologia da aula..."></textarea>
                     </div>
 
+                    <div class="form-group">
+                        <label for="recursos">Recursos Didáticos Previstos (opcional)</label>
+                        <textarea id="recursos" placeholder="Ex: cones, colchonetes, apito, cronômetro..."></textarea>
+                    </div>
+
                     <button type="submit" class="btn">📅 Salvar Aula</button>
                 </form>
             </div>
@@ -837,6 +842,7 @@
                         ${habilidadesList}
                     </div>
                     <p><strong>Descrição:</strong> ${aula.descricao ? aula.descricao.substring(0, 100) + '...' : 'Sem descrição'}</p>
+                    <p><strong>Recursos Didáticos:</strong> ${aula.recursos || 'Não especificado'}</p>
                     <div class="aula-actions">
                         <button class="btn-small btn-view" onclick="window.visualizarAula('${aula.id}')">👁️ Visualizar</button>
                         <button class="btn-small btn-edit" onclick="window.editarAula('${aula.id}')">✏️ Editar</button>
@@ -866,6 +872,7 @@
                 habilidades: habilidadesSelecionadas,
                 numeroAulas: parseInt(document.getElementById('numeroAulas').value) || 1,
                 descricao: document.getElementById('descricao').value,
+                recursos: document.getElementById('recursos').value || null,
                 timestamp: new Date().toISOString()
             };
 
@@ -907,7 +914,8 @@
                 document.getElementById('turma').value = aula.turma || '';
                 document.getElementById('numeroAulas').value = aula.numeroAulas || 1;
                 document.getElementById('descricao').value = aula.descricao || '';
-                
+                document.getElementById('recursos').value = aula.recursos || '';
+
                 // Atualizar unidades temáticas e aguardar
                 atualizarUnidadesTematicas();
                 
@@ -976,6 +984,9 @@ ${habilidadesTexto}
 
 📝 DESCRIÇÃO:
 ${aula.descricao}
+
+🎒 RECURSOS DIDÁTICOS:
+${aula.recursos || 'Não especificado'}
                 `);
             }
         };

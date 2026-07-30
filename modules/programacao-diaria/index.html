@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prof GB · Programação Diária</title>
     <meta name="description" content="Prof GB — assistente inteligente para planejamento e organização do trabalho docente.">
     <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
@@ -11,957 +11,264 @@
     <link rel="stylesheet" href="../../styles/base.css">
     <link rel="stylesheet" href="../../styles/layout.css">
     <link rel="stylesheet" href="../../styles/components/alert.css">
+    <link rel="stylesheet" href="../../styles/components/card.css">
+    <link rel="stylesheet" href="../../styles/components/button.css">
+    <link rel="stylesheet" href="../../styles/components/filter.css">
+    <link rel="stylesheet" href="../../styles/components/form.css">
     <link rel="stylesheet" href="../../styles/components/modal.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: clamp(5px, 2vw, 15px);
+            background: var(--pf-gray-100);
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* Header Principal */
-        .main-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: clamp(12px, 3vw, 20px);
-            border-radius: 15px 15px 0 0;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .main-header h1 {
-            font-size: clamp(1.2rem, 4vw, 1.8rem);
-            margin-bottom: 5px;
-            line-height: 1.3;
-        }
-
-        .main-header p {
-            opacity: 0.9;
-            font-size: clamp(0.8rem, 2.5vw, 1rem);
-        }
-
-        /* Header da Programação */
-        .programacao-header {
-            background: white;
-            border-radius: 15px;
-            padding: clamp(12px, 3vw, 20px);
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-
-        .semana-info {
+        /* Barra superior */
+        .pd-barra {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: var(--pf-space-3);
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--pf-space-4);
         }
 
-        .semana-info h2 {
-            color: #333;
-            font-size: clamp(1.1rem, 4vw, 1.5rem);
-        }
-
-        .semana-info .data-range {
-            background: #e9ecef;
-            padding: 6px 15px;
-            border-radius: 30px;
-            color: #495057;
-            font-weight: 600;
-            font-size: clamp(0.8rem, 2.5vw, 0.95rem);
-            display: inline-block;
-            width: fit-content;
-            max-width: 100%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .navegacao-semanas {
+        .pd-barra-nav {
             display: flex;
-            gap: clamp(5px, 2vw, 10px);
+            align-items: center;
+            gap: var(--pf-space-2);
             flex-wrap: wrap;
         }
 
-        .btn-nav {
-            padding: clamp(8px, 2vw, 12px) clamp(10px, 3vw, 16px);
-            border: 2px solid #dee2e6;
-            background: white;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #495057;
-            transition: all 0.3s;
-            font-size: clamp(0.7rem, 2vw, 0.9rem);
-            flex: 1 1 auto;
-            min-width: clamp(80px, 25vw, 120px);
-            white-space: nowrap;
-        }
-
-        .btn-nav:hover {
-            background: #1e3c72;
-            color: white;
-            border-color: #1e3c72;
-        }
-
-        /* Tabela de Programação */
-        .tabela-container {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-        }
-
-        .grid-container {
-            min-width: min(650px, 100%);
-        }
-
-        .grid-row {
-            display: flex;
-            width: 100%;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .grid-row:last-child {
-            border-bottom: none;
-        }
-
-        .grid-row.header {
-            border-bottom: 2px solid #fff;
-        }
-
-        /* Cabeçalho - Primeira célula azul */
-        .grid-row.header .grid-cell:first-child {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-        }
-
-        .grid-cell.header-cell-bimestre-1 {
-            background: #E63946;
-            color: white;
-        }
-        
-        .grid-cell.header-cell-bimestre-2 {
-            background: #2A9D8F;
-            color: white;
-        }
-        
-        .grid-cell.header-cell-bimestre-3 {
-            background: #E9C46A;
-            color: white;
-        }
-        
-        .grid-cell.header-cell-bimestre-4 {
-            background: #9C89B8;
-            color: white;
-        }
-
-        .grid-cell {
-            flex: 1 1 0;
-            min-width: clamp(60px, 15vw, 90px);
-            padding: clamp(4px, 1.5vw, 8px) clamp(2px, 1vw, 4px);
-            text-align: center;
-            border-right: 1px solid #dee2e6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: clamp(0.7rem, 2vw, 0.85rem);
-            word-break: break-word;
-        }
-
-        /* Primeira célula de cada linha (horário) - Azul */
-        .grid-cell:first-child {
-            flex: 0 0 clamp(60px, 15vw, 80px);
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            font-weight: 600;
-            font-size: clamp(0.65rem, 1.8vw, 0.8rem);
-            border-right: 1px solid rgba(255,255,255,0.2);
-        }
-
-        /* Exceção: células de período não devem ter fundo azul */
-        .periodo-row .grid-cell:first-child {
-            background: #e9ecef;
-            color: #495057;
-        }
-
-        .header .grid-cell {
-            border-right: 1px solid rgba(255,255,255,0.2);
-            padding: clamp(8px, 2vw, 12px) clamp(2px, 1vw, 4px);
-            flex-direction: column;
-            gap: 3px;
-        }
-
-        .dia-semana {
-            font-size: clamp(0.7rem, 2vw, 0.9rem);
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .dia-mes {
-            font-size: clamp(0.6rem, 1.8vw, 0.75rem);
-            opacity: 0.9;
-            white-space: nowrap;
-        }
-
-        /* Linhas de período - OCUPAM TODA A LARGURA */
-        .periodo-row {
-            background: #e9ecef;
-            border-bottom: 2px solid #dee2e6;
-            border-top: 2px solid #dee2e6;
-        }
-
-        .periodo-row .grid-cell {
-            background: #e9ecef;
+        .pd-barra-data {
             font-weight: 700;
-            color: #495057;
+            color: var(--pf-gray-900);
+            min-width: 220px;
+        }
+
+        .pd-barra-acoes {
+            display: flex;
+            gap: var(--pf-space-2);
+            flex-wrap: wrap;
+        }
+
+        /* Layout lista + painel */
+        .pd-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: var(--pf-space-4);
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .pd-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .pd-painel {
+                display: none;
+            }
+        }
+
+        .pd-lista {
+            display: flex;
+            flex-direction: column;
+            gap: var(--pf-space-3);
+        }
+
+        .pd-periodo-titulo {
+            font-size: 0.75rem;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: clamp(0.9rem, 3vw, 1.1rem);
-            justify-content: center;
-            padding: clamp(10px, 2.5vw, 15px);
-            white-space: normal;
-            word-break: break-word;
-            border-right: 1px solid #dee2e6;
+            color: var(--pf-gray-500);
+            margin-top: var(--pf-space-2);
         }
 
-        /* A primeira célula da linha de período ocupa toda a largura */
-        .periodo-row .grid-cell:first-child {
-            flex: 1;
-            background: #e9ecef;
-            color: #495057;
-            font-size: clamp(1rem, 3.5vw, 1.2rem);
-            letter-spacing: 1px;
-            text-align: center;
-            border-right: none;
-            max-width: none;
+        .pd-estado-vazio {
+            color: var(--pf-gray-500);
+            font-size: 0.9rem;
+            padding: var(--pf-space-4);
         }
 
-        /* Esconder as demais células da linha de período */
-        .periodo-row .grid-cell:not(:first-child) {
-            display: none;
-        }
-
-        /* Cards de Aula */
-        .aula-card {
-            width: 100%;
-            background: #e3f2fd;
-            border-left: 4px solid #1e3c72;
-            padding: clamp(4px, 1.5vw, 6px) clamp(2px, 1vw, 4px);
-            border-radius: 6px;
-            text-align: center;
-            cursor: grab;
-            transition: all 0.2s;
-            user-select: none;
-            font-size: clamp(0.65rem, 1.8vw, 0.8rem);
+        .pd-estado-vazio a {
+            color: var(--pf-blue-700);
             font-weight: 600;
-            color: #1e3c72;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            line-height: 1.3;
         }
 
-        .aula-card.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-            transform: scale(0.95);
+        .pd-card {
+            cursor: pointer;
+            border-left: 4px solid var(--pf-blue-700);
+            transition: box-shadow 0.15s;
         }
 
-        .aula-card.folga {
-            background: #f8f9fa;
-            border-left-color: #6c757d;
-            color: #6c757d;
+        .pd-card:hover {
+            box-shadow: var(--pf-shadow-md);
+        }
+
+        .pd-card--selecionada {
+            outline: 2px solid var(--pf-blue-700);
+        }
+
+        .pd-card-topo {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--pf-space-2);
+        }
+
+        .pd-card-horario {
+            font-size: 0.75rem;
+            color: var(--pf-gray-500);
+            font-weight: 600;
+        }
+
+        .pd-card-turma {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--pf-gray-900);
+        }
+
+        .pd-card-meta {
+            font-size: 0.78rem;
+            color: var(--pf-gray-500);
+            margin-bottom: var(--pf-space-1);
+        }
+
+        .pd-card-conteudo {
+            font-size: 0.88rem;
+            color: var(--pf-gray-700);
+        }
+
+        .pd-card-obs {
+            margin-top: var(--pf-space-2);
+            font-size: 0.78rem;
+            color: var(--pf-gray-500);
             font-style: italic;
         }
 
-        .aula-card.planejamento {
-            background: #fff3cd;
-            border-left-color: #ffc107;
-            color: #856404;
+        .pd-card-indicadores {
+            margin-top: var(--pf-space-2);
+            display: flex;
+            gap: var(--pf-space-2);
         }
 
-        .aula-card.cemfor {
-            background: #d1ecf1;
-            border-left-color: #17a2b8;
-            color: #0c5460;
-        }
-
-        .aula-card.drop-zone {
-            border: 2px dashed #1e3c72;
-            background: rgba(30, 60, 114, 0.1);
-        }
-
-        .aula-turma {
+        /* Badges de status — mesma paleta do Dashboard, prefixo próprio */
+        .pd-badge {
+            display: inline-block;
+            padding: 2px var(--pf-space-2);
+            border-radius: var(--pf-radius-lg);
+            font-size: 0.72rem;
             font-weight: 700;
-            color: #1e3c72;
-            font-size: clamp(0.65rem, 1.8vw, 0.85rem);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Legenda */
-        .legenda {
-            background: white;
-            border-radius: 15px;
-            padding: clamp(10px, 2.5vw, 15px);
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            display: flex;
-            flex-wrap: wrap;
-            gap: clamp(8px, 2vw, 15px);
-            align-items: center;
-            justify-content: center;
-        }
-
-        .legenda-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: clamp(0.7rem, 2vw, 0.9rem);
-            background: #f8f9fa;
-            padding: 6px 12px;
-            border-radius: 25px;
             white-space: nowrap;
         }
 
-        .legenda-cor {
-            width: clamp(14px, 3vw, 18px);
-            height: clamp(14px, 3vw, 18px);
-            border-radius: 4px;
-            border-left: 4px solid;
-            flex-shrink: 0;
-        }
+        .pd-badge--concluida { background: var(--pf-success); color: var(--pf-white); }
+        .pd-badge--em-andamento { background: var(--pf-warning); color: var(--pf-gray-900); }
+        .pd-badge--nao-iniciada { background: var(--pf-info); color: var(--pf-white); }
+        .pd-badge--sem-planejamento { background: var(--pf-gray-300); color: var(--pf-gray-700); }
+        .pd-badge--cancelada { background: var(--pf-danger); color: var(--pf-white); }
+        .pd-badge--reposicao { background: var(--pf-info); color: var(--pf-white); }
 
-        .cor-aula {
-            background: #e3f2fd;
-            border-left-color: #1e3c72;
-        }
-
-        .cor-folga {
-            background: #f8f9fa;
-            border-left-color: #6c757d;
-        }
-
-        .cor-planejamento {
-            background: #fff3cd;
-            border-left-color: #ffc107;
-        }
-
-        .cor-cemfor {
-            background: #d1ecf1;
-            border-left-color: #17a2b8;
-        }
-
-        /* Modo de Edição */
-        .modo-edicao-bar {
-            background: white;
-            border-radius: 15px;
-            padding: clamp(10px, 2.5vw, 15px);
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            display: flex;
-            flex-wrap: wrap;
-            gap: clamp(8px, 2vw, 15px);
-            align-items: center;
-        }
-
-        .modo-edicao-title {
-            font-weight: 600;
-            color: #495057;
-            font-size: clamp(0.8rem, 2.5vw, 1rem);
-            white-space: nowrap;
-        }
-
-        .modo-edicao-buttons {
-            display: flex;
-            gap: clamp(5px, 1.5vw, 10px);
-            flex-wrap: wrap;
-            flex: 1;
-        }
-
-        .btn {
-            padding: clamp(6px, 1.8vw, 10px) clamp(8px, 2.5vw, 14px);
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: clamp(0.7rem, 2vw, 0.9rem);
-            white-space: nowrap;
-            flex: 1 1 auto;
-            min-width: fit-content;
-        }
-
-        .btn-primary {
-            background: #1e3c72;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2a5298;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #34ce57;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .btn-warning {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .btn-info {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        /* Gerenciamento de Turmas */
-        .turmas-management {
-            background: white;
-            border-radius: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
-
-        .turmas-header {
-            padding: clamp(10px, 2.5vw, 15px);
-            background: #f8f9fa;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .turmas-header h3 {
-            color: #333;
-            font-size: clamp(0.95rem, 3vw, 1.2rem);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .turmas-header .toggle-icon {
-            font-size: clamp(1rem, 3vw, 1.3rem);
-            color: #1e3c72;
-            transition: transform 0.3s;
-        }
-
-        .turmas-header.collapsed .toggle-icon {
-            transform: rotate(-90deg);
-        }
-
-        .turmas-content {
-            padding: clamp(10px, 2.5vw, 15px);
-            transition: all 0.3s ease;
-        }
-
-        .turmas-content.collapsed {
-            display: none;
-        }
-
-        .add-turma-form {
-            display: flex;
-            gap: clamp(5px, 1.5vw, 10px);
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-
-        .add-turma-form input {
-            padding: clamp(6px, 1.8vw, 10px) clamp(8px, 2vw, 12px);
-            border: 2px solid #dee2e6;
-            border-radius: 10px;
-            font-size: clamp(0.8rem, 2.5vw, 1rem);
-            flex: 1 1 200px;
-            min-width: 150px;
-        }
-
-        .add-turma-form input:focus {
-            outline: none;
-            border-color: #1e3c72;
-        }
-
-        .turmas-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: clamp(5px, 1.5vw, 10px);
-            margin-bottom: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-            padding: clamp(8px, 2vw, 12px);
-            background: #f8f9fa;
-            border-radius: 10px;
-            scrollbar-width: thin;
-        }
-
-        .turma-item {
-            background: #e3f2fd;
-            border-left: 4px solid #1e3c72;
-            padding: clamp(5px, 1.5vw, 8px) clamp(6px, 1.8vw, 10px);
-            border-radius: 10px;
-            font-weight: 600;
-            color: #1e3c72;
-            cursor: grab;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: clamp(5px, 1.5vw, 10px);
-            font-size: clamp(0.7rem, 2vw, 0.9rem);
-            white-space: nowrap;
-        }
-
-        .turma-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
-
-        .turma-item.especial {
-            background: #f8f9fa;
-            border-left-color: #6c757d;
-            color: #6c757d;
-        }
-
-        .turma-item.planejamento {
-            background: #fff3cd;
-            border-left-color: #ffc107;
-            color: #856404;
-        }
-
-        .turma-item.cemfor {
-            background: #d1ecf1;
-            border-left-color: #17a2b8;
-            color: #0c5460;
-        }
-
-        .remove-turma {
-            background: none;
-            border: none;
-            color: #dc3545;
-            font-size: clamp(1rem, 3vw, 1.3rem);
-            cursor: pointer;
-            padding: 0 5px;
-            border-radius: 4px;
-            line-height: 1;
-        }
-
-        .remove-turma:hover {
-            background: #dc3545;
-            color: white;
-        }
-
-        /* Itens Especiais Fixos */
-        .itens-especiais {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 2px solid #dee2e6;
-        }
-
-        .itens-especiais h4 {
-            color: #495057;
-            margin-bottom: 10px;
-            font-size: clamp(0.85rem, 2.5vw, 1rem);
-        }
-
-        .itens-especiais-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: clamp(5px, 1.5vw, 10px);
-        }
-
-        /* Informações Compactas dos Bimestres */
-        .info-compact {
-            background: white;
-            border-radius: 15px;
-            padding: clamp(10px, 2.5vw, 15px);
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-
-        .info-compact-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .info-compact-header h3 {
-            color: #333;
-            font-size: clamp(0.95rem, 3vw, 1.2rem);
-        }
-
-        .bimestres-compact {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-            gap: clamp(8px, 2vw, 15px);
-        }
-
-        .bimestre-card-compact {
-            padding: clamp(10px, 2.5vw, 15px);
-            border-radius: 12px;
-            color: white;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
-            font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+        /* Painel de detalhes */
+        .pd-painel-cabecalho {
             display: flex;
             flex-direction: column;
-            min-height: 100px;
+            gap: var(--pf-space-2);
+            margin-bottom: var(--pf-space-3);
+            padding-bottom: var(--pf-space-3);
+            border-bottom: 1px solid var(--pf-gray-200);
         }
 
-        .bimestre-card-compact:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        .pd-painel-cabecalho h3 {
+            font-size: 1.1rem;
+            color: var(--pf-gray-900);
         }
 
-        .bimestre-header-compact {
+        .pd-painel-secao {
+            margin-bottom: var(--pf-space-4);
+        }
+
+        .pd-painel-secao h4 {
+            font-size: 0.85rem;
+            color: var(--pf-blue-700);
+            margin-bottom: var(--pf-space-2);
+        }
+
+        .pd-painel-secao p {
+            font-size: 0.85rem;
+            color: var(--pf-gray-700);
+            margin-bottom: var(--pf-space-1);
+        }
+
+        .pd-acoes-rapidas {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.3);
-            padding-bottom: 5px;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: var(--pf-space-2);
         }
 
-        .bimestre-numero-compact {
-            font-weight: 700;
-            font-size: clamp(0.9rem, 2.8vw, 1.1rem);
+        .pd-acoes-rapidas .pf-btn {
+            font-size: 0.8rem;
+            padding: var(--pf-space-2) var(--pf-space-3);
         }
 
-        .bimestre-datas-compact {
-            font-size: clamp(0.7rem, 2.2vw, 0.8rem);
-            opacity: 0.9;
+        .pd-aviso-somente-leitura {
+            margin-top: var(--pf-space-2);
+            font-size: 0.78rem;
+            color: var(--pf-gray-500);
+            font-style: italic;
         }
 
-        .unidades-compact {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            margin-top: 5px;
+        .pd-observacoes-atuais {
+            font-size: 0.85rem;
+            color: var(--pf-gray-700);
+            background: var(--pf-gray-100);
+            border-radius: var(--pf-radius-md);
+            padding: var(--pf-space-3);
+            margin-bottom: var(--pf-space-2);
+            white-space: pre-line;
+            max-height: 160px;
             overflow-y: auto;
-            max-height: 150px;
         }
 
-        .unidade-tag-compact {
-            background: rgba(255,255,255,0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: clamp(0.7rem, 2.2vw, 0.8rem);
-            white-space: normal;
-            word-break: break-word;
-            line-height: 1.3;
-        }
-
-        /* Modal de Configuração — chrome de abrir/fechar vem do <pf-modal> (styles/components/modal.css);
-           aqui só o dimensionamento específico desta página. */
-        .pf-modal {
+        .pd-painel-secao textarea {
             width: 100%;
-            max-width: 800px;
-            max-height: 90vh;
-            padding: clamp(15px, 4vw, 25px);
-            scrollbar-width: thin;
+            min-height: 70px;
+            padding: var(--pf-space-2);
+            border: 2px solid var(--pf-gray-300);
+            border-radius: var(--pf-radius-md);
+            font-family: var(--pf-font-family);
+            font-size: 14px;
+            margin-bottom: var(--pf-space-2);
+            resize: vertical;
         }
 
-        .config-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #1e3c72;
-            padding-bottom: 8px;
-            flex-wrap: wrap;
-            gap: 10px;
+        .pd-checkbox {
+            display: block;
+            font-size: 0.82rem;
+            color: var(--pf-gray-700);
+            margin-bottom: var(--pf-space-1);
         }
 
-        .config-modal-header h2 {
-            color: #333;
-            font-size: clamp(1.1rem, 4vw, 1.5rem);
-        }
-
-        .close {
-            font-size: clamp(1.5rem, 5vw, 2rem);
-            cursor: pointer;
-            color: #999;
-            line-height: 1;
-        }
-
-        .close:hover {
-            color: #333;
-        }
-
-        .config-section {
-            margin-bottom: 20px;
-            padding: clamp(10px, 2.5vw, 15px);
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .config-section h3 {
-            color: #1e3c72;
-            margin-bottom: 12px;
-            font-size: clamp(0.95rem, 3vw, 1.2rem);
-        }
-
-        .bimestre-config-item {
-            margin-bottom: 15px;
-            padding: clamp(10px, 2.5vw, 15px);
-            border-radius: 10px;
-            color: white;
-        }
-
-        .bimestre-config-item > div {
-            flex-wrap: wrap;
-        }
-
-        .bimestre-config-item input {
-            padding: 6px 10px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 8px;
-            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
-            width: clamp(90px, 20vw, 100px);
-            background: rgba(255,255,255,0.9);
-            color: #333;
-        }
-
-        .unidade-select-config {
-            width: 100%;
-            padding: clamp(6px, 1.8vw, 10px) clamp(8px, 2vw, 12px);
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
-            background: white;
-            cursor: pointer;
-            margin: 8px 0;
-        }
-
-        .unidades-selecionadas-config {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 8px;
-        }
-
-        .unidade-tag-config {
-            background: rgba(255,255,255,0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: clamp(0.7rem, 2.2vw, 0.8rem);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            white-space: normal;
-            word-break: break-word;
-        }
-
-        .unidade-tag-config button {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: clamp(1rem, 3vw, 1.2rem);
-            padding: 0 3px;
-            line-height: 1;
-        }
-
-        .config-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        /* Mensagens */
-        .message {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            left: 10px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 2000;
-            animation: slideIn 0.3s ease;
-            font-size: clamp(0.8rem, 2.5vw, 0.95rem);
-            text-align: center;
-            max-width: 90%;
-            margin: 0 auto;
-            width: fit-content;
-        }
-
-        .message.success {
-            background: #28a745;
-        }
-
-        .message.error {
-            background: #dc3545;
-        }
-
-        .message.info {
-            background: #17a2b8;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
+        /* Modal do painel em telas pequenas — quase tela cheia */
+        @media (max-width: 600px) {
+            #pdPainelModal .pf-modal {
+                width: 100%;
+                max-width: 100%;
+                height: 100%;
+                max-height: 100%;
+                border-radius: 0;
+                padding: var(--pf-space-4);
             }
         }
 
-        /* Melhorias para touch em dispositivos móveis */
-        @media (max-width: 768px) {
-            .btn-nav, .btn {
-                min-height: 44px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+        @media print {
+            pf-header, pf-sidebar, .pd-barra-acoes, .pd-painel, #pdPainelModal {
+                display: none !important;
             }
-            
-            .turma-item, .grid-cell {
-                min-height: 44px;
-            }
-            
-            .aula-card {
-                min-height: 40px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            .remove-turma {
-                width: 36px;
-                height: 36px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            /* Melhorar scroll horizontal */
-            .tabela-container::-webkit-scrollbar {
-                height: 6px;
-            }
-            
-            .tabela-container::-webkit-scrollbar-thumb {
-                background: #1e3c72;
-                border-radius: 10px;
-            }
-            
-            .tabela-container::-webkit-scrollbar-track {
-                background: #e9ecef;
+            .pd-layout {
+                grid-template-columns: 1fr !important;
             }
         }
-
-        /* Ajustes para telas muito pequenas */
-        @media (max-width: 380px) {
-            .grid-cell:first-child {
-                flex: 0 0 50px;
-            }
-            
-            .grid-cell {
-                min-width: 50px;
-                font-size: 0.65rem;
-            }
-            
-            .aula-card {
-                font-size: 0.6rem;
-            }
-            
-            .btn-nav {
-                font-size: 0.65rem;
-                min-width: 70px;
-            }
-            
-            .legenda-item {
-                font-size: 0.65rem;
-                padding: 4px 8px;
-            }
-        }
-
-        /* Ajustes para tablets em modo paisagem */
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .grid-cell {
-                min-width: 70px;
-            }
-            
-            .bimestres-compact {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        /* Melhorias de acessibilidade para touch */
-        .btn, .turma-item, .remove-turma, .close {
-            -webkit-tap-highlight-color: rgba(30, 60, 114, 0.3);
-            touch-action: manipulation;
-        }
-
-        /* Prevenir zoom em inputs no iOS */
-        input, select, button {
-            font-size: 16px;
-        }
-
-        /* Scroll suave */
-        .turmas-grid, .unidades-compact, .config-modal-content {
-            scroll-behavior: smooth;
-        }
-
-        /* Melhorias visuais para drop zone em dispositivos touch */
-        .grid-cell.drop-zone {
-            background: rgba(30, 60, 114, 0.2);
-            border: 2px dashed #1e3c72;
-            transition: all 0.2s;
-        }
-        /* Botão "×" de remover unidade temática (usado no modal de configuração de bimestres) */
-        .btn-remover-unidade {
-  padding: 10px 20px;
-  margin-top: 10px;
-  background: #007bff;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
     </style>
 </head>
 <body>
@@ -969,907 +276,564 @@
         <pf-header></pf-header>
         <pf-sidebar active="programacao-diaria"></pf-sidebar>
         <div class="pf-app-main">
-    <div class="container">
-        <!-- Header Principal -->
-        <div class="main-header">
-            <h1>📅 Programação Diária - Educação Física</h1>
-            <p>Visualize e gerencie suas aulas</p>
-        </div>
+            <div class="container">
 
-        <!-- Header da Programação -->
-        <div class="programacao-header">
-            <div class="semana-info">
-                <h2>📆 Programação Diária</h2>
-                <div class="data-range" id="semanaAtual">1ª semana de Fevereiro</div>
-            </div>
-            <div class="navegacao-semanas">
-                <button class="btn-nav" onclick="semanaAnterior()">← Anterior</button>
-                <button class="btn-nav" onclick="semanaAtualHoje()">Hoje</button>
-                <button class="btn-nav" onclick="proximaSemana()">Próxima →</button>
-            </div>
-        </div>
-
-        <!-- Tabela de Programação -->
-        <div class="tabela-container">
-            <div class="grid-container" id="programacaoGrid">
-                <!-- O grid será preenchido via JavaScript -->
-            </div>
-        </div>
-
-        <!-- Legenda -->
-        <div class="legenda">
-            <div class="legenda-item">
-                <div class="legenda-cor cor-aula"></div>
-                <span>Aula Regular</span>
-            </div>
-            <div class="legenda-item">
-                <div class="legenda-cor cor-folga"></div>
-                <span>Folga</span>
-            </div>
-            <div class="legenda-item">
-                <div class="legenda-cor cor-planejamento"></div>
-                <span>Planejamento</span>
-            </div>
-            <div class="legenda-item">
-                <div class="legenda-cor cor-cemfor"></div>
-                <span>CEMFOR</span>
-            </div>
-        </div>
-
-        <!-- Modo de Edição -->
-        <div class="modo-edicao-bar">
-            <span class="modo-edicao-title">✋ Modo de Edição:</span>
-            <div class="modo-edicao-buttons">
-                <button class="btn btn-primary" onclick="habilitarArrastar()" id="btnArrastar">Ativar Arrastar</button>
-                <button class="btn btn-success" onclick="salvarGrade()">💾 Salvar Grade</button>
-                <button class="btn btn-danger" onclick="resetarGrade()">↺ Resetar</button>
-            </div>
-        </div>
-
-        <!-- Gerenciamento de Turmas - Lista Suspensa -->
-        <div class="turmas-management" id="turmasManagement">
-            <div class="turmas-header" onclick="toggleTurmasLista()">
-                <h3>
-                    <span>📋 Gerenciar Turmas</span>
-                    <span class="toggle-icon" id="toggleIcon">▼</span>
-                </h3>
-            </div>
-            <div class="turmas-content" id="turmasContent">
-                <div class="add-turma-form">
-                    <input type="text" id="novaTurma" placeholder="Ex: 7º A, 8º B, 1º EM...">
-                    <button class="btn btn-success" onclick="adicionarTurma()">➕ Adicionar</button>
-                    <button class="btn btn-info" onclick="recarregarTurmasFirebase()">🔄 Recarregar</button>
-                </div>
-                
-                <div class="turmas-grid" id="turmasLista">
-                    <!-- Preenchido via JavaScript -->
-                </div>
-
-                <!-- Itens Especiais Fixos -->
-                <div class="itens-especiais">
-                    <h4>📌 Itens Especiais (Fixos)</h4>
-                    <div class="itens-especiais-grid" id="itensEspeciaisLista">
-                        <!-- Preenchido via JavaScript -->
+                <!-- Barra superior -->
+                <div class="pf-card pd-barra">
+                    <div class="pd-barra-nav">
+                        <button class="pf-btn pf-btn--secondary" onclick="diaAnterior()">← Anterior</button>
+                        <button class="pf-btn pf-btn--secondary" onclick="irParaHoje()">Hoje</button>
+                        <button class="pf-btn pf-btn--secondary" onclick="diaSeguinte()">Próxima →</button>
+                        <span class="pd-barra-data" id="pdDataAtual">Carregando…</span>
+                    </div>
+                    <div class="pd-barra-acoes">
+                        <select class="pf-filter-select" id="pdFiltroTurma" onchange="aplicarFiltroTurma()">
+                            <option value="">Todas as turmas</option>
+                        </select>
+                        <button class="pf-btn pf-btn--info" onclick="imprimirDia()">🖨️ Imprimir</button>
+                        <button class="pf-btn pf-btn--info" onclick="exportarCsv()">⬇️ Exportar</button>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Informações Compactas dos Bimestres -->
-        <div class="info-compact">
-            <div class="info-compact-header">
-                <h3>📌 Bimestres e Unidades Temáticas</h3>
-                <button class="btn btn-primary" onclick="abrirConfigModal()">⚙️ Configurar</button>
-            </div>
-            <div class="bimestres-compact" id="bimestresCompact">
-                <!-- Renderizado via JavaScript -->
+                <!-- Lista + Painel -->
+                <div class="pd-layout">
+                    <div class="pd-lista" id="pdLista">
+                        <p class="pd-estado-vazio">Carregando aulas do dia…</p>
+                    </div>
+
+                    <aside class="pf-card pd-painel" id="pdPainelDesktop">
+                        <p class="pd-estado-vazio">Selecione uma aula na lista para ver os detalhes.</p>
+                    </aside>
+                </div>
+
             </div>
         </div>
     </div>
-        </div>
-    </div>
 
-    <!-- Modal de Configuração -->
-    <pf-modal id="configModal">
-        <div class="config-modal-header">
-            <h2>⚙️ Configuração dos Bimestres</h2>
-            <span class="close" onclick="fecharConfigModal()">&times;</span>
-        </div>
-
-        <div class="config-section">
-            <h3>📅 Datas e Unidades Temáticas</h3>
-            <div id="bimestresConfig"></div>
-        </div>
-
-        <div class="config-actions">
-            <button class="btn btn-secondary" onclick="fecharConfigModal()">Cancelar</button>
-            <button class="btn btn-success" onclick="salvarConfiguracoes()">💾 Salvar</button>
-            <button class="btn btn-danger" onclick="resetarConfiguracoes()">↺ Resetar</button>
-        </div>
+    <!-- Painel de detalhes em tela cheia, usado só em telas pequenas -->
+    <pf-modal id="pdPainelModal">
+        <div id="pdPainelMobileConteudo"></div>
     </pf-modal>
 
-    <!-- Firebase SDK -->
     <script type="module">
-              
-        // Firebase SDK
         import "../../scripts/layout/page-shell.js";
         import "../../scripts/components/pf-modal.js";
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
-        import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial } from "../../scripts/services/grade-service.js";
-        import { ouvirConfiguracoes, salvarConfiguracoes as salvarConfiguracoesService } from "../../scripts/services/configuracoes-service.js";
-        import { ouvirTurmas, salvarTurmas } from "../../scripts/services/turmas-service.js";
+        import { ouvirGrade } from "../../scripts/services/grade-service.js";
+        import { ouvirTurmas } from "../../scripts/services/turmas-service.js";
+        import { ouvirAulas } from "../../scripts/services/aulas-service.js";
+        import { ouvirControlador, salvarControlador } from "../../scripts/services/controlador-service.js";
+        import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
 
-        // Estado da aplicação
+        // ---------- Estado ----------
         let escolaAtualId = null;
-        let unsubGrade = null;
-        let unsubConfiguracoes = null;
-        let unsubTurmas = null;
-        let dataBase = new Date();
-        let modoArrastarAtivo = false;
-        let itemArrastando = null;
-        let gradeHorarios = null;
-        let turmas = [];
+        let unsubGrade = null, unsubTurmas = null, unsubAulas = null, unsubControlador = null;
 
-        // Itens especiais fixos (não podem ser removidos)
-        const itensEspeciaisFixos = [
-            { tipo: "folga", nome: "Folga", icone: "🆓" },
-            { tipo: "planejamento", nome: "Planejamento", icone: "📝" },
-            { tipo: "cemfor", nome: "CEMFOR", icone: "🏛️" }
-        ];
+        let gradeAtual = { matutino: [], vespertino: [] };
+        let turmasAtuais = [];
+        let aulasFirebaseRaw = [];
+        let controladorAtual = { aulas: [], aulaAtualId: null };
 
-        // Unidades Temáticas completas da BNCC
-        const unidadesTematicasBNCC = [
-            "Brincadeiras e jogos populares",
-            "Brincadeiras e jogos de matriz indígena",
-            "Brincadeiras e jogos de matriz africana",
-            "Esportes de marca",
-            "Esportes de precisão",
-            "Esportes de invasão",
-            "Esportes técnico-combinatórios",
-            "Esportes de rede/parede",
-            "Esportes de campo e taco",
-            "Esportes de combate",
-            "Ginásticas de condicionamento físico",
-            "Ginásticas de conscientização corporal",
-            "Ginásticas competitivas",
-            "Ginásticas gerais",
-            "Danças urbanas",
-            "Danças brasileiras",
-            "Danças de salão",
-            "Danças folclóricas",
-            "Lutas do Brasil",
-            "Lutas de matriz indígena",
-            "Lutas de matriz africana",
-            "Lutas de matriz oriental",
-            "Práticas corporais de aventura na natureza",
-            "Práticas corporais de aventura urbanas"
-        ];
+        let gradeCarregada = false;
+        let turmasCarregada = false;
+        let aulasCarregada = false;
+        let controladorCarregada = false;
 
-        // Cores dos bimestres
-        const coresBimestres = [
-            '#E63946', // Vermelho vibrante
-            '#2A9D8F', // Verde-azulado
-            '#E9C46A', // Amarelo dourado
-            '#9C89B8'  // Roxo lavanda
-        ];
+        let dataSelecionada = new Date();
+        dataSelecionada.setHours(0, 0, 0, 0);
 
-        // Grade padrão de horários
-        const gradePadrao = {
-            matutino: [
-                { horario: "1ª Aula", segunda: "6º A", terca: "6º A", quarta: "6º D", quinta: "6º D", sexta: "6º E" },
-                { horario: "2ª Aula", segunda: "6º B", terca: "6º B", quarta: "6º E", quinta: "Folga", sexta: "6º E" },
-                { horario: "3ª Aula", segunda: "6º C", terca: "6º B", quarta: "6º F", quinta: "Planejamento", sexta: "6º D" },
-                { horario: "4ª Aula", segunda: "6º C", terca: "6º C", quarta: "6º F", quinta: "CEMFOR", sexta: "6º B" }
-            ],
-            vespertino: [
-                { horario: "1ª Aula", segunda: "6º F", terca: "Planejamento", quarta: "6º I", quinta: "6º G", sexta: "6º J" },
-                { horario: "2ª Aula", segunda: "6º F", terca: "Planejamento", quarta: "6º I", quinta: "6º G", sexta: "6º J" },
-                { horario: "3ª Aula", segunda: "6º J", terca: "6º H", quarta: "6º G", quinta: "Folga", sexta: "Folga" },
-                { horario: "4ª Aula", segunda: "6º J", terca: "6º H", quarta: "6º G", quinta: "Folga", sexta: "Folga" }
-            ]
+        let filtroTurma = '';
+        let chaveSelecionada = null; // chave (encodeURIComponent) do slot selecionado na lista
+        let nomeUsuario = null;
+
+        // ---------- Constantes ----------
+        const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+        const SLOTS_ESPECIAIS = ['Folga', 'Planejamento', 'CEMFOR', '---'];
+        const DIAS_SEMANA_EXTENSO = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const MESES_EXTENSO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const DISCIPLINA_FIXA = 'Educação Física';
+        const STATUS_POSSIVEIS = ['Não iniciada', 'Em Andamento', 'Concluída', 'Cancelada', 'Reposição'];
+
+        // ---------- Helpers de data ----------
+        function formatarDataCompleta(data) {
+            return `${DIAS_SEMANA_EXTENSO[data.getDay()]}, ${data.getDate()} de ${MESES_EXTENSO[data.getMonth()]} de ${data.getFullYear()}`;
+        }
+
+        function ehHoje(data) {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            return data.getTime() === hoje.getTime();
+        }
+
+        function obterChaveDiaSemana(data) {
+            const idx = data.getDay(); // 0=domingo..6=sábado
+            return DIA_CHAVES[idx - 1] || null;
+        }
+
+        // ---------- Regra de junção grade × controlador ----------
+        // Idêntica à do Dashboard (duplicada por convenção já estabelecida
+        // no repo — funções puras pequenas são duplicadas em vez de
+        // extraídas pra um util compartilhado). "Cancelada" é neutra: não
+        // conta como pendente, e o fallback mostra o status real da entrada
+        // mais recente em vez de forçar "Concluída".
+        function derivarStatusTurma(turma, controlador) {
+            const entradas = (controlador.aulas || []).filter(a => a.turma === turma);
+            if (entradas.length === 0) {
+                return { status: 'Sem planejamento', entrada: null };
+            }
+            if (controlador.aulaAtualId) {
+                const atual = entradas.find(a => a.id === controlador.aulaAtualId);
+                if (atual) return { status: atual.status || 'Não iniciada', entrada: atual };
+            }
+            const pendentes = entradas
+                .filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada')
+                .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
+            if (pendentes.length > 0) {
+                return { status: pendentes[0].status || 'Não iniciada', entrada: pendentes[0] };
+            }
+            const maisRecente = entradas.slice()
+                .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''))[0];
+            return { status: maisRecente.status || 'Concluída', entrada: maisRecente };
+        }
+
+        function classeBadge(status) {
+            switch (status) {
+                case 'Concluída': return 'pd-badge--concluida';
+                case 'Em Andamento': return 'pd-badge--em-andamento';
+                case 'Sem planejamento': return 'pd-badge--sem-planejamento';
+                case 'Cancelada': return 'pd-badge--cancelada';
+                case 'Reposição': return 'pd-badge--reposicao';
+                default: return 'pd-badge--nao-iniciada';
+            }
+        }
+
+        // ---------- Montagem da lista do dia selecionado ----------
+        function chaveDoItem(item) {
+            return `${item.periodo}|${item.horario}|${item.turma}`;
+        }
+
+        function montarAulasDoDia() {
+            const diaChave = obterChaveDiaSemana(dataSelecionada);
+            if (!diaChave) return [];
+            const itens = [];
+            ['matutino', 'vespertino'].forEach(periodo => {
+                (gradeAtual[periodo] || []).forEach(linha => {
+                    const valor = linha[diaChave];
+                    if (!valor || SLOTS_ESPECIAIS.includes(valor)) return;
+                    if (filtroTurma && valor !== filtroTurma) return;
+                    const { status, entrada } = derivarStatusTurma(valor, controladorAtual);
+                    itens.push({ periodo, horario: linha.horario, turma: valor, status, entrada });
+                });
+            });
+            return itens;
+        }
+
+        function encontrarItemSelecionado() {
+            if (!chaveSelecionada) return null;
+            const chaveDecodificada = decodeURIComponent(chaveSelecionada);
+            return montarAulasDoDia().find(i => chaveDoItem(i) === chaveDecodificada) || null;
+        }
+
+        function encontrarEntradaSelecionada() {
+            const item = encontrarItemSelecionado();
+            return item ? item.entrada : null;
+        }
+
+        // ---------- Reconciliação (aulas do Planejamento × turmas) ----------
+        // Não reimplementa a lógica — só chama o módulo compartilhado quando
+        // aulas E turmas já entregaram seu primeiro snapshot real. O
+        // resultado da escrita chega de volta sozinho via ouvirControlador.
+        async function talvezSincronizar() {
+            if (!turmasCarregada || !aulasCarregada) return;
+            await sincronizarControlador({ escolaId: escolaAtualId, aulasFirebase: aulasFirebaseRaw, turmasAtuais });
+        }
+
+        // ---------- Ações operacionais ----------
+        function persistirControlador() {
+            return salvarControlador(escolaAtualId, {
+                aulas: controladorAtual.aulas,
+                aulaAtualId: controladorAtual.aulaAtualId,
+                ultimaAtualizacao: new Date().toISOString()
+            });
+        }
+
+        window.iniciarAula = function () {
+            const entrada = encontrarEntradaSelecionada();
+            if (!entrada) return;
+            if (entrada.status !== 'Concluída') entrada.status = 'Em Andamento';
+            persistirControlador().then(() => showToast('Aula iniciada!', 'success'));
         };
 
-        // Dias da semana
-        let diasSemana = [
-            { nome: "SEGUNDA", data: 0, mes: 0, ano: 0, dataObj: null },
-            { nome: "TERÇA", data: 0, mes: 0, ano: 0, dataObj: null },
-            { nome: "QUARTA", data: 0, mes: 0, ano: 0, dataObj: null },
-            { nome: "QUINTA", data: 0, mes: 0, ano: 0, dataObj: null },
-            { nome: "SEXTA", data: 0, mes: 0, ano: 0, dataObj: null }
-        ];
-
-        // Bimestres com datas editáveis
-        let bimestres = [
-            { numero: 1, inicio: "28/01/2026", fim: "16/04/2026", unidades: [] },
-            { numero: 2, inicio: "22/04/2026", fim: "21/07/2026", unidades: [] },
-            { numero: 3, inicio: "22/07/2026", fim: "29/09/2026", unidades: [] },
-            { numero: 4, inicio: "01/10/2026", fim: "10/12/2026", unidades: [] }
-        ];
-
-        // Função para toggle da lista de turmas
-        window.toggleTurmasLista = function() {
-            const content = document.getElementById('turmasContent');
-            const header = document.querySelector('.turmas-header');
-            const icon = document.getElementById('toggleIcon');
-            
-            content.classList.toggle('collapsed');
-            header.classList.toggle('collapsed');
-            
-            if (content.classList.contains('collapsed')) {
-                icon.textContent = '►';
-            } else {
-                icon.textContent = '▼';
-            }
-        };
-
-        // Função para converter string de data
-        function stringParaData(dataStr) {
-            const [dia, mes, ano] = dataStr.split('/').map(Number);
-            return new Date(ano, mes - 1, dia);
-        }
-
-        // Função para determinar o bimestre
-        function determinarBimestre(data) {
-            if (!data) return 0;
-            
-            for (let i = 0; i < bimestres.length; i++) {
-                const b = bimestres[i];
-                const dataInicio = stringParaData(b.inicio);
-                const dataFim = stringParaData(b.fim);
-                dataFim.setHours(23, 59, 59, 999);
-                
-                if (data >= dataInicio && data <= dataFim) {
-                    return i;
-                }
-            }
-            return 0;
-        }
-
-        // Função para obter número da semana
-        function obterNumeroSemana(data) {
-            const primeiroDiaMes = new Date(data.getFullYear(), data.getMonth(), 1);
-            const diasPassados = Math.floor((data - primeiroDiaMes) / (24 * 60 * 60 * 1000));
-            return Math.floor(diasPassados / 7) + 1;
-        }
-
-        // Função para obter nome do mês
-        function obterNomeMes(numeroMes) {
-            const meses = [
-                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-            ];
-            return meses[numeroMes];
-        }
-
-        // Atualizar info da semana
-        function atualizarInfoSemana() {
-            const numeroSemana = obterNumeroSemana(dataBase);
-            const nomeMes = obterNomeMes(dataBase.getMonth());
-            document.getElementById('semanaAtual').innerHTML = 
-                `${numeroSemana}ª semana de ${nomeMes}`;
-        }
-
-        // Atualizar datas da semana
-        function atualizarDatasSemana() {
-            const diaDaSemana = dataBase.getDay();
-            const diferencaParaSegunda = diaDaSemana === 0 ? 6 : diaDaSemana - 1;
-            const segundaFeira = new Date(dataBase);
-            segundaFeira.setDate(dataBase.getDate() - diferencaParaSegunda);
-            
-            for (let i = 0; i < 5; i++) {
-                const data = new Date(segundaFeira);
-                data.setDate(segundaFeira.getDate() + i);
-                diasSemana[i].data = data.getDate();
-                diasSemana[i].mes = data.getMonth();
-                diasSemana[i].ano = data.getFullYear();
-                diasSemana[i].dataObj = new Date(data);
-            }
-        }
-
-        // Carregar turmas do Firebase
-        function carregarTurmasFirebase() {
-    return ouvirTurmas(escolaAtualId, (docSnap) => {
-        const data = docSnap.data();
-
-        if (data && data.lista) {
-            turmas = data.lista;
-        } else {
-            turmas = ["6º A","6º B","6º C","6º D","6º E","6º F","6º G","6º H","6º I","6º J"];
-        }
-
-        renderizarTurmasLista();
-    });
-}
-
-        // Carregar grade do Firebase
-        function carregarGradeFirebase() {
-    return ouvirGrade(escolaAtualId, (docSnap) => {
-        const data = docSnap.data();
-
-        if (data && data.matutino && data.vespertino) {
-    gradeHorarios = data;
-        } else {
-            gradeHorarios = JSON.parse(JSON.stringify(gradePadrao));
-        }
-
-        renderizarProgramacao();
-    });
-}
-
-        // Carregar configurações do Firebase
-        function carregarConfiguracoesFirebase() {
-    return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
-        const data = docSnap.data();
-
-        if (data && data.bimestres) {
-            bimestres = data.bimestres;
-        }
-
-        renderizarBimestresCompact();
-    });
-}
-
-        // Salvar turmas no Firebase
-        function salvarTurmasFirebase() {
-    salvarTurmas(escolaAtualId, turmas)
-        .then(() => {
-            mostrarMensagem('Turmas salvas com sucesso!', 'success');
-        })
-        .catch(error => {
-            mostrarMensagem('Erro ao salvar turmas: ' + error.message, 'error');
-        });
-}
-
-        // Adicionar nova turma
-        window.adicionarTurma = function() {
-            const input = document.getElementById('novaTurma');
-            const nomeTurma = input.value.trim();
-            
-            if (!nomeTurma) {
-                mostrarMensagem('Digite o nome da turma!', 'info');
+        window.concluirAula = function () {
+            const entrada = encontrarEntradaSelecionada();
+            if (!entrada) return;
+            if (!entrada.aulasExecutadas) entrada.aulasExecutadas = 0;
+            const total = entrada.numAulas || 2;
+            if (entrada.aulasExecutadas >= total) {
+                showToast('Esta aula já foi concluída.', 'info');
                 return;
             }
-            
-            if (turmas.includes(nomeTurma)) {
-                mostrarMensagem('Esta turma já existe!', 'info');
+            entrada.aulasExecutadas++;
+            entrada.status = entrada.aulasExecutadas >= total ? 'Concluída' : 'Em Andamento';
+            persistirControlador().then(() => showToast('Aula registrada!', 'success'));
+        };
+
+        window.anexarArquivo = function () {
+            showToast('Anexos chegam em breve por aqui.', 'info');
+        };
+
+        window.registrarObservacao = function () {
+            const entrada = encontrarEntradaSelecionada();
+            if (!entrada) return;
+            const textarea = document.getElementById('pdNovaObservacao');
+            const texto = textarea.value.trim();
+            if (!texto) {
+                showToast('Escreva algo antes de registrar.', 'info');
                 return;
             }
-            
-            turmas.push(nomeTurma);
-            salvarTurmasFirebase();
-            renderizarTurmasLista();
-            input.value = '';
-            mostrarMensagem(`Turma ${nomeTurma} adicionada com sucesso!`, 'success');
+            const agora = new Date();
+            const carimbo = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+            entrada.observacoes = (entrada.observacoes ? entrada.observacoes + '\n\n' : '') + `[${carimbo}] ${texto}`;
+            persistirControlador().then(() => showToast('Observação registrada!', 'success'));
         };
 
-        // Remover turma
-        window.removerTurma = function(nomeTurma) {
-            if (confirm(`Tem certeza que deseja remover a turma ${nomeTurma}?`)) {
-                turmas = turmas.filter(t => t !== nomeTurma);
-                
-                // Remover a turma da grade também
-                for (let periodo in gradeHorarios) {
-                    gradeHorarios[periodo].forEach(linha => {
-                        for (let dia in linha) {
-                            if (linha[dia] === nomeTurma) {
-                                linha[dia] = 'Folga'; // Substitui por folga
-                            }
-                        }
-                    });
-                }
-                
-                salvarTurmasFirebase();
-                salvarGradeParcial(escolaAtualId, gradeHorarios);
-                renderizarTurmasLista();
-                renderizarProgramacao();
-                mostrarMensagem(`Turma ${nomeTurma} removida!`, 'info');
+        window.aplicarStatusManual = function () {
+            const entrada = encontrarEntradaSelecionada();
+            if (!entrada) return;
+            const novoStatus = document.getElementById('pdStatusSelect').value;
+            if (novoStatus === entrada.status) return;
+
+            if (novoStatus === 'Cancelada' || novoStatus === 'Reposição') {
+                const motivo = (prompt(novoStatus === 'Cancelada' ? 'Motivo do cancelamento (opcional):' : 'Motivo da reposição (opcional):') || '').trim();
+                if (!Array.isArray(entrada.historico)) entrada.historico = [];
+                const evento = {
+                    tipo: novoStatus === 'Cancelada' ? 'cancelamento' : 'reposicao',
+                    data: new Date().toISOString()
+                };
+                if (motivo) evento.motivo = motivo; // nunca gravar campo undefined no Firestore
+                entrada.historico.push(evento);
+            }
+
+            entrada.status = novoStatus;
+            persistirControlador().then(() => showToast('Status atualizado!', 'success'));
+        };
+
+        window.salvarRegistroAula = function () {
+            const entrada = encontrarEntradaSelecionada();
+            if (!entrada) return;
+            entrada.conteudoMinistrado = document.getElementById('pdConteudoMinistrado').value;
+            const tempo = document.getElementById('pdTempoUtilizado').value;
+            entrada.tempoUtilizado = tempo ? Number(tempo) : null;
+            entrada.dificuldades = document.getElementById('pdDificuldades').value;
+            entrada.habilidadesTrabalhadas = Array.from(
+                document.querySelectorAll('#pdHabilidadesTrabalhadas input:checked')
+            ).map(cb => cb.value);
+            persistirControlador().then(() => showToast('Registro salvo!', 'success'));
+        };
+
+        // ---------- Navegação de data / filtro ----------
+        window.diaAnterior = function () {
+            dataSelecionada.setDate(dataSelecionada.getDate() - 1);
+            chaveSelecionada = null;
+            renderizarTudo();
+        };
+
+        window.diaSeguinte = function () {
+            dataSelecionada.setDate(dataSelecionada.getDate() + 1);
+            chaveSelecionada = null;
+            renderizarTudo();
+        };
+
+        window.irParaHoje = function () {
+            dataSelecionada = new Date();
+            dataSelecionada.setHours(0, 0, 0, 0);
+            chaveSelecionada = null;
+            renderizarTudo();
+        };
+
+        window.aplicarFiltroTurma = function () {
+            filtroTurma = document.getElementById('pdFiltroTurma').value;
+            chaveSelecionada = null;
+            renderizarTudo();
+        };
+
+        window.selecionarAula = function (chaveCodificada) {
+            chaveSelecionada = chaveCodificada;
+            renderizarLista();
+            renderizarPainel();
+            if (window.matchMedia('(max-width: 600px)').matches) {
+                document.getElementById('pdPainelModal').open();
             }
         };
 
-        // Recarregar turmas do Firebase
-        window.recarregarTurmasFirebase = function() {
-            carregarTurmasFirebase();
-            mostrarMensagem('Turmas recarregadas!', 'success');
+        // ---------- Impressão / exportação ----------
+        window.imprimirDia = function () {
+            window.print();
         };
 
-        // Renderizar lista de turmas e itens especiais
-        function renderizarTurmasLista() {
-            const container = document.getElementById('turmasLista');
-            container.innerHTML = '';
-            
-            // Renderizar turmas dinâmicas
-            turmas.forEach(turma => {
-                const div = document.createElement('div');
-                div.className = 'turma-item';
-                div.setAttribute('draggable', modoArrastarAtivo);
-                div.setAttribute('data-tipo', 'turma');
-                div.setAttribute('data-valor', turma);
-                
-                div.innerHTML = `
-                    <span>👥 ${turma}</span>
-                    <button class="remove-turma" onclick="removerTurma('${turma}')" title="Remover turma">×</button>
+        window.exportarCsv = function () {
+            const itens = montarAulasDoDia();
+            if (itens.length === 0) {
+                showToast('Nada para exportar neste dia.', 'info');
+                return;
+            }
+            const linhas = [['Horário', 'Turma', 'Conteúdo', 'Status'].join(';')];
+            itens.forEach(item => {
+                const conteudo = item.entrada ? item.entrada.titulo : 'Sem planejamento';
+                linhas.push([item.horario, item.turma, conteudo, item.status]
+                    .map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'));
+            });
+            const blob = new Blob(['﻿' + linhas.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `programacao-${dataSelecionada.toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        // ---------- Renderização ----------
+        function renderizarBarraSuperior() {
+            const sufixo = ehHoje(dataSelecionada) ? ' (hoje)' : '';
+            document.getElementById('pdDataAtual').textContent = formatarDataCompleta(dataSelecionada) + sufixo;
+
+            const select = document.getElementById('pdFiltroTurma');
+            const valorAtual = select.value;
+            select.innerHTML = '<option value="">Todas as turmas</option>' +
+                turmasAtuais.slice().sort().map(t => `<option value="${t}">${t}</option>`).join('');
+            select.value = turmasAtuais.includes(valorAtual) ? valorAtual : '';
+        }
+
+        function renderizarLista() {
+            const container = document.getElementById('pdLista');
+            const diaChave = obterChaveDiaSemana(dataSelecionada);
+
+            if (!diaChave) {
+                container.innerHTML = '<p class="pd-estado-vazio">Fim de semana — sem aulas na grade. 🎉</p>';
+                return;
+            }
+            if ((gradeAtual.matutino || []).length === 0 && (gradeAtual.vespertino || []).length === 0) {
+                container.innerHTML = '<p class="pd-estado-vazio">Grade ainda não configurada. Configure em <a href="../configuracoes/index.html">Configurações</a>.</p>';
+                return;
+            }
+
+            const itens = montarAulasDoDia();
+            if (itens.length === 0) {
+                container.innerHTML = `<p class="pd-estado-vazio">Nenhuma aula encontrada${filtroTurma ? ' para esta turma' : ''} neste dia.</p>`;
+                return;
+            }
+
+            let periodoAtual = null;
+            container.innerHTML = itens.map(item => {
+                let cabecalho = '';
+                if (item.periodo !== periodoAtual) {
+                    periodoAtual = item.periodo;
+                    cabecalho = `<div class="pd-periodo-titulo">${item.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'}</div>`;
+                }
+
+                const indicadores = [];
+                if (item.entrada) indicadores.push('<span title="Planejamento disponível">📘</span>');
+                if (item.entrada && item.entrada.observacoes) indicadores.push('<span title="Observações registradas">📝</span>');
+
+                const chaveCodificada = encodeURIComponent(chaveDoItem(item));
+                const selecionada = chaveSelecionada && decodeURIComponent(chaveSelecionada) === chaveDoItem(item) ? ' pd-card--selecionada' : '';
+                const conteudo = item.entrada ? item.entrada.titulo : 'Sem planejamento cadastrado';
+                const obsPreview = item.entrada && item.entrada.observacoes
+                    ? `<div class="pd-card-obs">${item.entrada.observacoes.split('\n')[0].slice(0, 80)}${item.entrada.observacoes.length > 80 ? '…' : ''}</div>`
+                    : '';
+
+                return `
+                    ${cabecalho}
+                    <div class="pf-card pd-card${selecionada}" onclick="selecionarAula('${chaveCodificada}')">
+                        <div class="pd-card-topo">
+                            <span class="pd-card-horario">${item.horario}</span>
+                            <span class="pd-badge ${classeBadge(item.status)}">${item.status}</span>
+                        </div>
+                        <div class="pd-card-turma">${item.turma}</div>
+                        <div class="pd-card-meta">${DISCIPLINA_FIXA} · ${nomeUsuario || 'Professor'}</div>
+                        <div class="pd-card-conteudo">${conteudo}</div>
+                        ${obsPreview}
+                        <div class="pd-card-indicadores">${indicadores.join('')}</div>
+                    </div>
                 `;
-                
-                if (modoArrastarAtivo) {
-                    div.addEventListener('dragstart', handleDragStart);
-                    div.addEventListener('dragend', handleDragEnd);
-                }
-                
-                container.appendChild(div);
-            });
-            
-            // Renderizar itens especiais
-            const especiaisContainer = document.getElementById('itensEspeciaisLista');
-            especiaisContainer.innerHTML = '';
-            
-            itensEspeciaisFixos.forEach(item => {
-                const div = document.createElement('div');
-                div.className = `turma-item ${item.tipo}`;
-                div.setAttribute('draggable', modoArrastarAtivo);
-                div.setAttribute('data-tipo', item.tipo);
-                div.setAttribute('data-valor', item.nome);
-                
-                div.innerHTML = `<span>${item.icone} ${item.nome}</span>`;
-                
-                if (modoArrastarAtivo) {
-                    div.addEventListener('dragstart', handleDragStart);
-                    div.addEventListener('dragend', handleDragEnd);
-                }
-                
-                especiaisContainer.appendChild(div);
-            });
+            }).join('');
         }
 
-        // Handlers de drag and drop
-        function handleDragStart(e) {
-            if (!modoArrastarAtivo) {
-                e.preventDefault();
-                return;
+        function construirHabilidadesTrabalhadasHtml(entrada) {
+            const planejadas = Array.isArray(entrada.habilidades) ? entrada.habilidades : [];
+            if (planejadas.length === 0) {
+                return '<p class="pd-estado-vazio">Nenhuma habilidade planejada para esta aula.</p>';
             }
-            
-            const elemento = e.target.closest('.turma-item');
-            if (!elemento) return;
-            
-            itemArrastando = {
-                tipo: elemento.dataset.tipo,
-                valor: elemento.dataset.valor
-            };
-            
-            e.dataTransfer.setData('text/plain', JSON.stringify(itemArrastando));
-            e.dataTransfer.effectAllowed = 'move';
-            
-            elemento.classList.add('dragging');
+            const jaRegistradas = Array.isArray(entrada.habilidadesTrabalhadas) && entrada.habilidadesTrabalhadas.length > 0
+                ? entrada.habilidadesTrabalhadas
+                : null;
+            return planejadas.map(h => {
+                const codigo = h.codigo || h;
+                const marcado = jaRegistradas ? jaRegistradas.includes(codigo) : true;
+                return `<label class="pd-checkbox"><input type="checkbox" value="${codigo}" ${marcado ? 'checked' : ''}> ${codigo}</label>`;
+            }).join('');
         }
 
-        function handleDragEnd(e) {
-            const elemento = e.target.closest('.turma-item');
-            if (elemento) {
-                elemento.classList.remove('dragging');
+        function construirPainelHtml() {
+            const item = encontrarItemSelecionado();
+            if (!item) {
+                return '<p class="pd-estado-vazio">Selecione uma aula na lista para ver os detalhes.</p>';
             }
-            itemArrastando = null;
-        }
 
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            
-            const cell = e.target.closest('.grid-cell:not(:first-child)');
-            if (cell) {
-                cell.classList.add('drop-zone');
-            }
-        }
-
-        function handleDragLeave(e) {
-            const cell = e.target.closest('.grid-cell:not(:first-child)');
-            if (cell) {
-                cell.classList.remove('drop-zone');
-            }
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            
-            if (!modoArrastarAtivo) {
-                mostrarMensagem('Ative o modo arrastar primeiro!', 'info');
-                return;
-            }
-            
-            const cell = e.target.closest('.grid-cell:not(:first-child)');
-            if (!cell) return;
-            
-            cell.classList.remove('drop-zone');
-            
-            try {
-                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                if (!data) return;
-                
-                // Encontrar a posição na grade
-                const row = cell.closest('.grid-row');
-                const rowIndex = Array.from(row.parentNode.children).indexOf(row);
-                const cellIndex = Array.from(row.children).indexOf(cell);
-                
-                // Determinar período e horário
-                let periodo, linhaIndex;
-                const linhasMatutino = gradeHorarios.matutino.length;
-                
-                // Ajustar para cabeçalhos e linhas de período
-                const linhasHeader = 2; // Cabeçalho + linha período matutino
-                
-                if (rowIndex > 1 && rowIndex <= linhasMatutino + 1) {
-                    periodo = 'matutino';
-                    linhaIndex = rowIndex - 2; // Desconsidera cabeçalho e linha período
-                } else if (rowIndex > linhasMatutino + 2) {
-                    periodo = 'vespertino';
-                    linhaIndex = rowIndex - (linhasMatutino + 3); // Desconsidera cabeçalho, período matutino e período vespertino
-                } else {
-                    return; // Não é uma linha de aula
-                }
-                
-                // Mapear índice da célula para dia
-                const diaMap = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
-                const dia = diaMap[cellIndex - 1]; // -1 porque a primeira célula é o horário
-                
-                if (periodo && linhaIndex !== undefined && dia && linhaIndex >= 0 && linhaIndex < gradeHorarios[periodo].length) {
-                    // Atualizar a grade
-                    gradeHorarios[periodo][linhaIndex][dia] = data.valor;
-                    
-                    // Renderizar novamente
-                    renderizarProgramacao();
-                    
-                    mostrarMensagem(`Item adicionado com sucesso!`, 'success');
-                }
-            } catch (error) {
-                console.error('Erro no drop:', error);
-            }
-        }
-
-        // Renderizar grid completo
-        function renderizarProgramacao() {
-            atualizarInfoSemana();
-            atualizarDatasSemana();
-            
-            const grid = document.getElementById('programacaoGrid');
-            grid.innerHTML = '';
-
-            // Cabeçalho
-            grid.appendChild(criarLinhaCabecalho());
-            
-            // Período Matutino - COMO CABEÇALHO DE SEÇÃO
-            grid.appendChild(criarLinhaPeriodo('🌅 MATUTINO'));
-            
-            // Linhas do Matutino
-            gradeHorarios.matutino.forEach((linha, index) => {
-                grid.appendChild(criarLinhaHorario(linha, 'matutino', index));
-            });
-            
-            // Período Vespertino - COMO CABEÇALHO DE SEÇÃO
-            grid.appendChild(criarLinhaPeriodo('☀️ VESPERTINO'));
-            
-            // Linhas do Vespertino
-            gradeHorarios.vespertino.forEach((linha, index) => {
-                grid.appendChild(criarLinhaHorario(linha, 'vespertino', index));
-            });
-        }
-
-        // Criar linha de cabeçalho
-        function criarLinhaCabecalho() {
-            const row = document.createElement('div');
-            row.className = 'grid-row header';
-            
-            const primeiraCelula = document.createElement('div');
-            primeiraCelula.className = 'grid-cell';
-            primeiraCelula.innerHTML = '';
-            row.appendChild(primeiraCelula);
-            
-            diasSemana.forEach(dia => {
-                const indiceBimestre = determinarBimestre(dia.dataObj);
-                const cell = document.createElement('div');
-                cell.className = `grid-cell header-cell-bimestre-${indiceBimestre + 1}`;
-                cell.innerHTML = `
-                    <div class="dia-semana">${dia.nome}</div>
-                    <div class="dia-mes">${dia.data}/${dia.mes+1}</div>
-                `;
-                row.appendChild(cell);
-            });
-            
-            return row;
-        }
-
-        // Criar linha de período - COMO CABEÇALHO DE SEÇÃO
-        function criarLinhaPeriodo(titulo) {
-            const row = document.createElement('div');
-            row.className = 'grid-row periodo-row';
-            
-            const celulaUnica = document.createElement('div');
-            celulaUnica.className = 'grid-cell';
-            celulaUnica.innerHTML = titulo;
-            row.appendChild(celulaUnica);
-            
-            // Não adicionamos as outras células, pois elas serão escondidas pelo CSS
-            
-            return row;
-        }
-
-        // Criar linha de horário
-        function criarLinhaHorario(linha, periodo, linhaIndex) {
-            const row = document.createElement('div');
-            row.className = 'grid-row';
-            
-            const primeiraCelula = document.createElement('div');
-            primeiraCelula.className = 'grid-cell';
-            primeiraCelula.innerHTML = linha.horario;
-            row.appendChild(primeiraCelula);
-            
-            const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
-            dias.forEach((dia) => {
-                const valor = linha[dia];
-                const cell = document.createElement('div');
-                cell.className = 'grid-cell';
-                
-                if (modoArrastarAtivo) {
-                    cell.addEventListener('dragover', handleDragOver);
-                    cell.addEventListener('dragleave', handleDragLeave);
-                    cell.addEventListener('drop', handleDrop);
-                }
-                
-                cell.innerHTML = renderizarCard(valor);
-                row.appendChild(cell);
-            });
-            
-            return row;
-        }
-
-        // Renderizar card da aula
-        function renderizarCard(valor) {
-            if (valor === '---') {
-    return `<div class="aula-card" style="opacity:0.3;">➕</div>`;
-}
-            if (valor === 'Folga') {
-                return `<div class="aula-card folga">🆓 Folga</div>`;
-            }
-            
-            if (valor === 'Planejamento') {
-                return `<div class="aula-card planejamento">📝 Planejamento</div>`;
-            }
-            
-            if (valor === 'CEMFOR') {
-                return `<div class="aula-card cemfor">🏛️ CEMFOR</div>`;
-            }
-            
-            // É uma turma
-            return `
-                <div class="aula-card">
-                    <div class="aula-turma">👥 ${valor}</div>
+            let html = `
+                <div class="pd-painel-cabecalho">
+                    <span class="pd-badge ${classeBadge(item.status)}">${item.status}</span>
+                    <h3>${item.turma} · ${item.horario}</h3>
                 </div>
             `;
-        }
 
-        // Renderizar bimestres compactos
-        function renderizarBimestresCompact() {
-            const container = document.getElementById('bimestresCompact');
-            container.innerHTML = bimestres.map((b, index) => `
-                <div class="bimestre-card-compact" style="background: ${coresBimestres[index]}">
-                    <div class="bimestre-header-compact">
-                        <span class="bimestre-numero-compact">${b.numero}º Bimestre</span>
-                        <span class="bimestre-datas-compact">${b.inicio.split('/')[0]}/${b.inicio.split('/')[1]}</span>
-                    </div>
-                    <div class="unidades-compact">
-                        ${b.unidades.length > 0 ? 
-                            b.unidades.map(u => `<span class="unidade-tag-compact">${u}</span>`).join('') : 
-                            '<span style="opacity:0.7; font-size:0.8em;">Nenhuma unidade selecionada</span>'}
-                    </div>
+            const entrada = item.entrada;
+            if (!entrada) {
+                html += '<p class="pd-estado-vazio">Nenhum plano de aula cadastrado para esta turma. <a href="../planejamento/index.html">Cadastrar no Planejamento</a>.</p>';
+                return html;
+            }
+
+            const somenteLeitura = !ehHoje(dataSelecionada);
+            const habilidadesTexto = Array.isArray(entrada.habilidades) && entrada.habilidades.length > 0
+                ? entrada.habilidades.map(h => h.codigo || h).join(', ')
+                : 'Não definidas';
+
+            html += `
+                <div class="pd-painel-secao">
+                    <h4>📌 Planejamento (somente leitura)</h4>
+                    <p><strong>Título:</strong> ${entrada.titulo || '-'}</p>
+                    <p><strong>Objeto de Conhecimento:</strong> ${entrada.objetoConhecimento || '-'}</p>
+                    <p><strong>Habilidades da BNCC:</strong> ${habilidadesTexto}</p>
+                    <p><strong>Descrição/Metodologia:</strong> ${entrada.descricao || '-'}</p>
+                    <p><strong>Recursos Didáticos:</strong> ${entrada.recursos || 'Não especificado'}</p>
                 </div>
-            `).join('');
-        }
 
-        // Renderizar configurações dos bimestres
-        function renderizarConfiguracoesBimestres() {
-            const container = document.getElementById('bimestresConfig');
-            container.innerHTML = bimestres.map((b, index) => `
-                <div class="bimestre-config-item" style="background: ${coresBimestres[index]}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
-                        <strong style="font-size: 1.1em;">${b.numero}º Bimestre</strong>
-                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-                            <input type="text" 
-                                   value="${b.inicio}" 
-                                   onchange="atualizarDataBimestre(${index}, 'inicio', this.value)"
-                                   placeholder="DD/MM/AAAA"
-                                   style="width: 95px;">
-                            <span style="margin: 0 5px;">até</span>
-                            <input type="text" 
-                                   value="${b.fim}" 
-                                   onchange="atualizarDataBimestre(${index}, 'fim', this.value)"
-                                   placeholder="DD/MM/AAAA"
-                                   style="width: 95px;">
-                        </div>
+                <div class="pd-painel-secao">
+                    <h4>⚡ Ações Rápidas</h4>
+                    <div class="pd-acoes-rapidas">
+                        <button class="pf-btn pf-btn--success" onclick="iniciarAula()" ${somenteLeitura ? 'disabled' : ''}>▶️ Iniciar Aula</button>
+                        <button class="pf-btn pf-btn--primary" onclick="concluirAula()" ${somenteLeitura ? 'disabled' : ''}>✅ Concluir Aula</button>
+                        <button class="pf-btn pf-btn--info" onclick="anexarArquivo()">📎 Anexar Arquivo</button>
+                        <a class="pf-btn pf-btn--secondary" href="../planejamento/index.html">📚 Planejamento</a>
+                        <a class="pf-btn pf-btn--secondary" href="../banco-atividades/index.html">🗂️ Banco de Atividades</a>
+                        <a class="pf-btn pf-btn--secondary" href="../inteligencia-artificial/index.html">🤖 IA</a>
                     </div>
-                    
-                    <div>
-                        <label><strong>Selecionar Unidade Temática:</strong></label>
-                        <select class="unidade-select-config" onchange="adicionarUnidadeBimestre(${index}, this.value)">
-                            <option value="">Selecione uma unidade...</option>
-                            ${unidadesTematicasBNCC.map(u => `<option value="${u}">${u}</option>`).join('')}
-                        </select>
-                        
-                        <div class="unidades-selecionadas-config" id="unidades-bimestre-${index}">
-                            ${b.unidades.map(u => `
-                                <span class="unidade-tag-config">
-                                    ${u}
-                                    <button class="btn-remover-unidade" onclick="removerUnidadeBimestre(${index}, '${u}')">×</button>
-                                </span>
-                            `).join('')}
-                        </div>
-                    </div>
+                    ${somenteLeitura ? '<p class="pd-aviso-somente-leitura">Ações de execução só ficam disponíveis para o dia de hoje.</p>' : ''}
                 </div>
-            `).join('');
+
+                <div class="pd-painel-secao">
+                    <h4>💬 Observações</h4>
+                    <div class="pd-observacoes-atuais">${entrada.observacoes ? entrada.observacoes.replace(/\n/g, '<br>') : 'Nenhuma observação registrada ainda.'}</div>
+                    <textarea id="pdNovaObservacao" placeholder="Adicionar nova observação..." ${somenteLeitura ? 'disabled' : ''}></textarea>
+                    <button class="pf-btn pf-btn--secondary" onclick="registrarObservacao()" ${somenteLeitura ? 'disabled' : ''}>Registrar Observação</button>
+                </div>
+
+                <div class="pd-painel-secao">
+                    <h4>🔄 Status</h4>
+                    <select id="pdStatusSelect" class="pf-filter-select" ${somenteLeitura ? 'disabled' : ''}>
+                        ${STATUS_POSSIVEIS.map(s => `<option value="${s}" ${entrada.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                    <button class="pf-btn pf-btn--secondary" onclick="aplicarStatusManual()" ${somenteLeitura ? 'disabled' : ''}>Aplicar</button>
+                </div>
+
+                <div class="pd-painel-secao">
+                    <h4>📝 Registro da Aula</h4>
+                    <div class="pf-field">
+                        <label>Conteúdo realmente ministrado</label>
+                        <textarea id="pdConteudoMinistrado" ${somenteLeitura ? 'disabled' : ''}>${entrada.conteudoMinistrado || ''}</textarea>
+                    </div>
+                    <div class="pf-field">
+                        <label>Tempo utilizado (minutos)</label>
+                        <input type="number" id="pdTempoUtilizado" min="0" value="${entrada.tempoUtilizado ?? ''}" ${somenteLeitura ? 'disabled' : ''}>
+                    </div>
+                    <div class="pf-field">
+                        <label>Habilidades trabalhadas</label>
+                        <div id="pdHabilidadesTrabalhadas">${construirHabilidadesTrabalhadasHtml(entrada)}</div>
+                    </div>
+                    <div class="pf-field">
+                        <label>Dificuldades encontradas</label>
+                        <textarea id="pdDificuldades" ${somenteLeitura ? 'disabled' : ''}>${entrada.dificuldades || ''}</textarea>
+                    </div>
+                    <button class="pf-btn pf-btn--success" onclick="salvarRegistroAula()" ${somenteLeitura ? 'disabled' : ''}>💾 Salvar Registro</button>
+                </div>
+            `;
+            return html;
         }
 
-        // Funções de navegação
-        window.semanaAnterior = function() {
-            dataBase.setDate(dataBase.getDate() - 7);
-            renderizarProgramacao();
-        };
-
-        window.proximaSemana = function() {
-            dataBase.setDate(dataBase.getDate() + 7);
-            renderizarProgramacao();
-        };
-
-        window.semanaAtualHoje = function() {
-            dataBase = new Date();
-            renderizarProgramacao();
-        };
-
-        // Funções de configuração
-        window.abrirConfigModal = function() {
-            renderizarConfiguracoesBimestres();
-            document.getElementById('configModal').open();
-        };
-
-        window.fecharConfigModal = function() {
-            document.getElementById('configModal').close();
-        };
-
-        window.atualizarDataBimestre = function(index, campo, valor) {
-            if (campo === 'inicio') {
-                bimestres[index].inicio = valor;
-            } else {
-                bimestres[index].fim = valor;
-            }
-            renderizarConfiguracoesBimestres();
-        };
-
-        window.adicionarUnidadeBimestre = function(index, unidade) {
-            if (!unidade) return;
-            
-            if (!bimestres[index].unidades.includes(unidade)) {
-                bimestres[index].unidades.push(unidade);
-                renderizarConfiguracoesBimestres();
-            } else {
-                mostrarMensagem('Esta unidade já foi adicionada!', 'info');
-            }
-        };
-
-        window.removerUnidadeBimestre = function(index, unidade) {
-            bimestres[index].unidades = bimestres[index].unidades.filter(u => u !== unidade);
-            renderizarConfiguracoesBimestres();
-        };
-
-        window.salvarConfiguracoes = function() {
-    salvarConfiguracoesService(escolaAtualId, bimestres)
-        .then(() => {
-            renderizarBimestresCompact();
-            renderizarProgramacao();
-            fecharConfigModal();
-            mostrarMensagem('Configurações salvas com sucesso!', 'success');
-        })
-        .catch(error => {
-            mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
-        });
-};
-
-        window.resetarConfiguracoes = function() {
-            bimestres = [
-                { numero: 1, inicio: "28/01/2026", fim: "16/04/2026", unidades: [] },
-                { numero: 2, inicio: "22/04/2026", fim: "21/07/2026", unidades: [] },
-                { numero: 3, inicio: "22/07/2026", fim: "29/09/2026", unidades: [] },
-                { numero: 4, inicio: "01/10/2026", fim: "10/12/2026", unidades: [] }
-            ];
-            renderizarConfiguracoesBimestres();
-            mostrarMensagem('Configurações resetadas!', 'info');
-        };
-
-        // Funções de grade
-        window.habilitarArrastar = function() {
-            modoArrastarAtivo = !modoArrastarAtivo;
-            const btn = document.getElementById('btnArrastar');
-            
-            if (modoArrastarAtivo) {
-                btn.textContent = '✅ Arrastar Ativado';
-                btn.classList.remove('btn-primary');
-                btn.classList.add('btn-success');
-                mostrarMensagem('Modo arrastar ativado!', 'success');
-            } else {
-                btn.textContent = '✋ Ativar Arrastar';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-primary');
-                mostrarMensagem('Modo arrastar desativado.', 'info');
-            }
-            
-            // Re-renderizar para atualizar os event listeners
-            renderizarTurmasLista();
-            renderizarProgramacao();
-        };
-
-        window.salvarGrade = function() {
-    salvarGradeService(escolaAtualId, gradeHorarios)
-        .then(() => {
-            mostrarMensagem('Grade salva com sucesso!', 'success');
-        })
-        .catch(error => {
-            mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
-        });
-};
-
-        window.resetarGrade = function() {
-    if (confirm('Tem certeza que deseja resetar a grade?')) {
-
-        gradeHorarios = {
-            matutino: gradePadrao.matutino.map(linha => ({
-                horario: linha.horario,
-                segunda: '---',
-                terca: '---',
-                quarta: '---',
-                quinta: '---',
-                sexta: '---'
-            })),
-            vespertino: gradePadrao.vespertino.map(linha => ({
-                horario: linha.horario,
-                segunda: '---',
-                terca: '---',
-                quarta: '---',
-                quinta: '---',
-                sexta: '---'
-            }))
-        };
-
-        renderizarProgramacao();
-        mostrarMensagem('Grade limpa! Comece a montar sua programação.', 'success');
-    }
-};
-
-        // Mostrar mensagem
-        function mostrarMensagem(texto, tipo) {
-            showToast(texto, tipo);
+        function renderizarPainel() {
+            const html = construirPainelHtml();
+            document.getElementById('pdPainelDesktop').innerHTML = html;
+            document.getElementById('pdPainelMobileConteudo').innerHTML = html;
         }
 
-        // Inicializar
-        // 🔒 Corrigido: antes estas 3 chamadas rodavam incondicionalmente, sem
-        // esperar login nem escola ativa — hoje esperam 'pf-escola-ready'.
-        renderizarBimestresCompact();
+        function renderizarTudo() {
+            if (!gradeCarregada || !turmasCarregada || !controladorCarregada) return;
+            renderizarBarraSuperior();
+            renderizarLista();
+            renderizarPainel();
+        }
 
-        // Iniciar com a lista de turmas recolhida
-        setTimeout(() => {
-            const content = document.getElementById('turmasContent');
-            const icon = document.getElementById('toggleIcon');
-            content.classList.add('collapsed');
-            icon.textContent = '►';
-        }, 100);
+        // ---------- Carregamento Firestore ----------
+        function carregarGrade() {
+            return ouvirGrade(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                gradeAtual = (data && data.matutino && data.vespertino) ? data : { matutino: [], vespertino: [] };
+                gradeCarregada = true;
+                renderizarTudo();
+            });
+        }
 
-        requireAuth({ loginPath: '../../login.html' });
+        function carregarTurmas() {
+            return ouvirTurmas(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                turmasAtuais = (data && data.lista) ? data.lista : [];
+                turmasCarregada = true;
+                talvezSincronizar();
+                renderizarTudo();
+            });
+        }
 
-        // Só carrega os dados depois de confirmar login E qual escola está ativa.
-        // Ao trocar de escola, cancela os listeners antigos antes de abrir os novos.
+        function carregarAulas() {
+            return ouvirAulas(escolaAtualId, (snapshot) => {
+                aulasFirebaseRaw = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                aulasCarregada = true;
+                talvezSincronizar();
+            });
+        }
+
+        function carregarControlador() {
+            return ouvirControlador(escolaAtualId, (docSnap) => {
+                const data = docSnap.exists() ? docSnap.data() : null;
+                controladorAtual = (data && Array.isArray(data.aulas)) ? data : { aulas: [], aulaAtualId: null };
+                controladorCarregada = true;
+                renderizarTudo();
+            });
+        }
+
+        // ---------- Inicialização ----------
+        requireAuth({
+            loginPath: '../../login.html',
+            onReady: (user) => {
+                nomeUsuario = (user.displayName || user.email || '').split(/[\s@]/)[0];
+            }
+        });
+
         document.addEventListener('pf-escola-ready', (evento) => {
             escolaAtualId = evento.detail.escolaId;
-            if (unsubConfiguracoes) unsubConfiguracoes();
+            gradeCarregada = turmasCarregada = aulasCarregada = controladorCarregada = false;
+            chaveSelecionada = null;
             if (unsubGrade) unsubGrade();
             if (unsubTurmas) unsubTurmas();
-            unsubConfiguracoes = carregarConfiguracoesFirebase();
-            unsubGrade = carregarGradeFirebase();
-            unsubTurmas = carregarTurmasFirebase();
+            if (unsubAulas) unsubAulas();
+            if (unsubControlador) unsubControlador();
+            unsubGrade = carregarGrade();
+            unsubTurmas = carregarTurmas();
+            unsubAulas = carregarAulas();
+            unsubControlador = carregarControlador();
         });
     </script>
 </body>

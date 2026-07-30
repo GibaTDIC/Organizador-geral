@@ -136,6 +136,8 @@
         .dash-badge--em-andamento { background: var(--pf-warning); color: var(--pf-gray-900); }
         .dash-badge--nao-iniciada { background: var(--pf-info); color: var(--pf-white); }
         .dash-badge--sem-planejamento { background: var(--pf-gray-300); color: var(--pf-gray-700); }
+        .dash-badge--cancelada { background: var(--pf-danger); color: var(--pf-white); }
+        .dash-badge--reposicao { background: var(--pf-info); color: var(--pf-white); }
 
         /* Próxima Aula */
         .dash-proxima-destaque {
@@ -506,6 +508,8 @@
         }
 
         // ---------- Regra de junção grade × controlador ----------
+        // "Cancelada" é neutra (decisão do usuário): não conta como pendente
+        // nem força um rótulo "Concluída" no fallback — mostra o status real.
         function derivarStatusTurma(turma, controlador) {
             const entradas = (controlador.aulas || []).filter(a => a.turma === turma);
             if (entradas.length === 0) {
@@ -516,14 +520,14 @@
                 if (atual) return { status: atual.status || 'Não iniciada', entrada: atual };
             }
             const pendentes = entradas
-                .filter(a => a.status !== 'Concluída')
+                .filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada')
                 .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
             if (pendentes.length > 0) {
                 return { status: pendentes[0].status || 'Não iniciada', entrada: pendentes[0] };
             }
             const maisRecente = entradas.slice()
                 .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''))[0];
-            return { status: 'Concluída', entrada: maisRecente };
+            return { status: maisRecente.status || 'Concluída', entrada: maisRecente };
         }
 
         function montarSlotsDoDia(diaChave) {
@@ -545,23 +549,24 @@
         }
 
         function calcularProximaAula() {
-            return montarRotinaHoje().find(item => item.status !== 'Concluída') || null;
+            return montarRotinaHoje().find(item => item.status !== 'Concluída' && item.status !== 'Cancelada') || null;
         }
 
         // ---------- Pendências — mesmo critério de data do Controlador ----------
+        // "Cancelada" é neutra: sai de atrasadas/próximas (não é mais algo a fazer).
         function calcularPendencias() {
             const hoje = new Date();
             const tresDias = new Date(hoje.getTime() + 3 * 24 * 60 * 60 * 1000);
             const aulas = controladorAtual.aulas || [];
 
             const atrasadas = aulas.filter(a => {
-                if (!a.prazo || a.status === 'Concluída') return false;
+                if (!a.prazo || a.status === 'Concluída' || a.status === 'Cancelada') return false;
                 const prazo = new Date(a.prazo + 'T12:00:00');
                 return prazo < hoje;
             }).sort((a, b) => a.prazo.localeCompare(b.prazo));
 
             const proximas = aulas.filter(a => {
-                if (!a.prazo || a.status === 'Concluída') return false;
+                if (!a.prazo || a.status === 'Concluída' || a.status === 'Cancelada') return false;
                 const prazo = new Date(a.prazo + 'T12:00:00');
                 return prazo > hoje && prazo <= tresDias;
             }).sort((a, b) => a.prazo.localeCompare(b.prazo));
@@ -609,8 +614,12 @@
                     DIA_CHAVES.forEach(dia => {
                         const valor = linha[dia];
                         if (!valor || SLOTS_ESPECIAIS.includes(valor)) return;
+                        const statusDerivado = derivarStatusTurma(valor, controladorAtual).status;
+                        // "Cancelada" é neutra: sai do cálculo por completo
+                        // (não penaliza o professor por algo fora do controle dele).
+                        if (statusDerivado === 'Cancelada') return;
                         total++;
-                        if (derivarStatusTurma(valor, controladorAtual).status === 'Concluída') concluidos++;
+                        if (statusDerivado === 'Concluída') concluidos++;
                     });
                 });
             });
@@ -637,6 +646,8 @@
                 case 'Concluída': return 'dash-badge--concluida';
                 case 'Em Andamento': return 'dash-badge--em-andamento';
                 case 'Sem planejamento': return 'dash-badge--sem-planejamento';
+                case 'Cancelada': return 'dash-badge--cancelada';
+                case 'Reposição': return 'dash-badge--reposicao';
                 default: return 'dash-badge--nao-iniciada';
             }
         }
@@ -654,7 +665,7 @@
                 return;
             }
             if ((gradeAtual.matutino || []).length === 0 && (gradeAtual.vespertino || []).length === 0) {
-                container.innerHTML = '<p class="dash-estado-vazio">Grade ainda não configurada. Configure na <a href="../programacao-diaria/index.html">Programação Diária</a>.</p>';
+                container.innerHTML = '<p class="dash-estado-vazio">Grade ainda não configurada. Configure em <a href="../configuracoes/index.html">Configurações</a>.</p>';
                 return;
             }
 

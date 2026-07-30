@@ -879,6 +879,8 @@
                     <option value="Concluída">Concluída</option>
                     <option value="Em Andamento">Em Andamento</option>
                     <option value="Não iniciada">Não iniciada</option>
+                    <option value="Cancelada">Cancelada</option>
+                    <option value="Reposição">Reposição</option>
                 </select>
                 <select class="filter-select" id="filterTurma">
                     <option value="">Todas as Turmas</option>
@@ -988,6 +990,8 @@
                         <option value="Não iniciada">📅 Não iniciada</option>
                         <option value="Em Andamento">⏳ Em Andamento</option>
                         <option value="Concluída">✅ Concluída</option>
+                        <option value="Cancelada">🚫 Cancelada</option>
+                        <option value="Reposição">🔁 Reposição</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1019,7 +1023,8 @@
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirAulas } from "../../scripts/services/aulas-service.js";
         import { ouvirTurmas } from "../../scripts/services/turmas-service.js";
-        import { lerControlador, salvarControlador } from "../../scripts/services/controlador-service.js";
+        import { salvarControlador } from "../../scripts/services/controlador-service.js";
+        import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
         // Estado da aplicação
         let escolaAtualId = null;
         let unsubAulas = null;
@@ -1030,7 +1035,12 @@
         let aulaSelecionada = null;
         let aulaAtualId = null;
         let statusAtual = 'todos';
-        let atualizandoControlador = false;
+        // A reconciliação em si (sincronizarControlador) só deve rodar depois
+        // que os DOIS listeners entregaram seu primeiro snapshot real — chamar
+        // antes disso (com aulasFirebase ainda no valor inicial []) apagaria
+        // entradas válidas do Controlador via o filtro de remoção.
+        let aulasCarregadas = false;
+        let turmasCarregadas = false;
 
         // Cache de descrições para acesso rápido
         const descricoesCache = new Map();
@@ -1039,64 +1049,6 @@
         // atualizada em tempo real a partir do Firestore (mesma fonte do
         // index.html), então turmas novas/removidas aparecem aqui também.
         let turmasAtuais = ["6º A","6º B","6º C","6º D","6º E","6º F","6º G","6º H","6º I","6º J"];
-
-        // Função para gerar ID único para cada aula/turma
-        function gerarIdUnico(tituloAula, turma, index) {
-            // Criar um slug do título (remover acentos, espaços, caracteres especiais)
-            const slug = tituloAula
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]/g, '-')
-                .replace(/-+/g, '-')
-                .replace(/^-|-$/g, '');
-            
-            const turmaSlug = turma.replace('º', '').toLowerCase();
-            return `aula-${slug}-${turmaSlug}-${index}`;
-        }
-
-        // Função para distribuir CADA aula para TODAS as turmas
-        function distribuirAulasParaTodasTurmas(aulasBase) {
-            const todasAulasDistribuidas = [];
-            
-            // Para cada aula base
-            aulasBase.forEach((aulaBase, indexAula) => {
-                // Criar uma entrada para CADA turma
-                turmasAtuais.forEach((turma) => {
-                    // Calcular data de início baseada no índice da aula (espaçada em dias)
-                    const dataInicio = new Date();
-                    dataInicio.setDate(dataInicio.getDate() + (indexAula * 3)); // Espaço de 3 dias entre aulas
-                    
-                    const prazo = new Date(dataInicio);
-                    prazo.setDate(prazo.getDate() + 7); // Prazo de 1 semana
-                    
-                    // Formatar datas como YYYY-MM-DD
-                    const dataInicioStr = dataInicio.toISOString().split('T')[0];
-                    const prazoStr = prazo.toISOString().split('T')[0];
-                    
-                    // Criar objeto da aula para esta turma específica
-                    todasAulasDistribuidas.push({
-                        id: gerarIdUnico(aulaBase.titulo, turma, indexAula),
-                        firebaseId: aulaBase.id || `aula-base-${indexAula}`,
-                        turma: turma,
-                        titulo: aulaBase.titulo,
-                        objetoConhecimento: aulaBase.objetoConhecimento,
-                        unidadeTematica: aulaBase.unidadeTematica || "Ginásticas",
-                        habilidade: aulaBase.habilidade || "EF67EF07",
-                        descricao: aulaBase.descricao,
-                        bimestre: aulaBase.bimestre || 1,
-                        status: "Não iniciada",
-                        numAulas: aulaBase.numAulas || 2,
-                        aulasExecutadas: 0,
-                        dataInicio: dataInicioStr,
-                        prazo: prazoStr
-                    });
-                });
-            });
-            
-            console.log(`Total de aulas distribuídas: ${todasAulasDistribuidas.length} (${aulasBase.length} aulas × ${turmasAtuais.length} turmas)`);
-            return todasAulasDistribuidas;
-        }
 
        // Carregar dados do Firebase
         // Carrega as aulas cadastradas no Planejamento (coleção 'aulas') em tempo real.
@@ -1118,7 +1070,8 @@
 
                 console.log('Aulas carregadas do Firestore:', aulasFirebase.length);
 
-                sincronizarControlador();
+                aulasCarregadas = true;
+                reconciliarESincronizar();
             });
         }
 
@@ -1130,258 +1083,32 @@
                 if (data && data.lista && data.lista.length) {
                     turmasAtuais = data.lista;
                 }
-                sincronizarControlador();
+                turmasCarregadas = true;
+                reconciliarESincronizar();
             });
         }
 
-        // Recalcula a lista do Controlador (uma entrada por aula x turma) e salva
-        // no Firestore só quando algo realmente muda. Usa leitura única (getDoc) em vez
-        // de abrir um novo listener a cada chamada, evitando acúmulo de assinaturas.
-        async function sincronizarControlador() {
-            if (atualizandoControlador) return;
-            if (aulasFirebase.length === 0 && turmasAtuais.length === 0) return;
+        // Chama a reconciliação compartilhada (controlador-sync.js) só depois
+        // que aulas E turmas já entregaram seu primeiro snapshot real, e
+        // aplica o resultado na tela local.
+        async function reconciliarESincronizar() {
+            if (!aulasCarregadas || !turmasCarregadas) return;
 
-            atualizandoControlador = true;
-            try {
-
-            const docSnap = await lerControlador(escolaAtualId);
-            const data = docSnap.exists() ? docSnap.data() : null;
-
-        let controladorBanco = data?.aulas || [];
-        let alterou = false;
-
-        aulasFirebase.forEach((aulaBase, indexAula) => {
-
-            turmasAtuais.forEach((turma) => {
-
-                const jaExiste = controladorBanco.find(a =>
-                    a.firebaseId === aulaBase.id && a.turma === turma
-                );
-
-                if (!jaExiste) {
-
-                    const dataInicio = new Date();
-                    dataInicio.setDate(dataInicio.getDate() + (indexAula * 3));
-
-                    const prazo = new Date(dataInicio);
-                    prazo.setDate(prazo.getDate() + 7);
-
-                    controladorBanco.push({
-                        id: gerarIdUnico(aulaBase.titulo, turma, indexAula),
-                        firebaseId: aulaBase.id,
-                        turma: turma,
-                        titulo: aulaBase.titulo,
-                        objetoConhecimento: aulaBase.objetoConhecimento,
-                        unidadeTematica: aulaBase.unidadeTematica || "Ginásticas",
-                        habilidade: aulaBase.habilidade || "EF67EF07",
-                        descricao: aulaBase.descricao,
-                        bimestre: aulaBase.bimestre || 1,
-                        status: "Não iniciada",
-                        numAulas: aulaBase.numAulas || 2,
-                        aulasExecutadas: 0,
-                        dataInicio: dataInicio.toISOString().split('T')[0],
-                        prazo: prazo.toISOString().split('T')[0]
-                    });
-
-                    alterou = true;
-                }
-
+            const resultado = await sincronizarControlador({
+                escolaId: escolaAtualId,
+                aulasFirebase,
+                turmasAtuais
             });
+            if (!resultado) return;
 
-        });
+            aulasControlador = resultado.aulas;
 
-        // Remover aulas excluídas
-        const tamanhoAntes = controladorBanco.length;
+            if (resultado.aulaAtualId) {
+                aulaAtualId = resultado.aulaAtualId;
+                aulaSelecionada = aulasControlador.find(a => a.id === aulaAtualId);
+            }
 
-        controladorBanco = controladorBanco.filter(aulaControlador =>
-            aulasFirebase.some(aulaFirebase =>
-                aulaFirebase.id === aulaControlador.firebaseId
-            )
-        );
-
-        if (controladorBanco.length !== tamanhoAntes) {
-            alterou = true;
-        }
-
-        if (alterou) {
-    await salvarControlador(escolaAtualId, {
-        aulas: controladorBanco,
-        aulaAtualId: data?.aulaAtualId || null,
-        ultimaAtualizacao: new Date().toISOString()
-    });
-}
-
-        aulasControlador = controladorBanco;
-
-        if (data && data.aulaAtualId) {
-            aulaAtualId = data.aulaAtualId;
-            aulaSelecionada = aulasControlador.find(a => a.id === aulaAtualId);
-        }
-
-        aulasFiltradas = [...aulasControlador];
-        atualizarInterface();
-        } finally {
-            atualizandoControlador = false;
-        }
-        }
-        // Inicializar dados padrão com descrições completas e distribuir para todas as turmas
-        function inicializarDadosPadrao() {
-            // Aulas base (cada uma será distribuída para todas as turmas)
-            const aulasBase = [
-                { 
-                    id: "aula-condicionamento",
-                    titulo: "O que é Condicionamento Físico? (Teórico-Prática)", 
-                    objetoConhecimento: "Conceitos básicos de condicionamento físico",
-                    unidadeTematica: "Ginásticas",
-                    habilidade: "EF67EF07",
-                    bimestre: 1,
-                    numAulas: 2,
-                    descricao: `**Objetivo da Aula:** Introduzir os conceitos fundamentais de condicionamento físico e sua importância para a saúde.
-
-**Conteúdo Programático:**
-1. Definição de condicionamento físico
-2. Componentes do condicionamento físico:
-   - Resistência cardiovascular
-   - Força muscular
-   - Flexibilidade
-   - Composição corporal
-3. Benefícios para a saúde
-4. Testes simples de avaliação
-
-**Atividades Práticas:**
-- Aquecimento: 10 minutos de alongamento
-- Circuito de 5 estações (3 minutos cada):
-  * Estação 1: Polichinelos
-  * Estação 2: Abdominais
-  * Estação 3: Agachamentos
-  * Estação 4: Prancha
-  * Estação 5: Corrida estacionária
-- Intervalo de 1 minuto entre estações
-- Volta à calma com alongamentos
-
-**Materiais Necessários:**
-- Cronômetro
-- Cones para demarcar estações
-- Colchonetes
-- Apito
-
-**Avaliação:**
-Observação da participação e execução dos movimentos. Autoavaliação dos alunos sobre seu condicionamento.`
-                },
-                { 
-                    id: "aula-resistencia",
-                    titulo: "As Capacidades Físicas - Resistência", 
-                    objetoConhecimento: "Resistência cardiovascular e teste de Léger",
-                    unidadeTematica: "Ginásticas",
-                    habilidade: "EF67EF08",
-                    bimestre: 1,
-                    numAulas: 2,
-                    descricao: `**Objetivo da Aula:** Compreender o conceito de resistência cardiovascular e realizar o teste de Léger para avaliação.
-
-**Conteúdo Programático:**
-1. O que é resistência cardiovascular
-2. Importância para a saúde
-3. Teste de Léger (vai-e-vem)
-4. Estratégias para melhorar a resistência
-
-**Atividades Práticas:**
-- Aquecimento: 5 minutos de corrida leve
-- Alongamento dinâmico
-- Teste de Léger (20 metros):
-  * Explicação do teste
-  * Demonstração
-  * Realização do teste em grupos
-- Registro dos resultados
-- Atividades de recuperação
-
-**Materiais Necessários:**
-- Cones para marcação
-- Apito
-- Cronômetro
-- Planilha para registro
-- Caixa de som (opcional)
-
-**Avaliação:**
-Registro da distância percorrida. Observação do esforço e da técnica de corrida.`
-                },
-                { 
-                    id: "aula-forca",
-                    titulo: "Ginástica de Condicionamento Físico - Força", 
-                    objetoConhecimento: "Diferença entre força e resistência, exercícios de força",
-                    unidadeTematica: "Ginásticas",
-                    habilidade: "EF67EF09",
-                    bimestre: 1,
-                    numAulas: 2,
-                    descricao: `**Objetivo da Aula:** Compreender a diferença entre força e resistência muscular, experimentando exercícios específicos para desenvolvimento de força.
-
-**Conteúdo Programático:**
-1. Conceitos de força e resistência muscular
-2. Diferenças entre os tipos de contração muscular
-3. Exercícios para desenvolvimento de força
-4. Cuidados e precauções
-
-**Atividades Práticas:**
-- Aquecimento: 10 minutos com exercícios dinâmicos
-- Circuito de força (4 exercícios, 3 séries cada):
-  * Flexões de braço (adaptadas se necessário)
-  * Agachamentos com peso corporal
-  * Prancha frontal
-  * Abdominais
-- 45 segundos de exercício / 15 segundos descanso
-- Alongamento final
-
-**Materiais Necessários:**
-- Colchonetes
-- Cronômetro
-- Música para motivação
-
-**Avaliação:**
-Observação da execução correta dos movimentos. Capacidade de manter a postura adequada durante os exercícios.`
-                },
-                { 
-                    id: "aula-flexibilidade",
-                    titulo: "Flexibilidade e Alongamento", 
-                    objetoConhecimento: "Conceitos de flexibilidade e técnicas de alongamento",
-                    unidadeTematica: "Ginásticas",
-                    habilidade: "EF67EF10",
-                    bimestre: 1,
-                    numAulas: 2,
-                    descricao: `**Objetivo da Aula:** Compreender a importância da flexibilidade e aprender técnicas de alongamento.
-
-**Conteúdo Programático:**
-1. O que é flexibilidade
-2. Benefícios do alongamento
-3. Tipos de alongamento (estático e dinâmico)
-4. Precauções e cuidados
-
-**Atividades Práticas:**
-- Aquecimento: 5 minutos de caminhada
-- Alongamento dinâmico (10 minutos)
-- Circuito de alongamento estático (8 posições):
-  * Alongamento de pernas
-  * Alongamento de costas
-  * Alongamento de braços
-  * Alongamento de pescoço
-- Relaxamento final
-- Autoavaliação da flexibilidade
-
-**Materiais Necessários:**
-- Colchonetes
-- Música relaxante
-
-**Avaliação:**
-Observação da execução correta dos alongamentos. Percepção corporal dos alunos.`
-                }
-            ];
-
-            // Distribuir CADA aula base para TODAS as turmas
-            aulasControlador = distribuirAulasParaTodasTurmas(aulasBase);
             aulasFiltradas = [...aulasControlador];
-            
-            console.log('Dados padrão inicializados:', aulasControlador.length, 'aulas (', aulasBase.length, 'aulas ×', turmasAtuais.length, 'turmas)');
-            
-            // Salvar no Firebase
-            salvarControladorNoFirebase();
             atualizarInterface();
         }
 
@@ -1632,7 +1359,9 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
             switch(status) {
                 case 'Concluída': return 'badge-success';
                 case 'Em Andamento': return 'badge-warning';
-                default: return 'badge-danger';
+                case 'Reposição': return 'badge-info';
+                case 'Cancelada': return 'badge-danger';
+                default: return 'badge-danger'; // Não iniciada
             }
         }
 
@@ -1648,17 +1377,19 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
             const hoje = new Date();
             const tresDias = new Date(hoje.getTime() + 3 * 24 * 60 * 60 * 1000);
             
+            // "Cancelada" é neutra: não conta como pendente/atrasada (não é
+            // mais algo a fazer), mas também não conta como concluída.
             const prazosProximos = aulasControlador.filter(a => {
-                if (!a.prazo || a.status === 'Concluída') return false;
+                if (!a.prazo || a.status === 'Concluída' || a.status === 'Cancelada') return false;
                 const prazo = new Date(a.prazo + 'T12:00:00');
                 return prazo > hoje && prazo <= tresDias;
             }).length;
             document.getElementById('prazosProximos').textContent = prazosProximos;
-            
+
             const aulasAtrasadas = aulasControlador.filter(a => {
-                if (!a.prazo || a.status === 'Concluída') return false;
+                if (!a.prazo || a.status === 'Concluída' || a.status === 'Cancelada') return false;
                 const prazo = new Date(a.prazo + 'T12:00:00');
-                return prazo < hoje && a.status !== 'Concluída';
+                return prazo < hoje;
             }).length;
             document.getElementById('aulasAtrasadas').textContent = aulasAtrasadas;
             
@@ -1730,14 +1461,20 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\n/g, '<br>')
                     .replace(/- /g, '• ');
-                
+
+                // aula.habilidades (array) é o campo real gravado pelo Planejamento;
+                // aula.habilidade (singular) só existe em entradas antigas, pré-fix.
+                const habilidadesTexto = Array.isArray(aula.habilidades) && aula.habilidades.length > 0
+                    ? aula.habilidades.map(h => h.codigo || h).join(', ')
+                    : (aula.habilidade || 'Não definida');
+
                 document.getElementById('modalTitulo').textContent = aula.titulo;
                 document.getElementById('modalBody').innerHTML = `
                     <div style="margin-bottom: 20px;">
                         <p><strong>Turma:</strong> ${aula.turma}</p>
                         <p><strong>Unidade Temática:</strong> ${aula.unidadeTematica || 'Ginásticas'}</p>
                         <p><strong>Objeto de Conhecimento:</strong> ${aula.objetoConhecimento || '-'}</p>
-                        <p><strong>Habilidade:</strong> ${aula.habilidade || 'EF67EF07'}</p>
+                        <p><strong>Habilidade(s):</strong> ${habilidadesTexto}</p>
                         <p><strong>Status:</strong> <span class="badge ${getStatusClass(aula.status)}">${aula.status || 'Não iniciada'}</span></p>
                         <p><strong>Nº de Aulas:</strong> ${aula.numAulas || 2}</p>
                         <p><strong>Aulas Executadas:</strong> ${aula.aulasExecutadas || 0}/${aula.numAulas || 2}</p>
@@ -1795,7 +1532,7 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
         };
 
         window.atualizarDados = function() {
-            sincronizarControlador();
+            reconciliarESincronizar();
             mostrarMensagem('Dados atualizados com sucesso!', 'success');
         };
 
@@ -1811,6 +1548,8 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
         // Ao trocar de escola, cancela os listeners antigos antes de abrir os novos.
         document.addEventListener('pf-escola-ready', (evento) => {
             escolaAtualId = evento.detail.escolaId;
+            aulasCarregadas = false;
+            turmasCarregadas = false;
             if (unsubAulas) unsubAulas();
             if (unsubTurmas) unsubTurmas();
             unsubAulas = carregarDadosFirebase();

@@ -10,5 +10,5 @@ export const MODULES = [
   { id: 'banco-atividades', label: 'Banco de Atividades', icon: '🗂️', path: '../banco-atividades/index.html', status: 'planned' },
   { id: 'ia', label: 'Inteligência Artificial', icon: '🤖', path: '../inteligencia-artificial/index.html', status: 'planned' },
   { id: 'relatorios', label: 'Relatórios', icon: '📊', path: '../relatorios/index.html', status: 'planned' },
-  { id: 'configuracoes', label: 'Configurações', icon: '⚙️', path: '../configuracoes/index.html', status: 'planned' },
+  { id: 'configuracoes', label: 'Configurações', icon: '⚙️', path: '../configuracoes/index.html', status: 'active' },
 ];
