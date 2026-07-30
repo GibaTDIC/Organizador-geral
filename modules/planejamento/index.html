@@ -330,7 +330,7 @@
         // Comparação normalizada (minúsculo/trim) porque as strings salvas em
         // Configurações não têm exatamente a mesma capitalização do dataset
         // canônico em data/bncc-curriculum.js.
-        function especificacoesSugeridasBimestre(unidade) {
+        function especificacoesSugeridasBimestre(turma, unidade) {
             const bimestreSelect = document.getElementById('plAulaBimestre');
             const numeroBimestre = bimestreSelect ? parseInt(bimestreSelect.value, 10) : null;
             if (!numeroBimestre) return [];
@@ -338,7 +338,7 @@
             const configuradas = (cfg && cfg.unidades) || [];
             if (configuradas.length === 0) return [];
             const configuradasNorm = configuradas.map(normalizarTexto);
-            const especificacoes = especificacoesPorUnidade[unidade] || [];
+            const especificacoes = (especificacoesPorUnidade[turma] || {})[unidade] || [];
             return especificacoes.filter(e => configuradasNorm.includes(normalizarTexto(e)));
         }
 
@@ -387,7 +387,7 @@
             // configuradas pra este bimestre pertence a ela.
             const numeroBimestre = bimestreSelect ? parseInt(bimestreSelect.value, 10) : null;
             const sugeridas = numeroBimestre
-                ? unidadesDoAno.filter(u => especificacoesSugeridasBimestre(u).length > 0)
+                ? unidadesDoAno.filter(u => especificacoesSugeridasBimestre(turmaSelecionada, u).length > 0)
                 : [];
             const restantes = unidadesDoAno.filter(u => !sugeridas.includes(u));
 
@@ -455,11 +455,11 @@
                 return;
             }
 
-            const especificacoes = especificacoesPorUnidade[unidadeSelecionada] || [];
+            const especificacoes = (especificacoesPorUnidade[turmaSelect.value] || {})[unidadeSelecionada] || [];
             if (especificacoes.length > 0) {
                 especificacaoGroup.classList.remove('hidden');
 
-                const sugeridas = especificacoesSugeridasBimestre(unidadeSelecionada);
+                const sugeridas = especificacoesSugeridasBimestre(turmaSelect.value, unidadeSelecionada);
                 const restantes = especificacoes.filter(e => !sugeridas.includes(e));
 
                 function adicionarOpcao(destino, espec) {
