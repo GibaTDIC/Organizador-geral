@@ -11,396 +11,167 @@
     <link rel="stylesheet" href="../../styles/base.css">
     <link rel="stylesheet" href="../../styles/layout.css">
     <link rel="stylesheet" href="../../styles/components/alert.css">
+    <link rel="stylesheet" href="../../styles/components/card.css">
+    <link rel="stylesheet" href="../../styles/components/button.css">
+    <link rel="stylesheet" href="../../styles/components/filter.css">
+    <link rel="stylesheet" href="../../styles/components/form.css">
+    <link rel="stylesheet" href="../../styles/components/search-field.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        body { background: var(--pf-gray-100); }
+
+        .pl-barra {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--pf-space-3);
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--pf-space-4);
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+        .pl-barra-campos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--pf-space-2);
+            align-items: center;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-
-        header {
-            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        
-        .content {
-            padding: 30px;
-        }
-
-        .form-section {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .form-section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            border-bottom: 3px solid #4a90e2;
-            padding-bottom: 10px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+        .pl-barra-campos input[type="number"] {
+            width: 90px;
+            padding: var(--pf-space-2) var(--pf-space-3);
+            border: 2px solid var(--pf-gray-300);
+            border-radius: var(--pf-radius-md);
             font-size: 14px;
-            transition: border-color 0.3s;
         }
 
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #4a90e2;
-        }
-
-        .form-group textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .btn {
-            background: #4a90e2;
-            color: white;
-            padding: 14px 28px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
-        }
-
-        .btn:hover {
-            background: #357abd;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .search-section {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .search-box input {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-
-        .filters {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .filter-select {
-            flex: 1;
-            min-width: 200px;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-        }
-
-        .aulas-grid {
+        .pl-layout {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: 260px 1fr 300px;
+            gap: var(--pf-space-4);
+            align-items: start;
         }
 
-        .aula-card {
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 20px;
-            transition: transform 0.3s, box-shadow 0.3s;
-            position: relative;
+        @media (max-width: 1100px) {
+            .pl-layout { grid-template-columns: 220px 1fr; }
+            .pl-painel-auxiliar { grid-column: 1 / -1; }
         }
 
-        .aula-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        @media (max-width: 700px) {
+            .pl-layout { grid-template-columns: 1fr; }
+            .pl-painel-auxiliar { grid-column: auto; }
         }
 
-        .aula-card h3 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 1.2em;
+        /* Árvore lateral */
+        .pl-arvore-nivel {
+            margin-bottom: var(--pf-space-1);
         }
 
-        .aula-meta {
+        .pl-arvore-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--pf-space-2);
+            padding: var(--pf-space-2) var(--pf-space-2);
+            border-radius: var(--pf-radius-md);
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--pf-gray-700);
+        }
+
+        .pl-arvore-item:hover { background: var(--pf-gray-100); }
+        .pl-arvore-item--selecionado { background: var(--pf-blue-700); color: var(--pf-white); font-weight: 600; }
+        .pl-arvore-item--vazio { color: var(--pf-gray-500); font-style: italic; }
+
+        .pl-arvore-anual { font-weight: 700; }
+        .pl-arvore-bimestre { padding-left: var(--pf-space-2); font-weight: 600; }
+        .pl-arvore-mes { padding-left: var(--pf-space-4); }
+        .pl-arvore-aula { padding-left: var(--pf-space-6); font-size: 0.8rem; }
+
+        .pl-badge-count {
+            font-size: 0.68rem;
+            background: var(--pf-gray-200);
+            color: var(--pf-gray-700);
+            padding: 1px 6px;
+            border-radius: var(--pf-radius-lg);
+        }
+        .pl-arvore-item--selecionado .pl-badge-count { background: rgba(255,255,255,0.25); color: var(--pf-white); }
+
+        /* Área principal */
+        .pl-area-principal h2 {
+            font-size: 1.1rem;
+            color: var(--pf-gray-900);
+            margin-bottom: var(--pf-space-2);
+        }
+
+        .pl-indicador {
+            font-size: 0.78rem;
+            color: var(--pf-gray-500);
+            background: var(--pf-gray-100);
+            padding: var(--pf-space-2) var(--pf-space-3);
+            border-radius: var(--pf-radius-md);
+            margin-bottom: var(--pf-space-3);
+            display: inline-block;
+        }
+
+        .pl-acoes {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
+            gap: var(--pf-space-2);
+            margin-top: var(--pf-space-3);
         }
 
-        .badge {
-            background: #e9ecef;
-            color: #495057;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        .badge-primary {
-            background: #4a90e2;
-            color: white;
-        }
-
-        .badge-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .badge-warning {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .badge-info {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .badge-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .habilidades-list {
-            margin: 10px 0;
-            max-height: 150px;
-            overflow-y: auto;
-            padding: 5px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-
-        .habilidade-item {
-            font-size: 0.85em;
-            padding: 3px 5px;
-            margin: 2px 0;
-            background: white;
-            border-radius: 3px;
-            border-left: 3px solid #4a90e2;
-        }
-
-        .aula-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-
-        .btn-small {
-            padding: 8px 12px;
-            font-size: 13px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-            flex: 1;
-        }
-
-        .btn-edit {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .btn-delete {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-view {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .loading {
+        .pl-estado-vazio {
+            color: var(--pf-gray-500);
+            font-size: 0.9rem;
+            padding: var(--pf-space-4);
             text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border: 1px solid #f5c6cb;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border: 1px solid #c3e6cb;
-        }
-
-        .info-message {
-            background: #d1ecf1;
-            color: #0c5460;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border: 1px solid #bee5eb;
-            font-size: 0.9em;
         }
 
         .habilidades-container {
-            max-height: 250px;
+            max-height: 220px;
             overflow-y: auto;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            background: white;
+            border: 2px solid var(--pf-gray-300);
+            border-radius: var(--pf-radius-md);
+            padding: var(--pf-space-2);
+            background: var(--pf-white);
         }
 
-        .habilidade-checkbox {
-            display: block;
-            margin: 8px 0;
-            padding: 5px;
-            border-bottom: 1px solid #eee;
+        .habilidade-checkbox { display: block; margin: var(--pf-space-1) 0; padding: 4px; border-bottom: 1px solid var(--pf-gray-200); }
+        .habilidade-checkbox:last-child { border-bottom: none; }
+        .habilidade-checkbox label { display: flex; align-items: flex-start; gap: var(--pf-space-2); cursor: pointer; font-weight: normal; }
+        .habilidade-checkbox input[type="checkbox"] { width: auto; margin-top: 3px; flex-shrink: 0; }
+        .habilidade-descricao { font-size: 0.82rem; color: var(--pf-gray-500); }
+
+        .pl-unidade-checkbox { display: inline-flex; align-items: center; gap: 4px; margin: 2px 6px 2px 0; font-size: 0.82rem; }
+
+        .especificacao-group.hidden { display: none; }
+
+        /* Painel auxiliar */
+        .pl-painel-auxiliar h3 {
+            font-size: 0.85rem;
+            color: var(--pf-blue-700);
+            margin-bottom: var(--pf-space-2);
         }
 
-        .habilidade-checkbox:last-child {
-            border-bottom: none;
-        }
+        .pl-painel-secao { margin-bottom: var(--pf-space-4); }
 
-        .habilidade-checkbox label {
+        .pl-historico-item {
+            font-size: 0.78rem;
+            color: var(--pf-gray-700);
+            background: var(--pf-gray-100);
+            border-radius: var(--pf-radius-md);
+            padding: var(--pf-space-2);
+            margin-bottom: var(--pf-space-2);
             display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            cursor: pointer;
-            font-weight: normal;
-            color: #333;
-        }
-
-        .habilidade-checkbox input[type="checkbox"] {
-            width: auto;
-            margin-top: 3px;
-            flex-shrink: 0;
-        }
-
-        .habilidade-descricao {
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .numero-aulas {
-            display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 15px;
+            gap: var(--pf-space-2);
         }
 
-        .numero-aulas input[type="number"] {
-            width: 80px;
-            text-align: center;
-        }
-
-        .numero-aulas span {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .especificacao-group {
-            transition: all 0.3s ease;
-        }
-
-        .especificacao-group.hidden {
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            header h1 {
-                font-size: 1.8em;
+        @media print {
+            pf-header, pf-sidebar, .pl-barra, .pl-layout > :not(.pl-area-principal) {
+                display: none !important;
             }
-            
-            .content {
-                padding: 15px;
-            }
-            
-            .aulas-grid {
-                grid-template-columns: 1fr;
-            }
+            .pl-layout { grid-template-columns: 1fr !important; }
         }
     </style>
 </head>
@@ -409,460 +180,928 @@
         <pf-header></pf-header>
         <pf-sidebar active="planejamento"></pf-sidebar>
         <div class="pf-app-main">
-    <div class="container">
-        <header>
-            <h1>📚 Programa de Aulas - Educação Física</h1>
-            <p>Sistema de planejamento baseado na BNCC para Educação Física - Ensino Fundamental</p>
-        </header>
+            <div class="container">
 
-        <div class="content">
-            <!-- Seção de Adição de Aulas -->
-            <div class="form-section">
-                <h2>➕ Adicionar Nova Aula</h2>
-                <form id="aulaForm">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="titulo">Título da Aula *</label>
-                            <input type="text" id="titulo" required placeholder="Ex: Jogos e Brincadeiras Populares">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="turma">Turma *</label>
-                            <select id="turma" required onchange="atualizarUnidadesTematicas()">
-                                <option value="">Selecione a turma</option>
-                                <option value="1º Ano">1º Ano - Ensino Fundamental (Anos Iniciais)</option>
-                                <option value="2º Ano">2º Ano - Ensino Fundamental (Anos Iniciais)</option>
-                                <option value="3º Ano">3º Ano - Ensino Fundamental (Anos Iniciais)</option>
-                                <option value="4º Ano">4º Ano - Ensino Fundamental (Anos Iniciais)</option>
-                                <option value="5º Ano">5º Ano - Ensino Fundamental (Anos Iniciais)</option>
-                                <option value="6º Ano">6º Ano - Ensino Fundamental (Anos Finais)</option>
-                                <option value="7º Ano">7º Ano - Ensino Fundamental (Anos Finais)</option>
-                                <option value="8º Ano">8º Ano - Ensino Fundamental (Anos Finais)</option>
-                                <option value="9º Ano">9º Ano - Ensino Fundamental (Anos Finais)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="unidadeTematica">Unidade Temática (BNCC) *</label>
-                            <select id="unidadeTematica" required onchange="atualizarEspecificacoes()">
-                                <option value="">Selecione a turma primeiro</option>
-                            </select>
-                        </div>
-
-                        <!-- NOVO CAMPO: Especificação da Unidade Temática -->
-                        <div class="form-group especificacao-group hidden" id="especificacaoGroup">
-                            <label for="especificacao">Especificação *</label>
-                            <select id="especificacao" onchange="atualizarHabilidades()">
-                                <option value="">Selecione a especificação</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="objetoConhecimento">Objeto de Conhecimento *</label>
-                            <input type="text" id="objetoConhecimento" required placeholder="Ex: Jogos populares do Brasil e do mundo">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Quantidade de Aulas *</label>
-                            <div class="numero-aulas">
-                                <input type="number" id="numeroAulas" min="1" max="10" value="1" required>
-                                <span>(1 a 10 aulas)</span>
-                            </div>
-                        </div>
+                <div class="pf-card pl-barra">
+                    <div class="pl-barra-campos">
+                        <label style="font-size:0.8rem;color:var(--pf-gray-700);">Ano letivo</label>
+                        <input type="number" id="plAnoLetivo" min="2020" max="2099">
+                        <select class="pf-filter-select" id="plTurma"></select>
                     </div>
-
-                    <div class="form-group">
-                        <label>Habilidades da BNCC * (selecione uma ou mais)</label>
-                        <div id="habilidadesContainer" class="habilidades-container">
-                            <p style="color: #666; text-align: center;">Selecione a turma, unidade temática e especificação primeiro</p>
+                    <div class="pl-barra-campos">
+                        <div class="pf-search-field">
+                            <input type="text" id="plBusca" placeholder="Buscar aula por título ou conteúdo...">
                         </div>
+                        <button class="pf-btn pf-btn--info" onclick="imprimirSelecionado()">🖨️ Imprimir</button>
                     </div>
-
-                    <div class="form-group">
-                        <label for="descricao">Descrição da Aula / Atividades *</label>
-                        <textarea id="descricao" required placeholder="Descreva os objetivos, atividades e metodologia da aula..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="recursos">Recursos Didáticos Previstos (opcional)</label>
-                        <textarea id="recursos" placeholder="Ex: cones, colchonetes, apito, cronômetro..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn">📅 Salvar Aula</button>
-                </form>
-            </div>
-
-            <!-- Seção de Busca e Filtros -->
-            <div class="search-section">
-                <h2>🔍 Buscar Aulas</h2>
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Pesquisar por título, descrição ou objeto de conhecimento...">
-                    <button class="btn btn-secondary" id="searchBtn">Buscar</button>
                 </div>
-                
-                <div class="filters">
-                    <select class="filter-select" id="filterTurma">
-                        <option value="">Todas as Turmas</option>
-                        <option value="1º Ano">1º Ano</option>
-                        <option value="2º Ano">2º Ano</option>
-                        <option value="3º Ano">3º Ano</option>
-                        <option value="4º Ano">4º Ano</option>
-                        <option value="5º Ano">5º Ano</option>
-                        <option value="6º Ano">6º Ano</option>
-                        <option value="7º Ano">7º Ano</option>
-                        <option value="8º Ano">8º Ano</option>
-                        <option value="9º Ano">9º Ano</option>
-                    </select>
-                    
-                    <select class="filter-select" id="filterUnidade">
-                        <option value="">Todas as Unidades</option>
-                    </select>
 
-                    <!-- NOVO FILTRO: Especificação -->
-                    <select class="filter-select" id="filterEspecificacao">
-                        <option value="">Todas as Especificações</option>
-                    </select>
+                <div class="pl-layout">
+                    <aside class="pf-card" id="plArvoreCard">
+                        <h3 style="font-size:0.85rem;color:var(--pf-blue-700);margin-bottom:var(--pf-space-2);">🌳 Planejamento</h3>
+                        <button class="pf-btn pf-btn--success" style="width:100%;margin-bottom:var(--pf-space-3);font-size:0.8rem;" onclick="novaAulaAvulsa()">➕ Nova Aula</button>
+                        <div id="plArvore"><p class="pl-estado-vazio">Carregando…</p></div>
+                    </aside>
+
+                    <main class="pf-card pl-area-principal" id="plAreaPrincipal">
+                        <p class="pl-estado-vazio">Selecione um item na árvore ao lado.</p>
+                    </main>
+
+                    <aside class="pf-card pl-painel-auxiliar" id="plPainelAuxiliar">
+                        <p class="pl-estado-vazio">Nada selecionado ainda.</p>
+                    </aside>
                 </div>
-            </div>
 
-            <!-- Lista de Aulas -->
-            <h2>📋 Aulas Planejadas</h2>
-            <div id="aulasList" class="aulas-grid">
-                <!-- As aulas serão carregadas aqui via JavaScript -->
             </div>
         </div>
     </div>
-        </div>
-    </div>
 
-    <!-- Firebase SDK -->
     <script type="module">
-        // Importar Firebase
         import "../../scripts/layout/page-shell.js";
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
-        import { ouvirAulas, criarAula, atualizarAula, excluirAula as excluirAulaService } from "../../scripts/services/aulas-service.js";
+        import { ouvirAulas, criarAula, excluirAula as excluirAulaService } from "../../scripts/services/aulas-service.js";
+        import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
+        import { db } from "../../scripts/firebase-config.js";
+        import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { salvarComHistorico, ouvirHistorico, restaurarVersao } from "../../scripts/services/historico-service.js";
+        import {
+            ouvirPlanejamentosAnuais, criarPlanejamentoAnual, atualizarPlanejamentoAnual,
+            excluirPlanejamentoAnual, duplicarPlanejamentoAnual
+        } from "../../scripts/services/planejamento-anual-service.js";
+        import {
+            ouvirPlanejamentosBimestrais, criarPlanejamentoBimestral, atualizarPlanejamentoBimestral,
+            excluirPlanejamentoBimestral, duplicarPlanejamentoBimestral
+        } from "../../scripts/services/planejamento-bimestral-service.js";
+        import {
+            ouvirPlanejamentosMensais, criarPlanejamentoMensal, atualizarPlanejamentoMensal,
+            excluirPlanejamentoMensal, duplicarPlanejamentoMensal
+        } from "../../scripts/services/planejamento-mensal-service.js";
 
+        // ---------- Estado ----------
         let escolaAtualId = null;
-        let unsubAulas = null;
+        let unsubAulas = null, unsubConfiguracoes = null, unsubAnuais = null, unsubBimestrais = null, unsubMensais = null;
+        let unsubHistoricoAtual = null;
 
-        // Elementos DOM
-        const form = document.getElementById('aulaForm');
-        const aulasList = document.getElementById('aulasList');
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchBtn');
-        const filterTurma = document.getElementById('filterTurma');
-        const filterUnidade = document.getElementById('filterUnidade');
-        const filterEspecificacao = document.getElementById('filterEspecificacao');
-        const turmaSelect = document.getElementById('turma');
-        const unidadeTematicaSelect = document.getElementById('unidadeTematica');
-        const especificacaoSelect = document.getElementById('especificacao');
-        const especificacaoGroup = document.getElementById('especificacaoGroup');
-        const habilidadesContainer = document.getElementById('habilidadesContainer');
-        const numeroAulasInput = document.getElementById('numeroAulas');
+        let aulasTodas = [];
+        let bimestresConfig = [];
+        let planejamentosAnuais = [];
+        let planejamentosBimestrais = [];
+        let planejamentosMensais = [];
+        let historicoAtual = [];
 
-        // Estado da aplicação
-        let todasAulas = [];
-        let aulaEditando = null;
+        let turmaAtual = '6º Ano';
+        let anoLetivoAtual = new Date().getFullYear();
+        let termoBusca = '';
 
-        // Função para atualizar unidades temáticas com base na turma selecionada
-        window.atualizarUnidadesTematicas = function() {
+        // { nivel: 'anual'|'bimestral'|'mensal'|'aula', id: string } — id pode
+        // começar com "novo:" pra representar um nó ainda não criado no Firestore.
+        let selecionado = null;
+        let aulaEditando = null; // id da aula sendo editada, null = criando nova
+
+        const TURMAS_DISPONIVEIS = ["1º Ano","2º Ano","3º Ano","4º Ano","5º Ano","6º Ano","7º Ano","8º Ano","9º Ano"];
+        const NOMES_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+        // ---------- Helpers de data (mesmo padrão de configuracoes/index.html) ----------
+        function stringParaData(dataStr) {
+            const [dia, mes, ano] = dataStr.split('/').map(Number);
+            return new Date(ano, mes - 1, dia);
+        }
+
+        // Bimestres não se alinham com fronteiras de mês-calendário (um pode
+        // terminar dia 16 e o próximo só começar dia 22) — isso só lista quais
+        // meses-calendário têm ALGUMA sobreposição com o intervalo, não deriva
+        // bimestre a partir de mês nem vice-versa.
+        function mesesDoIntervalo(inicioStr, fimStr) {
+            const inicio = stringParaData(inicioStr);
+            const fim = stringParaData(fimStr);
+            const meses = [];
+            let cursor = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+            while (cursor <= fim) {
+                meses.push({ ano: cursor.getFullYear(), mes: cursor.getMonth() + 1 });
+                cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+            }
+            return meses;
+        }
+
+        function rotuloBimestre(numero) {
+            const cfg = bimestresConfig.find(b => b.numero === numero);
+            if (!cfg) return `${numero}º Bimestre`;
+            return `${numero}º Bimestre (${cfg.inicio.slice(0, 5)} a ${cfg.fim.slice(0, 5)})`;
+        }
+
+        function mostrarMensagem(texto, tipo) {
+            showToast(texto, tipo);
+        }
+
+        // ---------- Cascata BNCC (turma → unidade → especificação → habilidades) ----------
+        // Mesma lógica que já existia no Planejamento plano, só redirecionada
+        // pros elementos do formulário de aula dentro da área principal.
+        window.atualizarUnidadesTematicas = function () {
+            const turmaSelect = document.getElementById('turma');
+            const unidadeTematicaSelect = document.getElementById('unidadeTematica');
+            const especificacaoGroup = document.getElementById('especificacaoGroup');
+            const especificacaoSelect = document.getElementById('especificacao');
+            const habilidadesContainer = document.getElementById('habilidadesContainer');
+            if (!turmaSelect) return;
+
             const turmaSelecionada = turmaSelect.value;
-            
-            // Limpar selects
             unidadeTematicaSelect.innerHTML = '';
-            filterUnidade.innerHTML = '<option value="">Todas as Unidades</option>';
-            filterEspecificacao.innerHTML = '<option value="">Todas as Especificações</option>';
-            
-            // Esconder campo de especificação
             especificacaoGroup.classList.add('hidden');
             especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
-            
+
             if (!turmaSelecionada) {
                 unidadeTematicaSelect.innerHTML = '<option value="">Selecione a turma primeiro</option>';
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione a turma, unidade temática e especificação primeiro</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a turma, unidade temática e especificação primeiro</p>';
                 return;
             }
-            
-            // Obter unidades temáticas para o ano selecionado
+
             const unidades = unidadesPorAno[turmaSelecionada] || [];
-            
             if (unidades.length === 0) {
                 unidadeTematicaSelect.innerHTML = '<option value="">Nenhuma unidade encontrada</option>';
                 return;
             }
-            
-            // Adicionar opção padrão
+
             const optionDefault = document.createElement('option');
             optionDefault.value = '';
             optionDefault.textContent = 'Selecione a unidade temática';
             unidadeTematicaSelect.appendChild(optionDefault);
-            
-            // Adicionar unidades temáticas
+
             unidades.forEach(unidade => {
                 const option = document.createElement('option');
                 option.value = unidade;
                 option.textContent = unidade;
                 unidadeTematicaSelect.appendChild(option);
-                
-                // Adicionar ao filtro também
-                const filterOption = document.createElement('option');
-                filterOption.value = unidade;
-                filterOption.textContent = unidade;
-                filterUnidade.appendChild(filterOption);
             });
-            
-            // Limpar habilidades
-            habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione uma unidade temática</p>';
+
+            habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma unidade temática</p>';
         };
 
-        // NOVA FUNÇÃO: Atualizar especificações com base na unidade temática
-        window.atualizarEspecificacoes = function() {
+        window.atualizarEspecificacoes = function () {
+            const turmaSelect = document.getElementById('turma');
+            const unidadeTematicaSelect = document.getElementById('unidadeTematica');
+            const especificacaoGroup = document.getElementById('especificacaoGroup');
+            const especificacaoSelect = document.getElementById('especificacao');
+            const habilidadesContainer = document.getElementById('habilidadesContainer');
+
             const unidadeSelecionada = unidadeTematicaSelect.value;
-            
-            // Limpar select de especificação
             especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
-            
+
             if (!unidadeSelecionada) {
                 especificacaoGroup.classList.add('hidden');
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione uma unidade temática</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma unidade temática</p>';
                 return;
             }
-            
-            // Obter especificações para a unidade selecionada
+
             const especificacoes = especificacoesPorUnidade[unidadeSelecionada] || [];
-            
             if (especificacoes.length > 0) {
-                // Mostrar campo de especificação
                 especificacaoGroup.classList.remove('hidden');
-                
-                // Adicionar especificações
                 especificacoes.forEach(espec => {
                     const option = document.createElement('option');
                     option.value = espec;
                     option.textContent = espec;
                     especificacaoSelect.appendChild(option);
                 });
-                
-                // Atualizar filtro de especificação
-                filterEspecificacao.innerHTML = '<option value="">Todas as Especificações</option>';
-                especificacoes.forEach(espec => {
-                    const option = document.createElement('option');
-                    option.value = espec;
-                    option.textContent = espec;
-                    filterEspecificacao.appendChild(option);
-                });
-                
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione uma especificação</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
             } else {
-                // Se não há especificações, esconder o campo
                 especificacaoGroup.classList.add('hidden');
-                filterEspecificacao.innerHTML = '<option value="">Todas as Especificações</option>';
-                
-                // Buscar habilidades diretamente da unidade temática (sem especificação)
                 const turmaSelecionada = turmaSelect.value;
                 const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
-                
                 if (habilidadesTurma && habilidadesTurma[unidadeSelecionada]) {
-                    // Se a unidade temática tem habilidades diretas (sem especificação)
                     const habilidades = [];
                     Object.values(habilidadesTurma[unidadeSelecionada]).forEach(especHabilidades => {
                         habilidades.push(...especHabilidades);
                     });
-                    
                     exibirHabilidades(habilidades);
                 }
             }
         };
 
-        // Função para atualizar habilidades com base na turma, unidade e especificação
-        window.atualizarHabilidades = function() {
+        window.atualizarHabilidades = function () {
+            const turmaSelect = document.getElementById('turma');
+            const unidadeTematicaSelect = document.getElementById('unidadeTematica');
+            const especificacaoSelect = document.getElementById('especificacao');
+            const especificacaoGroup = document.getElementById('especificacaoGroup');
+            const habilidadesContainer = document.getElementById('habilidadesContainer');
+
             const turmaSelecionada = turmaSelect.value;
             const unidadeSelecionada = unidadeTematicaSelect.value;
             const especificacaoSelecionada = especificacaoSelect.value;
-            
+
             if (!turmaSelecionada || !unidadeSelecionada) {
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione a turma e unidade temática primeiro</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a turma e unidade temática primeiro</p>';
                 return;
             }
-            
-            // Se tem especificação, mas não foi selecionada
             if (especificacaoGroup.classList.contains('hidden') === false && !especificacaoSelecionada) {
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione uma especificação</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
                 return;
             }
-            
-            // Buscar habilidades
+
             const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
             if (!habilidadesTurma) {
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Nenhuma habilidade encontrada para esta turma</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade encontrada para esta turma</p>';
                 return;
             }
-            
             const habilidadesUnidade = habilidadesTurma[unidadeSelecionada];
             if (!habilidadesUnidade) {
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Nenhuma habilidade encontrada para esta unidade</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade encontrada para esta unidade</p>';
                 return;
             }
-            
+
             let habilidades = [];
-            
             if (especificacaoSelecionada) {
-                // Buscar habilidades da especificação selecionada
                 habilidades = habilidadesUnidade[especificacaoSelecionada] || [];
             } else {
-                // Se não há especificação, pegar todas as habilidades da unidade
                 Object.values(habilidadesUnidade).forEach(especHabilidades => {
                     habilidades.push(...especHabilidades);
                 });
             }
-            
             exibirHabilidades(habilidades);
         };
 
-        // Função auxiliar para exibir habilidades
-        function exibirHabilidades(habilidades) {
+        function exibirHabilidades(habilidades, selecionadas) {
+            const habilidadesContainer = document.getElementById('habilidadesContainer');
             if (habilidades.length === 0) {
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Nenhuma habilidade disponível para esta combinação</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade disponível para esta combinação</p>';
                 return;
             }
-            
-            // Remover duplicatas (mesmo código)
             const habilidadesUnicas = [];
             const codigosVistos = new Set();
-            
-            habilidades.forEach(habilidade => {
-                if (!codigosVistos.has(habilidade.codigo)) {
-                    codigosVistos.add(habilidade.codigo);
-                    habilidadesUnicas.push(habilidade);
+            habilidades.forEach(h => {
+                if (!codigosVistos.has(h.codigo)) {
+                    codigosVistos.add(h.codigo);
+                    habilidadesUnicas.push(h);
                 }
             });
-            
-            // Criar checkboxes para cada habilidade
-            let html = '<div style="margin-bottom: 10px;"><strong>Selecione as habilidades trabalhadas:</strong></div>';
-            
-            habilidadesUnicas.forEach(habilidade => {
+            const codigosSelecionados = new Set((selecionadas || habilidadesPreSelecionadas || []).map(h => h.codigo || h));
+
+            let html = '<div style="margin-bottom:10px;"><strong>Selecione as habilidades trabalhadas:</strong></div>';
+            habilidadesUnicas.forEach(h => {
                 html += `
                     <div class="habilidade-checkbox">
                         <label>
-                            <input type="checkbox" name="habilidades" value="${habilidade.codigo}" data-descricao="${habilidade.descricao.replace(/"/g, '&quot;')}">
+                            <input type="checkbox" name="habilidades" value="${h.codigo}" data-descricao="${h.descricao.replace(/"/g, '&quot;')}" ${codigosSelecionados.has(h.codigo) ? 'checked' : ''}>
                             <div>
-                                <strong>${habilidade.codigo}</strong><br>
-                                <span class="habilidade-descricao">${habilidade.descricao}</span>
+                                <strong>${h.codigo}</strong><br>
+                                <span class="habilidade-descricao">${h.descricao}</span>
                             </div>
                         </label>
                     </div>
                 `;
             });
-            
             habilidadesContainer.innerHTML = html;
         }
 
-        // Função para obter habilidades selecionadas
         function getHabilidadesSelecionadas() {
             const checkboxes = document.querySelectorAll('input[name="habilidades"]:checked');
-            return Array.from(checkboxes).map(cb => ({
-                codigo: cb.value,
-                descricao: cb.getAttribute('data-descricao')
-            }));
+            return Array.from(checkboxes).map(cb => ({ codigo: cb.value, descricao: cb.getAttribute('data-descricao') }));
         }
 
-        // Carregar aulas do Firebase
-       function carregarAulas() {
-    return ouvirAulas(escolaAtualId, (snapshot) => {
-
-        if (!snapshot.empty) {
-
-            todasAulas = snapshot.docs.map(docSnap => ({
-                id: docSnap.id,
-                ...docSnap.data()
-            }));
-
-            aplicarFiltros();
-
-        } else {
-            todasAulas = [];
-            aulasList.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">Nenhuma aula cadastrada ainda.</p>';
+        // ---------- Carregamento Firestore ----------
+        function carregarAulas() {
+            return ouvirAulas(escolaAtualId, (snapshot) => {
+                aulasTodas = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                renderizarTudo();
+            });
         }
 
-    });
-}
-        // Aplicar filtros e busca
-        function aplicarFiltros() {
-            const termoBusca = searchInput.value.toLowerCase();
-            const turmaFiltro = filterTurma.value;
-            const unidadeFiltro = filterUnidade.value;
-            const especificacaoFiltro = filterEspecificacao.value;
+        function carregarConfiguracoes() {
+            return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                bimestresConfig = (data && data.bimestres) ? data.bimestres : [];
+                renderizarTudo();
+            });
+        }
 
-            let aulasFiltradas = todasAulas.filter(aula => {
-                const matchesBusca = termoBusca === '' || 
-                    aula.titulo?.toLowerCase().includes(termoBusca) ||
-                    aula.descricao?.toLowerCase().includes(termoBusca) ||
-                    aula.objetoConhecimento?.toLowerCase().includes(termoBusca);
-                
-                const matchesTurma = turmaFiltro === '' || aula.turma === turmaFiltro;
-                const matchesUnidade = unidadeFiltro === '' || aula.unidadeTematica === unidadeFiltro;
-                const matchesEspecificacao = especificacaoFiltro === '' || aula.especificacao === especificacaoFiltro;
+        function carregarAnuais() {
+            return ouvirPlanejamentosAnuais(escolaAtualId, (snapshot) => {
+                planejamentosAnuais = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                renderizarTudo();
+            });
+        }
 
-                return matchesBusca && matchesTurma && matchesUnidade && matchesEspecificacao;
+        function carregarBimestrais() {
+            return ouvirPlanejamentosBimestrais(escolaAtualId, (snapshot) => {
+                planejamentosBimestrais = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                renderizarTudo();
+            });
+        }
+
+        function carregarMensais() {
+            return ouvirPlanejamentosMensais(escolaAtualId, (snapshot) => {
+                planejamentosMensais = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                renderizarTudo();
+            });
+        }
+
+        function renderizarTudo() {
+            renderizarArvore();
+            renderizarAreaPrincipal();
+            renderizarPainelAuxiliar();
+        }
+
+        // ---------- Barra superior ----------
+        function inicializarBarraSuperior() {
+            const selectTurma = document.getElementById('plTurma');
+            selectTurma.innerHTML = TURMAS_DISPONIVEIS.map(t => `<option value="${t}">${t}</option>`).join('');
+            selectTurma.value = turmaAtual;
+            selectTurma.addEventListener('change', () => {
+                turmaAtual = selectTurma.value;
+                selecionado = null;
+                renderizarTudo();
             });
 
-            exibirAulas(aulasFiltradas);
+            const inputAno = document.getElementById('plAnoLetivo');
+            inputAno.value = anoLetivoAtual;
+            inputAno.addEventListener('change', () => {
+                anoLetivoAtual = parseInt(inputAno.value, 10) || new Date().getFullYear();
+                selecionado = null;
+                renderizarTudo();
+            });
+
+            document.getElementById('plBusca').addEventListener('input', (e) => {
+                termoBusca = e.target.value.toLowerCase();
+                renderizarArvore();
+            });
         }
 
-        // Exibir aulas na tela
-        function exibirAulas(aulas) {
-            if (aulas.length === 0) {
-                aulasList.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">Nenhuma aula encontrada com os filtros atuais.</p>';
+        window.imprimirSelecionado = function () {
+            window.print();
+        };
+
+        // ---------- Inicialização ----------
+        inicializarBarraSuperior();
+
+        requireAuth({ loginPath: '../../login.html' });
+
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+            selecionado = null;
+            if (unsubAulas) unsubAulas();
+            if (unsubConfiguracoes) unsubConfiguracoes();
+            if (unsubAnuais) unsubAnuais();
+            if (unsubBimestrais) unsubBimestrais();
+            if (unsubMensais) unsubMensais();
+            unsubAulas = carregarAulas();
+            unsubConfiguracoes = carregarConfiguracoes();
+            unsubAnuais = carregarAnuais();
+            unsubBimestrais = carregarBimestrais();
+            unsubMensais = carregarMensais();
+        });
+
+        // ---------- Árvore de navegação ----------
+        // Chaves sintéticas "novo:<nivel>:..." representam um nó que ainda não
+        // existe no Firestore — selecionar um desses abre um formulário de
+        // criação já pré-preenchido em vez de um erro.
+        function encontrarAnual() {
+            return planejamentosAnuais.find(p => p.turma === turmaAtual && p.anoLetivo === anoLetivoAtual) || null;
+        }
+
+        function encontrarBimestral(numero) {
+            return planejamentosBimestrais.find(p => p.turma === turmaAtual && p.anoLetivo === anoLetivoAtual && p.bimestre === numero) || null;
+        }
+
+        function encontrarMensal(numero, mes) {
+            return planejamentosMensais.find(p => p.turma === turmaAtual && p.anoLetivo === anoLetivoAtual && p.bimestre === numero && p.mes === mes) || null;
+        }
+
+        function aulasFiltradasPorBusca() {
+            if (!termoBusca) return aulasTodas.filter(a => a.turma === turmaAtual);
+            return aulasTodas.filter(a => a.turma === turmaAtual && (
+                (a.titulo || '').toLowerCase().includes(termoBusca) ||
+                (a.descricao || '').toLowerCase().includes(termoBusca) ||
+                (a.objetoConhecimento || '').toLowerCase().includes(termoBusca)
+            ));
+        }
+
+        window.selecionarNo = function (nivel, id) {
+            selecionado = { nivel, id };
+            renderizarArvore();
+            renderizarAreaPrincipal();
+            renderizarPainelAuxiliar();
+        };
+
+        function itemArvoreHtml(nivel, id, classeExtra, rotulo, contagem) {
+            const chave = `${nivel}:${id}`;
+            const ativo = selecionado && `${selecionado.nivel}:${selecionado.id}` === chave;
+            return `
+                <div class="pl-arvore-item ${classeExtra}${ativo ? ' pl-arvore-item--selecionado' : ''}" onclick="selecionarNo('${nivel}', '${id}')">
+                    <span>${rotulo}</span>
+                    ${contagem !== undefined ? `<span class="pl-badge-count">${contagem}</span>` : ''}
+                </div>
+            `;
+        }
+
+        function renderizarArvore() {
+            const container = document.getElementById('plArvore');
+            const aulasDaTurma = aulasFiltradasPorBusca();
+
+            const anual = encontrarAnual();
+            let html = itemArvoreHtml('anual', anual ? anual.id : 'novo:anual', 'pl-arvore-anual',
+                `📘 Planejamento Anual — ${turmaAtual}`);
+
+            for (let numero = 1; numero <= 4; numero++) {
+                const bimestral = encontrarBimestral(numero);
+                const cfg = bimestresConfig.find(b => b.numero === numero);
+                html += itemArvoreHtml('bimestral', bimestral ? bimestral.id : `novo:bimestral:${numero}`, 'pl-arvore-bimestre',
+                    rotuloBimestre(numero));
+
+                if (!cfg) {
+                    html += `<div class="pl-arvore-item pl-arvore-item--vazio pl-arvore-mes">Configure as datas deste bimestre em Configurações</div>`;
+                    continue;
+                }
+
+                const meses = mesesDoIntervalo(cfg.inicio, cfg.fim);
+                meses.forEach(({ mes }) => {
+                    const mensal = encontrarMensal(numero, mes);
+                    const aulasDoMes = mensal ? aulasDaTurma.filter(a => a.planejamentoMensalId === mensal.id) : [];
+                    html += itemArvoreHtml('mensal', mensal ? mensal.id : `novo:mensal:${numero}:${mes}`, 'pl-arvore-mes',
+                        `📅 ${NOMES_MESES[mes - 1]}`, aulasDoMes.length);
+
+                    aulasDoMes.forEach(aula => {
+                        html += itemArvoreHtml('aula', aula.id, 'pl-arvore-aula', `📝 ${aula.titulo || 'Sem título'}`);
+                    });
+                });
+
+                const aulasSemMes = aulasDaTurma.filter(a => a.bimestre === numero && !a.planejamentoMensalId);
+                if (aulasSemMes.length > 0) {
+                    html += itemArvoreHtml('mensal', `novo:mensal:${numero}:0`, 'pl-arvore-mes pl-arvore-item--vazio',
+                        `Sem mês vinculado`, aulasSemMes.length);
+                    aulasSemMes.forEach(aula => {
+                        html += itemArvoreHtml('aula', aula.id, 'pl-arvore-aula', `📝 ${aula.titulo || 'Sem título'}`);
+                    });
+                }
+            }
+
+            const aulasSemBimestre = aulasDaTurma.filter(a => !a.bimestre);
+            if (aulasSemBimestre.length > 0) {
+                html += `<div class="pl-arvore-item pl-arvore-item--vazio" style="margin-top:var(--pf-space-2);font-weight:600;">Aulas sem bimestre definido</div>`;
+                aulasSemBimestre.forEach(aula => {
+                    html += itemArvoreHtml('aula', aula.id, 'pl-arvore-aula', `📝 ${aula.titulo || 'Sem título'}`);
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        // ---------- Área principal — dispatcher ----------
+        function renderizarAreaPrincipal() {
+            const container = document.getElementById('plAreaPrincipal');
+            if (!selecionado) {
+                container.innerHTML = '<p class="pl-estado-vazio">Selecione um item na árvore ao lado.</p>';
+                return;
+            }
+            if (selecionado.nivel === 'anual') return renderizarFormAnual(container);
+            if (selecionado.nivel === 'bimestral') return renderizarFormBimestral(container);
+            if (selecionado.nivel === 'mensal') return renderizarFormMensal(container);
+            if (selecionado.nivel === 'aula') return renderizarFormAula(container);
+        }
+
+        // ---------- Nível Anual ----------
+        function renderizarFormAnual(container) {
+            const existente = selecionado.id.startsWith('novo:') ? null : planejamentosAnuais.find(p => p.id === selecionado.id);
+            const dados = existente || { turma: turmaAtual, anoLetivo: anoLetivoAtual, objetivosGerais: '', competenciasGerais: [], observacoes: '' };
+
+            const bimestresComPlano = [1, 2, 3, 4].filter(n => encontrarBimestral(n)).length;
+
+            container.innerHTML = `
+                <h2>📘 Planejamento Anual — ${dados.turma} (${dados.anoLetivo})</h2>
+                <span class="pl-indicador">${bimestresComPlano} de 4 bimestres com plano cadastrado</span>
+                <div class="pf-field">
+                    <label>Objetivos Gerais do Ano</label>
+                    <textarea id="plAnualObjetivos" rows="4">${dados.objetivosGerais || ''}</textarea>
+                </div>
+                <div class="pf-field">
+                    <label>Competências Gerais (uma por linha)</label>
+                    <textarea id="plAnualCompetencias" rows="4">${(dados.competenciasGerais || []).join('\n')}</textarea>
+                </div>
+                <div class="pf-field">
+                    <label>Observações</label>
+                    <textarea id="plAnualObservacoes" rows="3">${dados.observacoes || ''}</textarea>
+                </div>
+                <div class="pl-acoes">
+                    <button class="pf-btn pf-btn--success" onclick="salvarAnual()">💾 Salvar</button>
+                    ${existente ? `
+                        <button class="pf-btn pf-btn--secondary" onclick="duplicarAnualPrompt()">📋 Duplicar para outra turma/ano</button>
+                        <button class="pf-btn pf-btn--danger" onclick="excluirAnualAtual()">🗑️ Excluir</button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        window.salvarAnual = async function () {
+            const dados = {
+                turma: turmaAtual,
+                anoLetivo: anoLetivoAtual,
+                objetivosGerais: document.getElementById('plAnualObjetivos').value,
+                competenciasGerais: document.getElementById('plAnualCompetencias').value.split('\n').map(s => s.trim()).filter(Boolean),
+                observacoes: document.getElementById('plAnualObservacoes').value
+            };
+            try {
+                const existente = selecionado.id.startsWith('novo:') ? null : planejamentosAnuais.find(p => p.id === selecionado.id);
+                if (existente) {
+                    await atualizarPlanejamentoAnual(escolaAtualId, existente.id, dados);
+                } else {
+                    const ref = await criarPlanejamentoAnual(escolaAtualId, dados);
+                    selecionado = { nivel: 'anual', id: ref.id };
+                }
+                mostrarMensagem('Planejamento anual salvo!', 'success');
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Erro ao salvar: ' + erro.message, 'error');
+            }
+        };
+
+        window.duplicarAnualPrompt = async function () {
+            const novaTurma = prompt('Duplicar para qual turma?', turmaAtual) || turmaAtual;
+            const novoAno = parseInt(prompt('Para qual ano letivo?', anoLetivoAtual), 10) || anoLetivoAtual;
+            try {
+                await duplicarPlanejamentoAnual(escolaAtualId, selecionado.id, { turma: novaTurma, anoLetivo: novoAno });
+                mostrarMensagem('Planejamento anual duplicado!', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao duplicar: ' + erro.message, 'error');
+            }
+        };
+
+        window.excluirAnualAtual = async function () {
+            if (!confirm('Excluir este planejamento anual?')) return;
+            await excluirPlanejamentoAnual(escolaAtualId, selecionado.id);
+            selecionado = null;
+            mostrarMensagem('Planejamento anual excluído.', 'info');
+        };
+
+        // ---------- Nível Bimestral ----------
+        function parseNumeroBimestralNovo(id) {
+            // "novo:bimestral:<numero>" → <numero>
+            return parseInt(id.split(':')[2], 10);
+        }
+
+        function renderizarFormBimestral(container) {
+            const novo = selecionado.id.startsWith('novo:');
+            const existente = novo ? null : planejamentosBimestrais.find(p => p.id === selecionado.id);
+            const numero = existente ? existente.bimestre : parseNumeroBimestralNovo(selecionado.id);
+            const anual = encontrarAnual();
+            const dados = existente || {
+                turma: turmaAtual, anoLetivo: anoLetivoAtual, bimestre: numero,
+                planejamentoAnualId: anual ? anual.id : null,
+                objetivos: anual ? anual.objetivosGerais : '', unidadesTematicas: [], metodologia: '', avaliacao: '', observacoes: ''
+            };
+
+            const cfg = bimestresConfig.find(b => b.numero === numero);
+            const totalMeses = cfg ? mesesDoIntervalo(cfg.inicio, cfg.fim).length : 0;
+            const mesesComPlano = cfg ? mesesDoIntervalo(cfg.inicio, cfg.fim).filter(({ mes }) => encontrarMensal(numero, mes)).length : 0;
+
+            const unidadesDisponiveis = unidadesPorAno[turmaAtual] || [];
+            const unidadesSelecionadas = new Set(dados.unidadesTematicas || []);
+
+            container.innerHTML = `
+                <h2>📗 ${rotuloBimestre(numero)} — ${turmaAtual} (${anoLetivoAtual})</h2>
+                <span class="pl-indicador">${mesesComPlano} de ${totalMeses} meses com plano cadastrado</span>
+                <div class="pf-field">
+                    <label>Unidades Temáticas deste Bimestre</label>
+                    <div>${unidadesDisponiveis.map(u => `
+                        <label class="pl-unidade-checkbox">
+                            <input type="checkbox" name="plUnidadeBimestral" value="${u}" ${unidadesSelecionadas.has(u) ? 'checked' : ''}> ${u}
+                        </label>
+                    `).join('')}</div>
+                </div>
+                <div class="pf-field">
+                    <label>Objetivos do Bimestre</label>
+                    <textarea id="plBimestralObjetivos" rows="4">${dados.objetivos || ''}</textarea>
+                </div>
+                <div class="pf-field">
+                    <label>Metodologia</label>
+                    <textarea id="plBimestralMetodologia" rows="3">${dados.metodologia || ''}</textarea>
+                </div>
+                <div class="pf-field">
+                    <label>Avaliação</label>
+                    <textarea id="plBimestralAvaliacao" rows="3">${dados.avaliacao || ''}</textarea>
+                </div>
+                <div class="pf-field">
+                    <label>Observações</label>
+                    <textarea id="plBimestralObservacoes" rows="3">${dados.observacoes || ''}</textarea>
+                </div>
+                <div class="pl-acoes">
+                    <button class="pf-btn pf-btn--success" onclick="salvarBimestral(${numero})">💾 Salvar</button>
+                    ${existente ? `
+                        <button class="pf-btn pf-btn--secondary" onclick="duplicarBimestralPrompt()">📋 Duplicar para outro bimestre/turma</button>
+                        <button class="pf-btn pf-btn--danger" onclick="excluirBimestralAtual()">🗑️ Excluir</button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        window.salvarBimestral = async function (numero) {
+            const anual = encontrarAnual();
+            const unidadesTematicas = Array.from(document.querySelectorAll('input[name="plUnidadeBimestral"]:checked')).map(cb => cb.value);
+            const dados = {
+                turma: turmaAtual,
+                anoLetivo: anoLetivoAtual,
+                bimestre: numero,
+                planejamentoAnualId: anual ? anual.id : null,
+                unidadesTematicas,
+                objetivos: document.getElementById('plBimestralObjetivos').value,
+                metodologia: document.getElementById('plBimestralMetodologia').value,
+                avaliacao: document.getElementById('plBimestralAvaliacao').value,
+                observacoes: document.getElementById('plBimestralObservacoes').value
+            };
+            try {
+                const existente = selecionado.id.startsWith('novo:') ? null : planejamentosBimestrais.find(p => p.id === selecionado.id);
+                if (existente) {
+                    await atualizarPlanejamentoBimestral(escolaAtualId, existente.id, dados);
+                } else {
+                    const ref = await criarPlanejamentoBimestral(escolaAtualId, dados);
+                    selecionado = { nivel: 'bimestral', id: ref.id };
+                }
+                mostrarMensagem('Planejamento bimestral salvo!', 'success');
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Erro ao salvar: ' + erro.message, 'error');
+            }
+        };
+
+        window.duplicarBimestralPrompt = async function () {
+            const novoNumero = parseInt(prompt('Duplicar para qual bimestre (1-4)?', '1'), 10);
+            const novaTurma = prompt('Para qual turma?', turmaAtual) || turmaAtual;
+            if (!novoNumero || novoNumero < 1 || novoNumero > 4) {
+                mostrarMensagem('Número de bimestre inválido.', 'error');
+                return;
+            }
+            try {
+                await duplicarPlanejamentoBimestral(escolaAtualId, selecionado.id, { bimestre: novoNumero, turma: novaTurma });
+                mostrarMensagem('Planejamento bimestral duplicado!', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao duplicar: ' + erro.message, 'error');
+            }
+        };
+
+        window.excluirBimestralAtual = async function () {
+            if (!confirm('Excluir este planejamento bimestral?')) return;
+            await excluirPlanejamentoBimestral(escolaAtualId, selecionado.id);
+            selecionado = null;
+            mostrarMensagem('Planejamento bimestral excluído.', 'info');
+        };
+
+        // ---------- Nível Mensal ----------
+        function parseMensalNovo(id) {
+            // "novo:mensal:<numero>:<mes>" → {numero, mes}
+            const partes = id.split(':');
+            return { numero: parseInt(partes[2], 10), mes: parseInt(partes[3], 10) };
+        }
+
+        function renderizarFormMensal(container) {
+            const novo = selecionado.id.startsWith('novo:');
+            const existente = novo ? null : planejamentosMensais.find(p => p.id === selecionado.id);
+            const { numero, mes } = existente ? { numero: existente.bimestre, mes: existente.mes } : parseMensalNovo(selecionado.id);
+
+            const aulasDaTurma = aulasFiltradasPorBusca();
+
+            // "Sem mês vinculado" (mes === 0) é um agrupador, não um mês real —
+            // só lista as aulas do bimestre sem planejamentoMensalId.
+            if (mes === 0) {
+                const aulasSemMes = aulasDaTurma.filter(a => a.bimestre === numero && !a.planejamentoMensalId);
+                container.innerHTML = `
+                    <h2>📎 Aulas sem mês vinculado — ${rotuloBimestre(numero)}</h2>
+                    <p class="pl-indicador">${aulasSemMes.length} aula(s) ainda não vinculada(s) a um mês</p>
+                    <div class="pl-acoes">
+                        ${aulasSemMes.map(a => `<button class="pf-btn pf-btn--secondary" onclick="selecionarNo('aula','${a.id}')">📝 ${a.titulo || 'Sem título'}</button>`).join('')}
+                    </div>
+                `;
                 return;
             }
 
-            aulasList.innerHTML = aulas.map(aula => {
-                // Formatar lista de habilidades
-                const habilidadesList = Array.isArray(aula.habilidades) 
-                    ? aula.habilidades.map(h => 
-                        `<div class="habilidade-item">${h.codigo || h}</div>`
-                      ).join('')
-                    : `<div class="habilidade-item">${aula.habilidade || 'Habilidade não definida'}</div>`;
+            const bimestral = encontrarBimestral(numero);
+            const dados = existente || {
+                turma: turmaAtual, anoLetivo: anoLetivoAtual, bimestre: numero, mes,
+                planejamentoBimestralId: bimestral ? bimestral.id : null,
+                objetivos: bimestral ? bimestral.objetivos : '', conteudos: '', observacoes: ''
+            };
 
-                return `
-                <div class="aula-card" data-id="${aula.id}">
-                    <h3>${aula.titulo || 'Sem título'}</h3>
-                    <div class="aula-meta">
-                        <span class="badge badge-primary">${aula.turma || 'Turma não definida'}</span>
-                        <span class="badge badge-success">${aula.unidadeTematica || 'Unidade não definida'}</span>
-                        ${aula.especificacao ? `<span class="badge badge-secondary">${aula.especificacao}</span>` : ''}
-                        <span class="badge badge-info">${aula.numeroAulas || 1} aula(s)</span>
-                    </div>
-                    <p><strong>Objeto de Conhecimento:</strong> ${aula.objetoConhecimento || 'Não especificado'}</p>
-                    <div class="habilidades-list">
-                        <strong>Habilidades:</strong>
-                        ${habilidadesList}
-                    </div>
-                    <p><strong>Descrição:</strong> ${aula.descricao ? aula.descricao.substring(0, 100) + '...' : 'Sem descrição'}</p>
-                    <p><strong>Recursos Didáticos:</strong> ${aula.recursos || 'Não especificado'}</p>
-                    <div class="aula-actions">
-                        <button class="btn-small btn-view" onclick="window.visualizarAula('${aula.id}')">👁️ Visualizar</button>
-                        <button class="btn-small btn-edit" onclick="window.editarAula('${aula.id}')">✏️ Editar</button>
-                        <button class="btn-small btn-delete" onclick="window.excluirAula('${aula.id}')">🗑️ Excluir</button>
-                    </div>
+            const aulasVinculadas = existente ? aulasDaTurma.filter(a => a.planejamentoMensalId === existente.id) : [];
+
+            container.innerHTML = `
+                <h2>📅 ${NOMES_MESES[mes - 1]} — ${turmaAtual} (${anoLetivoAtual})</h2>
+                <span class="pl-indicador">${aulasVinculadas.length} aula(s) vinculada(s) a este mês</span>
+                <div class="pf-field">
+                    <label>Objetivos do Mês</label>
+                    <textarea id="plMensalObjetivos" rows="4">${dados.objetivos || ''}</textarea>
                 </div>
-            `}).join('');
+                <div class="pf-field">
+                    <label>Conteúdos Previstos</label>
+                    <textarea id="plMensalConteudos" rows="4">${dados.conteudos || ''}</textarea>
+                </div>
+                <div class="pf-field">
+                    <label>Observações</label>
+                    <textarea id="plMensalObservacoes" rows="3">${dados.observacoes || ''}</textarea>
+                </div>
+                <div class="pl-acoes">
+                    <button class="pf-btn pf-btn--success" onclick="salvarMensal(${numero}, ${mes})">💾 Salvar</button>
+                    ${existente ? `
+                        <button class="pf-btn pf-btn--secondary" onclick="duplicarMensalPrompt()">📋 Duplicar para outro mês</button>
+                        <button class="pf-btn pf-btn--danger" onclick="excluirMensalAtual()">🗑️ Excluir</button>
+                        <button class="pf-btn pf-btn--info" onclick="novaAulaNesteMes('${existente.id}', ${numero})">➕ Nova aula neste mês</button>
+                    ` : '<p class="pl-aviso" style="font-size:0.8rem;color:var(--pf-gray-500);">Salve este mês antes de vincular aulas a ele.</p>'}
+                </div>
+                ${aulasVinculadas.length > 0 ? `
+                    <div class="pf-field" style="margin-top:var(--pf-space-4);">
+                        <label>Aulas vinculadas</label>
+                        <div class="pl-acoes">
+                            ${aulasVinculadas.map(a => `<button class="pf-btn pf-btn--secondary" onclick="selecionarNo('aula','${a.id}')">📝 ${a.titulo || 'Sem título'}</button>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
         }
 
-        // Salvar aula
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        window.salvarMensal = async function (numero, mes) {
+            const bimestral = encontrarBimestral(numero);
+            const dados = {
+                turma: turmaAtual,
+                anoLetivo: anoLetivoAtual,
+                bimestre: numero,
+                mes,
+                planejamentoBimestralId: bimestral ? bimestral.id : null,
+                objetivos: document.getElementById('plMensalObjetivos').value,
+                conteudos: document.getElementById('plMensalConteudos').value,
+                observacoes: document.getElementById('plMensalObservacoes').value
+            };
+            try {
+                const existente = selecionado.id.startsWith('novo:') ? null : planejamentosMensais.find(p => p.id === selecionado.id);
+                if (existente) {
+                    await atualizarPlanejamentoMensal(escolaAtualId, existente.id, dados);
+                } else {
+                    const ref = await criarPlanejamentoMensal(escolaAtualId, dados);
+                    selecionado = { nivel: 'mensal', id: ref.id };
+                }
+                mostrarMensagem('Planejamento mensal salvo!', 'success');
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Erro ao salvar: ' + erro.message, 'error');
+            }
+        };
 
+        window.duplicarMensalPrompt = async function () {
+            const novoMes = parseInt(prompt('Duplicar para qual mês (1-12)?', '1'), 10);
+            if (!novoMes || novoMes < 1 || novoMes > 12) {
+                mostrarMensagem('Mês inválido.', 'error');
+                return;
+            }
+            try {
+                await duplicarPlanejamentoMensal(escolaAtualId, selecionado.id, { mes: novoMes });
+                mostrarMensagem('Planejamento mensal duplicado!', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao duplicar: ' + erro.message, 'error');
+            }
+        };
+
+        window.excluirMensalAtual = async function () {
+            if (!confirm('Excluir este planejamento mensal? Aulas vinculadas a ele ficam sem mês, não são excluídas.')) return;
+            await excluirPlanejamentoMensal(escolaAtualId, selecionado.id);
+            selecionado = null;
+            mostrarMensagem('Planejamento mensal excluído.', 'info');
+        };
+
+        window.novaAulaNesteMes = function (mensalId, numeroBimestre) {
+            aulaEditando = null;
+            selecionado = { nivel: 'aula', id: `novo:${mensalId}:${numeroBimestre}` };
+            renderizarAreaPrincipal();
+            renderizarPainelAuxiliar();
+            renderizarArvore();
+        };
+
+        // ---------- Nível Aula (Semanal) ----------
+        // Se as habilidades pré-selecionadas de uma aula existente estiverem
+        // definidas aqui, exibirHabilidades() as usa na primeira renderização
+        // da cascata BNCC; depois disso volta a null (mudar unidade/especificação
+        // manualmente não deve reimpor a seleção da classificação anterior).
+        let habilidadesPreSelecionadas = null;
+
+        window.novaAulaAvulsa = function () {
+            aulaEditando = null;
+            selecionado = { nivel: 'aula', id: 'novo::' };
+            renderizarAreaPrincipal();
+            renderizarPainelAuxiliar();
+            renderizarArvore();
+        };
+
+        function renderizarFormAula(container) {
+            const novo = selecionado.id.startsWith('novo:');
+            const existente = novo ? null : aulasTodas.find(a => a.id === selecionado.id);
+            aulaEditando = existente ? existente.id : null;
+
+            let mensalIdContexto = '', bimestreContexto = '';
+            if (novo) {
+                const partes = selecionado.id.split(':');
+                mensalIdContexto = partes[1] || '';
+                bimestreContexto = partes[2] || '';
+            }
+
+            const mesesDaTurma = planejamentosMensais.filter(m => m.turma === turmaAtual && m.anoLetivo === anoLetivoAtual);
+
+            container.innerHTML = `
+                <h2>📝 ${existente ? 'Editar Aula' : 'Nova Aula'}</h2>
+                <form id="formAula">
+                    <div class="pf-field">
+                        <label for="titulo">Título da Aula *</label>
+                        <input type="text" id="titulo" required placeholder="Ex: Jogos e Brincadeiras Populares" value="${existente ? (existente.titulo || '').replace(/"/g, '&quot;') : ''}">
+                    </div>
+                    <div class="pf-field">
+                        <label for="turma">Turma (Série) *</label>
+                        <select id="turma" required onchange="atualizarUnidadesTematicas()">
+                            <option value="">Selecione a turma</option>
+                            ${TURMAS_DISPONIVEIS.map(t => `<option value="${t}">${t}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="pf-field">
+                        <label for="unidadeTematica">Unidade Temática (BNCC) *</label>
+                        <select id="unidadeTematica" required onchange="atualizarEspecificacoes()">
+                            <option value="">Selecione a turma primeiro</option>
+                        </select>
+                    </div>
+                    <div class="pf-field especificacao-group hidden" id="especificacaoGroup">
+                        <label for="especificacao">Especificação *</label>
+                        <select id="especificacao" onchange="atualizarHabilidades()">
+                            <option value="">Selecione a especificação</option>
+                        </select>
+                    </div>
+                    <div class="pf-field">
+                        <label for="objetoConhecimento">Objeto de Conhecimento *</label>
+                        <input type="text" id="objetoConhecimento" required placeholder="Ex: Jogos populares do Brasil e do mundo" value="${existente ? (existente.objetoConhecimento || '').replace(/"/g, '&quot;') : ''}">
+                    </div>
+                    <div class="pf-field">
+                        <label>Quantidade de Aulas *</label>
+                        <input type="number" id="numeroAulas" min="1" max="10" value="${existente ? (existente.numeroAulas || 1) : 1}" required>
+                    </div>
+                    <div class="pf-field">
+                        <label>Habilidades da BNCC * (selecione uma ou mais)</label>
+                        <div id="habilidadesContainer" class="habilidades-container">
+                            <p style="color:#666;text-align:center;">Selecione a turma, unidade temática e especificação primeiro</p>
+                        </div>
+                    </div>
+                    <div class="pf-field">
+                        <label for="descricao">Descrição da Aula / Atividades *</label>
+                        <textarea id="descricao" required rows="4">${existente ? (existente.descricao || '') : ''}</textarea>
+                    </div>
+                    <div class="pf-field">
+                        <label for="recursos">Recursos Didáticos Previstos (opcional)</label>
+                        <textarea id="recursos" rows="2">${existente ? (existente.recursos || '') : ''}</textarea>
+                    </div>
+                    <div class="pf-field">
+                        <label for="plAulaBimestre">Bimestre</label>
+                        <select id="plAulaBimestre" class="pf-filter-select">
+                            <option value="">Não definido</option>
+                            <option value="1">1º Bimestre</option>
+                            <option value="2">2º Bimestre</option>
+                            <option value="3">3º Bimestre</option>
+                            <option value="4">4º Bimestre</option>
+                        </select>
+                    </div>
+                    <div class="pf-field">
+                        <label for="plAulaMes">Vincular a um mês do Planejamento</label>
+                        <select id="plAulaMes" class="pf-filter-select">
+                            <option value="">Nenhum</option>
+                            ${mesesDaTurma.map(m => `<option value="${m.id}">${NOMES_MESES[m.mes - 1]} (${m.bimestre}º Bim)</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="pl-acoes">
+                        <button type="submit" class="pf-btn pf-btn--success">💾 Salvar Aula</button>
+                        ${existente ? '<button type="button" class="pf-btn pf-btn--danger" onclick="excluirAulaAtual()">🗑️ Excluir</button>' : ''}
+                    </div>
+                </form>
+            `;
+
+            document.getElementById('formAula').addEventListener('submit', salvarAula);
+
+            if (existente) {
+                habilidadesPreSelecionadas = existente.habilidades || [];
+                document.getElementById('turma').value = existente.turma || '';
+                atualizarUnidadesTematicas();
+                document.getElementById('unidadeTematica').value = existente.unidadeTematica || '';
+                atualizarEspecificacoes();
+                if (existente.especificacao) {
+                    document.getElementById('especificacao').value = existente.especificacao;
+                }
+                atualizarHabilidades();
+                habilidadesPreSelecionadas = null;
+                document.getElementById('plAulaBimestre').value = existente.bimestre || '';
+                document.getElementById('plAulaMes').value = existente.planejamentoMensalId || '';
+            } else {
+                document.getElementById('turma').value = turmaAtual;
+                atualizarUnidadesTematicas();
+                document.getElementById('plAulaBimestre').value = bimestreContexto || '';
+                document.getElementById('plAulaMes').value = mensalIdContexto || '';
+            }
+        }
+
+        async function salvarAula(evento) {
+            evento.preventDefault();
             const habilidadesSelecionadas = getHabilidadesSelecionadas();
-
             if (habilidadesSelecionadas.length === 0) {
                 mostrarMensagem('Selecione pelo menos uma habilidade.', 'error');
                 return;
             }
-
             const aulaData = {
                 titulo: document.getElementById('titulo').value,
                 turma: document.getElementById('turma').value,
@@ -873,160 +1112,132 @@
                 numeroAulas: parseInt(document.getElementById('numeroAulas').value) || 1,
                 descricao: document.getElementById('descricao').value,
                 recursos: document.getElementById('recursos').value || null,
+                bimestre: document.getElementById('plAulaBimestre').value ? parseInt(document.getElementById('plAulaBimestre').value, 10) : null,
+                planejamentoMensalId: document.getElementById('plAulaMes').value || null,
                 timestamp: new Date().toISOString()
             };
-
-            // Validar se todos os campos obrigatórios foram preenchidos
             if (!aulaData.turma || !aulaData.unidadeTematica) {
-                mostrarMensagem('Por favor, preencha todos os campos obrigatórios: turma e unidade temática.', 'error');
+                mostrarMensagem('Preencha turma e unidade temática.', 'error');
+                return;
+            }
+            try {
+                if (aulaEditando) {
+                    await salvarComHistorico(doc(db, 'escolas', escolaAtualId, 'aulas', aulaEditando), aulaData);
+                    mostrarMensagem('Aula atualizada!', 'success');
+                } else {
+                    const ref = await criarAula(escolaAtualId, aulaData);
+                    aulaEditando = ref.id;
+                    selecionado = { nivel: 'aula', id: ref.id };
+                    mostrarMensagem('Aula criada!', 'success');
+                }
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Erro ao salvar aula: ' + erro.message, 'error');
+            }
+        }
+
+        window.excluirAulaAtual = async function () {
+            if (!confirm('Excluir esta aula?')) return;
+            try {
+                await excluirAulaService(escolaAtualId, selecionado.id);
+                selecionado = null;
+                mostrarMensagem('Aula excluída!', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao excluir: ' + erro.message, 'error');
+            }
+        };
+
+        // ---------- Painel auxiliar (BNCC + histórico de versões) ----------
+        function refDoSelecionado() {
+            if (!selecionado || selecionado.id.startsWith('novo:')) return null;
+            const colecaoPorNivel = {
+                anual: 'planejamentoAnual',
+                bimestral: 'planejamentoBimestral',
+                mensal: 'planejamentoMensal',
+                aula: 'aulas'
+            };
+            return doc(db, 'escolas', escolaAtualId, colecaoPorNivel[selecionado.nivel], selecionado.id);
+        }
+
+        function renderizarPainelAuxiliar() {
+            const container = document.getElementById('plPainelAuxiliar');
+            if (unsubHistoricoAtual) { unsubHistoricoAtual(); unsubHistoricoAtual = null; }
+
+            if (!selecionado) {
+                container.innerHTML = '<p class="pl-estado-vazio">Nada selecionado ainda.</p>';
                 return;
             }
 
-            try {
-                if (aulaEditando) {
-                    // Atualizar aula existente
-                    await atualizarAula(escolaAtualId, aulaEditando, aulaData);
-                    mostrarMensagem('Aula atualizada com sucesso!', 'success');
-                    aulaEditando = null;
-                } else {
-                    // Criar nova aula
-                    await criarAula(escolaAtualId, aulaData);
-                    mostrarMensagem('Aula salva com sucesso!', 'success');
-                }
-
-                form.reset();
-                // Resetar os selects
-                numeroAulasInput.value = 1;
-                await atualizarUnidadesTematicas();
-                especificacaoGroup.classList.add('hidden');
-                habilidadesContainer.innerHTML = '<p style="color: #666; text-align: center;">Selecione a turma, unidade temática e especificação primeiro</p>';
-            } catch (error) {
-                console.error('Erro ao salvar aula:', error);
-                mostrarMensagem('Erro ao salvar aula. Tente novamente.', 'error');
-            }
-        });
-
-        // Funções globais para os botões
-        window.editarAula = (id) => {
-            const aula = todasAulas.find(a => a.id === id);
-            if (aula) {
-                document.getElementById('titulo').value = aula.titulo || '';
-                document.getElementById('turma').value = aula.turma || '';
-                document.getElementById('numeroAulas').value = aula.numeroAulas || 1;
-                document.getElementById('descricao').value = aula.descricao || '';
-                document.getElementById('recursos').value = aula.recursos || '';
-
-                // Atualizar unidades temáticas e aguardar
-                atualizarUnidadesTematicas();
-                
-                // Aguardar um momento para o select ser preenchido e então selecionar a unidade
-                setTimeout(() => {
-                    document.getElementById('unidadeTematica').value = aula.unidadeTematica || '';
-                    
-                    // Atualizar especificações
-                    atualizarEspecificacoes();
-                    
-                    // Aguardar especificações carregarem e selecionar
-                    setTimeout(() => {
-                        if (aula.especificacao) {
-                            document.getElementById('especificacao').value = aula.especificacao || '';
-                        }
-                        
-                        // Atualizar habilidades
-                        atualizarHabilidades();
-                        
-                        // Aguardar checkboxes serem criados e marcar os selecionados
-                        setTimeout(() => {
-                            const habilidadesArray = Array.isArray(aula.habilidades) ? aula.habilidades : [];
-                            
-                            habilidadesArray.forEach(habilidade => {
-                                const codigo = typeof habilidade === 'string' ? habilidade : habilidade.codigo;
-                                const checkbox = document.querySelector(`input[name="habilidades"][value="${codigo}"]`);
-                                if (checkbox) {
-                                    checkbox.checked = true;
-                                }
-                            });
-                            
-                            document.getElementById('objetoConhecimento').value = aula.objetoConhecimento || '';
-                        }, 200);
-                    }, 200);
-                }, 200);
-                
-                aulaEditando = id;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        };
-
-        window.visualizarAula = (id) => {
-            const aula = todasAulas.find(a => a.id === id);
-            if (aula) {
-                let habilidadesTexto = '';
-                if (Array.isArray(aula.habilidades)) {
-                    habilidadesTexto = aula.habilidades.map(h => 
-                        `\n   • ${h.codigo || h}: ${h.descricao || ''}`
-                    ).join('');
-                } else {
-                    habilidadesTexto = `\n   • ${aula.habilidade || 'Habilidade não definida'}`;
-                }
-
-                alert(`
-📋 DETALHES DA AULA
-===================
-Título: ${aula.titulo}
-Turma: ${aula.turma}
-Unidade Temática: ${aula.unidadeTematica}
-${aula.especificacao ? `Especificação: ${aula.especificacao}` : ''}
-Número de Aulas: ${aula.numeroAulas || 1}
-Objeto de Conhecimento: ${aula.objetoConhecimento}
-
-📌 HABILIDADES BNCC:
-${habilidadesTexto}
-
-📝 DESCRIÇÃO:
-${aula.descricao}
-
-🎒 RECURSOS DIDÁTICOS:
-${aula.recursos || 'Não especificado'}
-                `);
-            }
-        };
-
-        window.excluirAula = async (id) => {
-            if (confirm('Tem certeza que deseja excluir esta aula?')) {
-                try {
-                    await excluirAulaService(escolaAtualId, id);
-                    mostrarMensagem('Aula excluída com sucesso!', 'success');
-                } catch (error) {
-                    console.error('Erro ao excluir aula:', error);
-                    mostrarMensagem('Erro ao excluir aula. Tente novamente.', 'error');
+            let htmlBNCC = '';
+            if (selecionado.nivel === 'aula' && !selecionado.id.startsWith('novo:')) {
+                const aula = aulasTodas.find(a => a.id === selecionado.id);
+                if (aula) {
+                    const habilidadesHtml = Array.isArray(aula.habilidades)
+                        ? aula.habilidades.map(h => `<div style="font-size:0.78rem;background:var(--pf-gray-100);padding:4px 6px;border-radius:4px;margin-bottom:4px;"><strong>${h.codigo}</strong></div>`).join('')
+                        : '';
+                    htmlBNCC = `
+                        <div class="pl-painel-secao">
+                            <h3>📌 BNCC desta aula</h3>
+                            <p style="font-size:0.82rem;color:var(--pf-gray-700);margin-bottom:var(--pf-space-2);"><strong>Objeto de Conhecimento:</strong> ${aula.objetoConhecimento || '-'}</p>
+                            ${habilidadesHtml}
+                        </div>
+                    `;
                 }
             }
-        };
 
-        // Função para mostrar mensagens
-        function mostrarMensagem(texto, tipo) {
-            showToast(texto, tipo);
+            const ref = refDoSelecionado();
+            container.innerHTML = htmlBNCC + `
+                <div class="pl-painel-secao">
+                    <h3>🕒 Histórico de Versões</h3>
+                    <div id="plHistoricoLista">${ref ? '<p class="pl-estado-vazio">Carregando…</p>' : '<p class="pl-estado-vazio">Salve este item para começar a guardar histórico.</p>'}</div>
+                </div>
+            `;
+
+            if (ref) {
+                unsubHistoricoAtual = ouvirHistorico(ref, (snapshot) => {
+                    historicoAtual = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    renderizarListaHistorico();
+                });
+            }
         }
 
-        // Event listeners para filtros e busca
-        searchInput.addEventListener('input', aplicarFiltros);
-        searchBtn.addEventListener('click', aplicarFiltros);
-        filterTurma.addEventListener('change', aplicarFiltros);
-        filterUnidade.addEventListener('change', aplicarFiltros);
-        filterEspecificacao.addEventListener('change', aplicarFiltros);
+        function renderizarListaHistorico() {
+            const container = document.getElementById('plHistoricoLista');
+            if (!container) return;
+            if (historicoAtual.length === 0) {
+                container.innerHTML = '<p class="pl-estado-vazio">Nenhuma versão anterior ainda.</p>';
+                return;
+            }
+            container.innerHTML = historicoAtual.map(v => {
+                const data = v._versionadoEm ? new Date(v._versionadoEm) : null;
+                const rotulo = data
+                    ? `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')} ${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`
+                    : 'Versão anterior';
+                return `
+                    <div class="pl-historico-item">
+                        <span>${rotulo}</span>
+                        <button class="pf-btn pf-btn--secondary" style="font-size:0.72rem;padding:4px 8px;" onclick="restaurarVersaoAtual('${v.id}')">Restaurar</button>
+                    </div>
+                `;
+            }).join('');
+        }
 
-        // 🔒 Exige login para acessar esta página
-        requireAuth({
-            loginPath: '../../login.html',
-            onReady: () => atualizarUnidadesTematicas() // dados estáticos da BNCC, não depende de escola
-        });
-
-        // Só carrega as aulas depois de confirmar login E qual escola está ativa.
-        document.addEventListener('pf-escola-ready', (evento) => {
-            escolaAtualId = evento.detail.escolaId;
-            if (unsubAulas) unsubAulas();
-            unsubAulas = carregarAulas();
-        });
+        window.restaurarVersaoAtual = async function (versaoId) {
+            if (!confirm('Restaurar esta versão? O estado atual também será salvo no histórico antes de ser substituído.')) return;
+            const versao = historicoAtual.find(v => v.id === versaoId);
+            const ref = refDoSelecionado();
+            if (!versao || !ref) return;
+            // "id" aqui é o id do PRÓPRIO item de histórico (subcoleção), não da
+            // entidade principal — precisa ser removido antes de regravar, senão
+            // corrompe o campo id da entidade (usado por toda a árvore/serviços).
+            const { id, ...dadosParaRestaurar } = versao;
+            try {
+                await restaurarVersao(ref, dadosParaRestaurar);
+                mostrarMensagem('Versão restaurada!', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao restaurar: ' + erro.message, 'error');
+            }
+        };
     </script>
 </body>
 </html>
