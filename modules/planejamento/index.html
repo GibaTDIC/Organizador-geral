@@ -1428,14 +1428,14 @@
             });
         }
 
-        // "diaMes" no formato "DD/MM" (sem ano, como vem do documento) — combina
-        // com o Ano Letivo já selecionado na barra superior pra achar em qual
-        // bimestre configurado a data cai. Só sugestão, sempre editável.
-        function sugerirBimestreParaData(diaMes) {
-            if (!diaMes) return null;
-            const [dia, mes] = diaMes.split('/').map(Number);
-            if (!dia || !mes) return null;
-            const data = new Date(anoLetivoAtual, mes - 1, dia);
+        // Acha em qual bimestre configurado uma data EXATA cai (não só o
+        // mês-calendário dela) — um mesmo mês pode pertencer a 2 bimestres
+        // diferentes (ex: 2º Bimestre termina 21/07, 3º começa 22/07 — "Julho"
+        // existe como mês do 2º E do 3º bimestre). Achar o bimestre só pelo
+        // (ano, mês), sem olhar o dia, gruda tudo no primeiro bimestre que
+        // encosta naquele mês — por isso qualquer resolução de bimestre a
+        // partir de uma data real tem que passar por aqui, com o dia incluído.
+        function bimestreDaData(data) {
             const cfg = bimestresConfig.find(b => {
                 const inicio = stringParaData(b.inicio);
                 const fim = stringParaData(b.fim);
@@ -1445,18 +1445,30 @@
             return cfg ? cfg.numero : null;
         }
 
-        // Conta, por mês-calendário, quantas aulas reais a TURMA tem na grade
-        // horária dentro do intervalo [dataInicioStr, dataFimStr] (ambos
-        // "DD/MM", sem ano — combinados com o Ano Letivo da barra superior).
-        // Existe porque uma semana de planejamento pode cair em 2 meses
-        // (ex: 28/07 a 01/08) e cada turma tem dias de aula diferentes na
-        // grade — o mês "certo" pra vincular a aula importada é aquele em que
-        // a turma realmente tem mais aulas naquele intervalo, não simplesmente
-        // o mês da data de início.
+        // "diaMes" no formato "DD/MM" (sem ano, como vem do documento) — combina
+        // com o Ano Letivo já selecionado na barra superior pra achar em qual
+        // bimestre configurado a data cai. Só sugestão, sempre editável.
+        function sugerirBimestreParaData(diaMes) {
+            if (!diaMes) return null;
+            const [dia, mes] = diaMes.split('/').map(Number);
+            if (!dia || !mes) return null;
+            return bimestreDaData(new Date(anoLetivoAtual, mes - 1, dia));
+        }
+
+        // Conta, por (mês-calendário + bimestre), quantas aulas reais a TURMA
+        // tem na grade horária dentro do intervalo [dataInicioStr, dataFimStr]
+        // (ambos "DD/MM", sem ano — combinados com o Ano Letivo da barra
+        // superior). O bimestre entra na chave (não só o mês) porque um mesmo
+        // mês pode ser "Julho do 2º Bimestre" ou "Julho do 3º Bimestre" —
+        // contar só por mês juntaria os dois incorretamente. Existe porque uma
+        // semana de planejamento pode cair em 2 meses e/ou 2 bimestres (ex:
+        // 21/07 a 24/07, atravessando a fronteira do 2º pro 3º) e cada turma
+        // tem dias de aula diferentes na grade — o vínculo "certo" é aquele em
+        // que a turma realmente tem mais aulas naquele intervalo.
         const DIA_SEMANA_PARA_CHAVE_GRADE = { 1: 'segunda', 2: 'terca', 3: 'quarta', 4: 'quinta', 5: 'sexta' };
 
-        function contarSessoesPorMes(turma, dataInicioStr, dataFimStr) {
-            const mapa = new Map(); // chave "ano-mes" -> nº de aulas da turma
+        function contarSessoesPorMesEBimestre(turma, dataInicioStr, dataFimStr) {
+            const mapa = new Map(); // chave "ano-mes-bimestre" -> nº de aulas da turma
             if (!gradeHorarios || !dataInicioStr || !dataFimStr) return mapa;
 
             const [diaIni, mesIni] = dataInicioStr.split('/').map(Number);
@@ -1475,8 +1487,9 @@
                 if (chaveDia) {
                     const sessoesNoDia = linhasGrade.filter(l => l[chaveDia] === turma).length;
                     if (sessoesNoDia > 0) {
-                        const chaveMes = `${cursor.getFullYear()}-${cursor.getMonth() + 1}`;
-                        mapa.set(chaveMes, (mapa.get(chaveMes) || 0) + sessoesNoDia);
+                        const bimestre = bimestreDaData(cursor) || 0;
+                        const chave = `${cursor.getFullYear()}-${cursor.getMonth() + 1}-${bimestre}`;
+                        mapa.set(chave, (mapa.get(chave) || 0) + sessoesNoDia);
                     }
                 }
                 cursor.setDate(cursor.getDate() + 1);
@@ -1484,36 +1497,28 @@
             return mapa;
         }
 
-        // Escolhe o mês-calendário certo pra uma semana importada, pra ESTA
-        // turma. Sem grade configurada (ou turma não encontrada nela), cai no
-        // mês da data de início — única informação confiável que sobra.
+        // Escolhe o mês-calendário E o bimestre certos pra uma semana
+        // importada, pra ESTA turma. Sem grade configurada (ou turma não
+        // encontrada nela), cai na data de início — única informação
+        // confiável que sobra, mas ainda resolvendo o bimestre pelo dia exato.
         function escolherMesDaSemana(turma, dataInicioStr, dataFimStr) {
-            const porMes = contarSessoesPorMes(turma, dataInicioStr, dataFimStr);
-            if (porMes.size === 0) {
+            const porMesEBimestre = contarSessoesPorMesEBimestre(turma, dataInicioStr, dataFimStr);
+            if (porMesEBimestre.size === 0) {
                 const [dia, mes] = (dataInicioStr || '').split('/').map(Number);
                 if (!dia || !mes) return null;
-                return { ano: anoLetivoAtual, mes };
+                return { ano: anoLetivoAtual, mes, bimestre: bimestreDaData(new Date(anoLetivoAtual, mes - 1, dia)) };
             }
             // Map preserva ordem de inserção (cronológica, dia a dia) — em caso
-            // de empate na contagem, a entrada já vista primeiro (mês mais cedo)
+            // de empate na contagem, a entrada já vista primeiro (mais cedo)
             // permanece, então só troca o "melhor" em empate estrito de maior.
             let melhor = null;
-            porMes.forEach((contagem, chave) => {
+            porMesEBimestre.forEach((contagem, chave) => {
                 if (!melhor || contagem > melhor.contagem) {
-                    const [ano, mes] = chave.split('-').map(Number);
-                    melhor = { ano, mes, contagem };
+                    const [ano, mes, bimestre] = chave.split('-').map(Number);
+                    melhor = { ano, mes, bimestre: bimestre || null, contagem };
                 }
             });
-            return { ano: melhor.ano, mes: melhor.mes };
-        }
-
-        // Deriva o bimestre a partir de um mês-calendário já escolhido (não da
-        // data de início da semana) — assim bimestre e mês ficam sempre
-        // consistentes entre si mesmo quando a maioria das aulas da semana cai
-        // no mês seguinte ao da data de início.
-        function bimestreDoMes(ano, mes) {
-            const cfg = bimestresConfig.find(b => mesesDoIntervalo(b.inicio, b.fim).some(m => m.ano === ano && m.mes === mes));
-            return cfg ? cfg.numero : null;
+            return { ano: melhor.ano, mes: melhor.mes, bimestre: melhor.bimestre };
         }
 
         // Busca (ou cria, se ainda não existir) o planejamento mensal de uma
@@ -1586,16 +1591,26 @@
                 objetoConhecimento: extraido.objetoConhecimento,
                 procedimentos: extraido.procedimentos,
                 recursos: extraido.recursos,
-                semanas: (extraido.semanas || []).map(s => ({
-                    numero: s.numero,
-                    dataInicio: s.dataInicio,
-                    dataFim: s.dataFim,
-                    titulo: `Semana ${s.numero} — ${s.dataInicio} a ${s.dataFim}`,
-                    descricaoCompleta: s.atividades.map(a => `${a.titulo}: ${a.descricao.join(' ')}`).join('\n\n'),
-                    numeroAulas: 1,
-                    incluida: true,
-                    bimestreSugerido: sugerirBimestreParaData(s.dataInicio)
-                }))
+                semanas: (extraido.semanas || []).map(s => {
+                    const bimestreInicio = sugerirBimestreParaData(s.dataInicio);
+                    const bimestreFim = sugerirBimestreParaData(s.dataFim);
+                    return {
+                        numero: s.numero,
+                        dataInicio: s.dataInicio,
+                        dataFim: s.dataFim,
+                        titulo: `Semana ${s.numero} — ${s.dataInicio} a ${s.dataFim}`,
+                        descricaoCompleta: s.atividades.map(a => `${a.titulo}: ${a.descricao.join(' ')}`).join('\n\n'),
+                        numeroAulas: 1,
+                        incluida: true,
+                        bimestreSugerido: bimestreInicio,
+                        // A semana cruza a fronteira entre 2 bimestres (ex: data
+                        // de início no 2º Bimestre, data de fim já no 3º) — a
+                        // vinculação automática decide pelo bimestre com mais
+                        // aulas de fato na grade, mas o professor precisa saber
+                        // que essa semana é ambígua ANTES de aprovar.
+                        cruzaBimestre: bimestreInicio !== null && bimestreFim !== null && bimestreInicio !== bimestreFim
+                    };
+                })
             };
 
             selecionado = null;
@@ -1680,6 +1695,7 @@
                         <label style="display:flex;align-items:center;gap:6px;font-weight:600;">
                             <input type="checkbox" onchange="alternarSemanaImportacao(${i})" ${s.incluida ? 'checked' : ''}> Semana ${s.numero} (${s.dataInicio} a ${s.dataFim})${s.bimestreSugerido ? ` — sugestão: ${s.bimestreSugerido}º Bimestre` : ''}
                         </label>
+                        ${s.cruzaBimestre ? `<p style="color:var(--pf-danger);font-size:0.8rem;font-weight:600;margin:2px 0 0;">⚠️ Essa semana atravessa a fronteira entre bimestres — confira o mês/bimestre da aula depois de importar.</p>` : ''}
                         <div class="pf-field">
                             <label>Título</label>
                             <input type="text" id="impSemanaTitulo${i}" value="${s.titulo.replace(/"/g, '&quot;')}">
@@ -1757,14 +1773,14 @@
 
                 // 2) uma aula por semana incluída × série marcada — vinculada
                 // ao mês em que a série tem de fato mais aulas naquele
-                // intervalo (contarSessoesPorMes/escolherMesDaSemana), não
-                // simplesmente ao mês da data de início da semana.
+                // intervalo (contarSessoesPorMesEBimestre/escolherMesDaSemana),
+                // não simplesmente ao mês/bimestre da data de início da semana.
                 const aulasGeradasIds = [];
                 const cacheMensais = new Map();
                 for (const serie of seriesMarcadas) {
                     for (const semana of semanasIncluidas) {
                         const mesEscolhido = escolherMesDaSemana(serie, semana.dataInicio, semana.dataFim);
-                        const bimestre = mesEscolhido ? bimestreDoMes(mesEscolhido.ano, mesEscolhido.mes) : null;
+                        const bimestre = mesEscolhido ? mesEscolhido.bimestre : null;
                         const planejamentoMensalId = mesEscolhido
                             ? await obterOuCriarMensalId(cacheMensais, serie, bimestre, mesEscolhido.mes)
                             : null;
