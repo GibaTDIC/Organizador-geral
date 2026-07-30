@@ -239,6 +239,7 @@
         import { ouvirAulas, criarAula, excluirAula as excluirAulaService } from "../../scripts/services/aulas-service.js";
         import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
+        import { ouvirGrade } from "../../scripts/services/grade-service.js";
         import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
@@ -263,7 +264,7 @@
         let escolaAtualId = null;
         let uidAtual = null;
         let unsubAulas = null, unsubConfiguracoes = null, unsubAnuais = null, unsubBimestrais = null, unsubMensais = null;
-        let unsubHistoricoAtual = null, unsubAtividades = null;
+        let unsubHistoricoAtual = null, unsubAtividades = null, unsubGrade = null;
 
         let aulasTodas = [];
         let atividadesDisponiveis = [];
@@ -272,6 +273,7 @@
         let planejamentosBimestrais = [];
         let planejamentosMensais = [];
         let historicoAtual = [];
+        let gradeHorarios = null; // usado só pra vincular semanas importadas ao mês certo (ver contarSessoesPorMes)
 
         let turmaAtual = '6º Ano';
         let anoLetivoAtual = new Date().getFullYear();
@@ -630,6 +632,12 @@
             });
         }
 
+        function carregarGrade() {
+            return ouvirGrade(escolaAtualId, (docSnap) => {
+                gradeHorarios = docSnap.exists() ? docSnap.data() : null;
+            });
+        }
+
         function carregarAtividadesParaVinculo() {
             return ouvirAtividades(escolaAtualId, (snapshot) => {
                 atividadesDisponiveis = snapshot.docs
@@ -692,12 +700,14 @@
             if (unsubBimestrais) unsubBimestrais();
             if (unsubMensais) unsubMensais();
             if (unsubAtividades) unsubAtividades();
+            if (unsubGrade) unsubGrade();
             unsubAulas = carregarAulas();
             unsubConfiguracoes = carregarConfiguracoes();
             unsubAnuais = carregarAnuais();
             unsubBimestrais = carregarBimestrais();
             unsubMensais = carregarMensais();
             unsubAtividades = carregarAtividadesParaVinculo();
+            unsubGrade = carregarGrade();
         });
 
         // ---------- Árvore de navegação ----------
@@ -1435,6 +1445,105 @@
             return cfg ? cfg.numero : null;
         }
 
+        // Conta, por mês-calendário, quantas aulas reais a TURMA tem na grade
+        // horária dentro do intervalo [dataInicioStr, dataFimStr] (ambos
+        // "DD/MM", sem ano — combinados com o Ano Letivo da barra superior).
+        // Existe porque uma semana de planejamento pode cair em 2 meses
+        // (ex: 28/07 a 01/08) e cada turma tem dias de aula diferentes na
+        // grade — o mês "certo" pra vincular a aula importada é aquele em que
+        // a turma realmente tem mais aulas naquele intervalo, não simplesmente
+        // o mês da data de início.
+        const DIA_SEMANA_PARA_CHAVE_GRADE = { 1: 'segunda', 2: 'terca', 3: 'quarta', 4: 'quinta', 5: 'sexta' };
+
+        function contarSessoesPorMes(turma, dataInicioStr, dataFimStr) {
+            const mapa = new Map(); // chave "ano-mes" -> nº de aulas da turma
+            if (!gradeHorarios || !dataInicioStr || !dataFimStr) return mapa;
+
+            const [diaIni, mesIni] = dataInicioStr.split('/').map(Number);
+            const [diaFim, mesFim] = dataFimStr.split('/').map(Number);
+            if (!diaIni || !mesIni || !diaFim || !mesFim) return mapa;
+
+            // Semana virando o ano (ex: 29/12 a 03/01) — o fim cai no ano seguinte.
+            const anoFim = mesFim < mesIni ? anoLetivoAtual + 1 : anoLetivoAtual;
+            const inicio = new Date(anoLetivoAtual, mesIni - 1, diaIni);
+            const fim = new Date(anoFim, mesFim - 1, diaFim);
+            const linhasGrade = [...(gradeHorarios.matutino || []), ...(gradeHorarios.vespertino || [])];
+
+            const cursor = new Date(inicio);
+            while (cursor <= fim) {
+                const chaveDia = DIA_SEMANA_PARA_CHAVE_GRADE[cursor.getDay()];
+                if (chaveDia) {
+                    const sessoesNoDia = linhasGrade.filter(l => l[chaveDia] === turma).length;
+                    if (sessoesNoDia > 0) {
+                        const chaveMes = `${cursor.getFullYear()}-${cursor.getMonth() + 1}`;
+                        mapa.set(chaveMes, (mapa.get(chaveMes) || 0) + sessoesNoDia);
+                    }
+                }
+                cursor.setDate(cursor.getDate() + 1);
+            }
+            return mapa;
+        }
+
+        // Escolhe o mês-calendário certo pra uma semana importada, pra ESTA
+        // turma. Sem grade configurada (ou turma não encontrada nela), cai no
+        // mês da data de início — única informação confiável que sobra.
+        function escolherMesDaSemana(turma, dataInicioStr, dataFimStr) {
+            const porMes = contarSessoesPorMes(turma, dataInicioStr, dataFimStr);
+            if (porMes.size === 0) {
+                const [dia, mes] = (dataInicioStr || '').split('/').map(Number);
+                if (!dia || !mes) return null;
+                return { ano: anoLetivoAtual, mes };
+            }
+            // Map preserva ordem de inserção (cronológica, dia a dia) — em caso
+            // de empate na contagem, a entrada já vista primeiro (mês mais cedo)
+            // permanece, então só troca o "melhor" em empate estrito de maior.
+            let melhor = null;
+            porMes.forEach((contagem, chave) => {
+                if (!melhor || contagem > melhor.contagem) {
+                    const [ano, mes] = chave.split('-').map(Number);
+                    melhor = { ano, mes, contagem };
+                }
+            });
+            return { ano: melhor.ano, mes: melhor.mes };
+        }
+
+        // Deriva o bimestre a partir de um mês-calendário já escolhido (não da
+        // data de início da semana) — assim bimestre e mês ficam sempre
+        // consistentes entre si mesmo quando a maioria das aulas da semana cai
+        // no mês seguinte ao da data de início.
+        function bimestreDoMes(ano, mes) {
+            const cfg = bimestresConfig.find(b => mesesDoIntervalo(b.inicio, b.fim).some(m => m.ano === ano && m.mes === mes));
+            return cfg ? cfg.numero : null;
+        }
+
+        // Busca (ou cria, se ainda não existir) o planejamento mensal de uma
+        // turma/bimestre/mês — usado pra vincular aulas importadas sem exigir
+        // que o professor tenha criado o mês manualmente antes. cache evita
+        // recriar o mesmo mês repetidas vezes quando várias semanas da mesma
+        // turma caem no mesmo mês.
+        async function obterOuCriarMensalId(cache, turma, bimestre, mes) {
+            if (!bimestre || !mes) return null;
+            const chave = `${turma}|${bimestre}|${mes}`;
+            if (cache.has(chave)) return cache.get(chave);
+
+            const existente = planejamentosMensais.find(p =>
+                p.turma === turma && p.anoLetivo === anoLetivoAtual && p.bimestre === bimestre && p.mes === mes);
+            if (existente) {
+                cache.set(chave, existente.id);
+                return existente.id;
+            }
+
+            const bimestral = planejamentosBimestrais.find(p =>
+                p.turma === turma && p.anoLetivo === anoLetivoAtual && p.bimestre === bimestre);
+            const ref = await criarPlanejamentoMensal(escolaAtualId, {
+                turma, anoLetivo: anoLetivoAtual, bimestre, mes,
+                planejamentoBimestralId: bimestral ? bimestral.id : null,
+                objetivos: '', conteudos: '', observacoes: ''
+            });
+            cache.set(chave, ref.id);
+            return ref.id;
+        }
+
         document.getElementById('inputArquivoDocx').addEventListener('change', async (evento) => {
             const file = evento.target.files[0];
             evento.target.value = '';
@@ -1646,10 +1755,20 @@
                     }
                 });
 
-                // 2) uma aula por semana incluída × série marcada
+                // 2) uma aula por semana incluída × série marcada — vinculada
+                // ao mês em que a série tem de fato mais aulas naquele
+                // intervalo (contarSessoesPorMes/escolherMesDaSemana), não
+                // simplesmente ao mês da data de início da semana.
                 const aulasGeradasIds = [];
+                const cacheMensais = new Map();
                 for (const serie of seriesMarcadas) {
                     for (const semana of semanasIncluidas) {
+                        const mesEscolhido = escolherMesDaSemana(serie, semana.dataInicio, semana.dataFim);
+                        const bimestre = mesEscolhido ? bimestreDoMes(mesEscolhido.ano, mesEscolhido.mes) : null;
+                        const planejamentoMensalId = mesEscolhido
+                            ? await obterOuCriarMensalId(cacheMensais, serie, bimestre, mesEscolhido.mes)
+                            : null;
+
                         const aulaData = {
                             titulo: semana.titulo,
                             turma: serie,
@@ -1661,8 +1780,8 @@
                             descricao: semana.descricaoCompleta,
                             recursos: imp.recursos || null,
                             atividadesVinculadas: [],
-                            bimestre: semana.bimestreSugerido || null,
-                            planejamentoMensalId: null,
+                            bimestre: bimestre || semana.bimestreSugerido || null,
+                            planejamentoMensalId,
                             origemImportacao: { importacaoId: refImportacao.id },
                             timestamp: new Date().toISOString()
                         };
