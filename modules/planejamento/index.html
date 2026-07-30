@@ -318,21 +318,52 @@
             showToast(texto, tipo);
         }
 
+        function normalizarTexto(texto) {
+            return (texto || '').trim().toLowerCase();
+        }
+
+        // O seletor de "Unidade Temática" por bimestre em Configurações na
+        // verdade guarda nomes no nível de ESPECIFICAÇÃO da BNCC (ex: "Esportes
+        // de precisão"), não o nível grosso que unidadesPorAno usa (ex:
+        // "Esportes") — por isso a sugestão de bimestre precisa comparar contra
+        // especificacoesPorUnidade, não contra a lista de unidades da turma.
+        // Comparação normalizada (minúsculo/trim) porque as strings salvas em
+        // Configurações não têm exatamente a mesma capitalização do dataset
+        // canônico em data/bncc-curriculum.js.
+        function especificacoesSugeridasBimestre(unidade) {
+            const bimestreSelect = document.getElementById('plAulaBimestre');
+            const numeroBimestre = bimestreSelect ? parseInt(bimestreSelect.value, 10) : null;
+            if (!numeroBimestre) return [];
+            const cfg = bimestresConfig.find(b => b.numero === numeroBimestre);
+            const configuradas = (cfg && cfg.unidades) || [];
+            if (configuradas.length === 0) return [];
+            const configuradasNorm = configuradas.map(normalizarTexto);
+            const especificacoes = especificacoesPorUnidade[unidade] || [];
+            return especificacoes.filter(e => configuradasNorm.includes(normalizarTexto(e)));
+        }
+
         // ---------- Cascata BNCC (turma → unidade → especificação → habilidades) ----------
         // Mesma lógica que já existia no Planejamento plano, só redirecionada
         // pros elementos do formulário de aula dentro da área principal.
-        window.atualizarUnidadesTematicas = function () {
+        // manterUnidade força a inclusão desse valor na lista mesmo que ele não
+        // esteja entre as unidades sugeridas do bimestre (edição de uma aula
+        // antiga cujo bimestre configurado mudou desde então).
+        window.atualizarUnidadesTematicas = function (manterUnidade) {
             const turmaSelect = document.getElementById('turma');
+            const bimestreSelect = document.getElementById('plAulaBimestre');
             const unidadeTematicaSelect = document.getElementById('unidadeTematica');
             const especificacaoGroup = document.getElementById('especificacaoGroup');
             const especificacaoSelect = document.getElementById('especificacao');
             const habilidadesContainer = document.getElementById('habilidadesContainer');
+            const hint = document.getElementById('unidadeTematicaHint');
             if (!turmaSelect) return;
 
+            const valorAnterior = manterUnidade || unidadeTematicaSelect.value;
             const turmaSelecionada = turmaSelect.value;
             unidadeTematicaSelect.innerHTML = '';
             especificacaoGroup.classList.add('hidden');
             especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+            if (hint) hint.textContent = '';
 
             if (!turmaSelecionada) {
                 unidadeTematicaSelect.innerHTML = '<option value="">Selecione a turma primeiro</option>';
@@ -340,8 +371,8 @@
                 return;
             }
 
-            const unidades = unidadesPorAno[turmaSelecionada] || [];
-            if (unidades.length === 0) {
+            const unidadesDoAno = unidadesPorAno[turmaSelecionada] || [];
+            if (unidadesDoAno.length === 0) {
                 unidadeTematicaSelect.innerHTML = '<option value="">Nenhuma unidade encontrada</option>';
                 return;
             }
@@ -351,14 +382,58 @@
             optionDefault.textContent = 'Selecione a unidade temática';
             unidadeTematicaSelect.appendChild(optionDefault);
 
-            unidades.forEach(unidade => {
+            // Unidades planejadas pra este bimestre em Configurações (se houver) —
+            // uma unidade "conta" se pelo menos uma das especificações
+            // configuradas pra este bimestre pertence a ela.
+            const numeroBimestre = bimestreSelect ? parseInt(bimestreSelect.value, 10) : null;
+            const sugeridas = numeroBimestre
+                ? unidadesDoAno.filter(u => especificacoesSugeridasBimestre(u).length > 0)
+                : [];
+            const restantes = unidadesDoAno.filter(u => !sugeridas.includes(u));
+
+            function adicionarOpcao(destino, unidade) {
                 const option = document.createElement('option');
                 option.value = unidade;
                 option.textContent = unidade;
-                unidadeTematicaSelect.appendChild(option);
-            });
+                destino.appendChild(option);
+            }
+
+            if (sugeridas.length > 0) {
+                const grupoSugeridas = document.createElement('optgroup');
+                grupoSugeridas.label = `✅ Planejadas para o ${numeroBimestre}º Bimestre`;
+                sugeridas.forEach(u => adicionarOpcao(grupoSugeridas, u));
+                unidadeTematicaSelect.appendChild(grupoSugeridas);
+
+                const grupoRestantes = document.createElement('optgroup');
+                grupoRestantes.label = 'Outras unidades desta série';
+                restantes.forEach(u => adicionarOpcao(grupoRestantes, u));
+                unidadeTematicaSelect.appendChild(grupoRestantes);
+
+                if (hint) {
+                    hint.textContent = sugeridas.length === 1
+                        ? `Unidade sugerida automaticamente a partir do planejamento do ${numeroBimestre}º Bimestre em Configurações.`
+                        : `${sugeridas.length} unidades planejadas para o ${numeroBimestre}º Bimestre em Configurações — destacadas acima.`;
+                }
+            } else {
+                unidadesDoAno.forEach(u => adicionarOpcao(unidadeTematicaSelect, u));
+            }
+
+            if (valorAnterior && unidadesDoAno.includes(valorAnterior)) {
+                unidadeTematicaSelect.value = valorAnterior;
+            } else if (sugeridas.length === 1) {
+                // Reconhecimento automático: só 1 unidade planejada pro bimestre e
+                // nada foi escolhido ainda — já seleciona ela.
+                unidadeTematicaSelect.value = sugeridas[0];
+            }
 
             habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma unidade temática</p>';
+
+            // Se a unidade já saiu selecionada (valor mantido ou sugestão única),
+            // a cascata de especificação/habilidades precisa rodar também — só o
+            // 'change' do <select> dispara isso sozinho, e aqui não houve clique.
+            if (unidadeTematicaSelect.value) {
+                atualizarEspecificacoes();
+            }
         };
 
         window.atualizarEspecificacoes = function () {
@@ -367,9 +442,12 @@
             const especificacaoGroup = document.getElementById('especificacaoGroup');
             const especificacaoSelect = document.getElementById('especificacao');
             const habilidadesContainer = document.getElementById('habilidadesContainer');
+            const hint = document.getElementById('especificacaoHint');
 
+            const valorAnterior = especificacaoSelect.value;
             const unidadeSelecionada = unidadeTematicaSelect.value;
             especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+            if (hint) hint.textContent = '';
 
             if (!unidadeSelecionada) {
                 especificacaoGroup.classList.add('hidden');
@@ -380,13 +458,47 @@
             const especificacoes = especificacoesPorUnidade[unidadeSelecionada] || [];
             if (especificacoes.length > 0) {
                 especificacaoGroup.classList.remove('hidden');
-                especificacoes.forEach(espec => {
+
+                const sugeridas = especificacoesSugeridasBimestre(unidadeSelecionada);
+                const restantes = especificacoes.filter(e => !sugeridas.includes(e));
+
+                function adicionarOpcao(destino, espec) {
                     const option = document.createElement('option');
                     option.value = espec;
                     option.textContent = espec;
-                    especificacaoSelect.appendChild(option);
-                });
+                    destino.appendChild(option);
+                }
+
+                if (sugeridas.length > 0) {
+                    const grupoSugeridas = document.createElement('optgroup');
+                    grupoSugeridas.label = '✅ Planejadas para este bimestre';
+                    sugeridas.forEach(e => adicionarOpcao(grupoSugeridas, e));
+                    especificacaoSelect.appendChild(grupoSugeridas);
+
+                    const grupoRestantes = document.createElement('optgroup');
+                    grupoRestantes.label = 'Outras especificações';
+                    restantes.forEach(e => adicionarOpcao(grupoRestantes, e));
+                    especificacaoSelect.appendChild(grupoRestantes);
+
+                    if (hint) {
+                        hint.textContent = sugeridas.length === 1
+                            ? 'Especificação sugerida automaticamente a partir do planejamento deste bimestre em Configurações.'
+                            : `${sugeridas.length} especificações planejadas para este bimestre em Configurações — destacadas acima.`;
+                    }
+                } else {
+                    especificacoes.forEach(e => adicionarOpcao(especificacaoSelect, e));
+                }
+
+                if (valorAnterior && especificacoes.includes(valorAnterior)) {
+                    especificacaoSelect.value = valorAnterior;
+                } else if (sugeridas.length === 1) {
+                    especificacaoSelect.value = sugeridas[0];
+                }
+
                 habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
+                if (especificacaoSelect.value) {
+                    atualizarHabilidades();
+                }
             } else {
                 especificacaoGroup.classList.add('hidden');
                 const turmaSelecionada = turmaSelect.value;
@@ -1053,16 +1165,28 @@
                         </select>
                     </div>
                     <div class="pf-field">
+                        <label for="plAulaBimestre">Bimestre</label>
+                        <select id="plAulaBimestre" class="pf-filter-select" onchange="atualizarUnidadesTematicas()">
+                            <option value="">Não definido</option>
+                            <option value="1">1º Bimestre</option>
+                            <option value="2">2º Bimestre</option>
+                            <option value="3">3º Bimestre</option>
+                            <option value="4">4º Bimestre</option>
+                        </select>
+                    </div>
+                    <div class="pf-field">
                         <label for="unidadeTematica">Unidade Temática (BNCC) *</label>
                         <select id="unidadeTematica" required onchange="atualizarEspecificacoes()">
                             <option value="">Selecione a turma primeiro</option>
                         </select>
+                        <small id="unidadeTematicaHint" style="display:block;color:var(--pf-gray-500);margin-top:4px;"></small>
                     </div>
                     <div class="pf-field especificacao-group hidden" id="especificacaoGroup">
                         <label for="especificacao">Especificação *</label>
                         <select id="especificacao" onchange="atualizarHabilidades()">
                             <option value="">Selecione a especificação</option>
                         </select>
+                        <small id="especificacaoHint" style="display:block;color:var(--pf-gray-500);margin-top:4px;"></small>
                     </div>
                     <div class="pf-field">
                         <label for="objetoConhecimento">Objeto de Conhecimento *</label>
@@ -1100,16 +1224,6 @@
                         </div>
                     </div>
                     <div class="pf-field">
-                        <label for="plAulaBimestre">Bimestre</label>
-                        <select id="plAulaBimestre" class="pf-filter-select">
-                            <option value="">Não definido</option>
-                            <option value="1">1º Bimestre</option>
-                            <option value="2">2º Bimestre</option>
-                            <option value="3">3º Bimestre</option>
-                            <option value="4">4º Bimestre</option>
-                        </select>
-                    </div>
-                    <div class="pf-field">
                         <label for="plAulaMes">Vincular a um mês do Planejamento</label>
                         <select id="plAulaMes" class="pf-filter-select">
                             <option value="">Nenhum</option>
@@ -1128,7 +1242,8 @@
             if (existente) {
                 habilidadesPreSelecionadas = existente.habilidades || [];
                 document.getElementById('turma').value = existente.turma || '';
-                atualizarUnidadesTematicas();
+                document.getElementById('plAulaBimestre').value = existente.bimestre || '';
+                atualizarUnidadesTematicas(existente.unidadeTematica || '');
                 document.getElementById('unidadeTematica').value = existente.unidadeTematica || '';
                 atualizarEspecificacoes();
                 if (existente.especificacao) {
@@ -1136,12 +1251,11 @@
                 }
                 atualizarHabilidades();
                 habilidadesPreSelecionadas = null;
-                document.getElementById('plAulaBimestre').value = existente.bimestre || '';
                 document.getElementById('plAulaMes').value = existente.planejamentoMensalId || '';
             } else {
                 document.getElementById('turma').value = turmaAtual;
-                atualizarUnidadesTematicas();
                 document.getElementById('plAulaBimestre').value = bimestreContexto || '';
+                atualizarUnidadesTematicas();
                 document.getElementById('plAulaMes').value = mensalIdContexto || '';
             }
         }
