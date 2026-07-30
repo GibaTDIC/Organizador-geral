@@ -1094,6 +1094,7 @@
         // Firebase SDK
         import "../../scripts/layout/page-shell.js";
         import "../../scripts/components/pf-modal.js";
+        import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial } from "../../scripts/services/grade-service.js";
@@ -1101,6 +1102,10 @@
         import { ouvirTurmas, salvarTurmas } from "../../scripts/services/turmas-service.js";
 
         // Estado da aplicação
+        let escolaAtualId = null;
+        let unsubGrade = null;
+        let unsubConfiguracoes = null;
+        let unsubTurmas = null;
         let dataBase = new Date();
         let modoArrastarAtivo = false;
         let itemArrastando = null;
@@ -1265,7 +1270,7 @@
 
         // Carregar turmas do Firebase
         function carregarTurmasFirebase() {
-    ouvirTurmas((docSnap) => {
+    return ouvirTurmas(escolaAtualId, (docSnap) => {
         const data = docSnap.data();
 
         if (data && data.lista) {
@@ -1280,7 +1285,7 @@
 
         // Carregar grade do Firebase
         function carregarGradeFirebase() {
-    ouvirGrade((docSnap) => {
+    return ouvirGrade(escolaAtualId, (docSnap) => {
         const data = docSnap.data();
 
         if (data && data.matutino && data.vespertino) {
@@ -1295,7 +1300,7 @@
 
         // Carregar configurações do Firebase
         function carregarConfiguracoesFirebase() {
-    ouvirConfiguracoes((docSnap) => {
+    return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
         const data = docSnap.data();
 
         if (data && data.bimestres) {
@@ -1308,7 +1313,7 @@
 
         // Salvar turmas no Firebase
         function salvarTurmasFirebase() {
-    salvarTurmas(turmas)
+    salvarTurmas(escolaAtualId, turmas)
         .then(() => {
             mostrarMensagem('Turmas salvas com sucesso!', 'success');
         })
@@ -1356,7 +1361,7 @@
                 }
                 
                 salvarTurmasFirebase();
-                salvarGradeParcial(gradeHorarios);
+                salvarGradeParcial(escolaAtualId, gradeHorarios);
                 renderizarTurmasLista();
                 renderizarProgramacao();
                 mostrarMensagem(`Turma ${nomeTurma} removida!`, 'info');
@@ -1753,7 +1758,7 @@
         };
 
         window.salvarConfiguracoes = function() {
-    salvarConfiguracoesService(bimestres)
+    salvarConfiguracoesService(escolaAtualId, bimestres)
         .then(() => {
             renderizarBimestresCompact();
             renderizarProgramacao();
@@ -1799,7 +1804,7 @@
         };
 
         window.salvarGrade = function() {
-    salvarGradeService(gradeHorarios)
+    salvarGradeService(escolaAtualId, gradeHorarios)
         .then(() => {
             mostrarMensagem('Grade salva com sucesso!', 'success');
         })
@@ -1841,11 +1846,10 @@
         }
 
         // Inicializar
-        carregarConfiguracoesFirebase();
-        carregarGradeFirebase();
-        carregarTurmasFirebase();
+        // 🔒 Corrigido: antes estas 3 chamadas rodavam incondicionalmente, sem
+        // esperar login nem escola ativa — hoje esperam 'pf-escola-ready'.
         renderizarBimestresCompact();
-        
+
         // Iniciar com a lista de turmas recolhida
         setTimeout(() => {
             const content = document.getElementById('turmasContent');
@@ -1853,8 +1857,20 @@
             content.classList.add('collapsed');
             icon.textContent = '►';
         }, 100);
-     
-requireAuth({ loginPath: '../../login.html' });
+
+        requireAuth({ loginPath: '../../login.html' });
+
+        // Só carrega os dados depois de confirmar login E qual escola está ativa.
+        // Ao trocar de escola, cancela os listeners antigos antes de abrir os novos.
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+            if (unsubConfiguracoes) unsubConfiguracoes();
+            if (unsubGrade) unsubGrade();
+            if (unsubTurmas) unsubTurmas();
+            unsubConfiguracoes = carregarConfiguracoesFirebase();
+            unsubGrade = carregarGradeFirebase();
+            unsubTurmas = carregarTurmasFirebase();
+        });
     </script>
 </body>
 </html>

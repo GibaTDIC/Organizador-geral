@@ -534,10 +534,14 @@
     <script type="module">
         // Importar Firebase
         import "../../scripts/layout/page-shell.js";
+        import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirAulas, criarAula, atualizarAula, excluirAula as excluirAulaService } from "../../scripts/services/aulas-service.js";
         import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
+
+        let escolaAtualId = null;
+        let unsubAulas = null;
 
         // Elementos DOM
         const form = document.getElementById('aulaForm');
@@ -762,7 +766,7 @@
 
         // Carregar aulas do Firebase
        function carregarAulas() {
-    ouvirAulas((snapshot) => {
+    return ouvirAulas(escolaAtualId, (snapshot) => {
 
         if (!snapshot.empty) {
 
@@ -874,12 +878,12 @@
             try {
                 if (aulaEditando) {
                     // Atualizar aula existente
-                    await atualizarAula(aulaEditando, aulaData);
+                    await atualizarAula(escolaAtualId, aulaEditando, aulaData);
                     mostrarMensagem('Aula atualizada com sucesso!', 'success');
                     aulaEditando = null;
                 } else {
                     // Criar nova aula
-                    await criarAula(aulaData);
+                    await criarAula(escolaAtualId, aulaData);
                     mostrarMensagem('Aula salva com sucesso!', 'success');
                 }
 
@@ -979,7 +983,7 @@ ${aula.descricao}
         window.excluirAula = async (id) => {
             if (confirm('Tem certeza que deseja excluir esta aula?')) {
                 try {
-                    await excluirAulaService(id);
+                    await excluirAulaService(escolaAtualId, id);
                     mostrarMensagem('Aula excluída com sucesso!', 'success');
                 } catch (error) {
                     console.error('Erro ao excluir aula:', error);
@@ -1003,11 +1007,14 @@ ${aula.descricao}
         // 🔒 Exige login para acessar esta página
         requireAuth({
             loginPath: '../../login.html',
-            onReady: () => {
-                // Só carrega os dados depois de confirmar que o professor está logado
-                carregarAulas();
-                atualizarUnidadesTematicas();
-            }
+            onReady: () => atualizarUnidadesTematicas() // dados estáticos da BNCC, não depende de escola
+        });
+
+        // Só carrega as aulas depois de confirmar login E qual escola está ativa.
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+            if (unsubAulas) unsubAulas();
+            unsubAulas = carregarAulas();
         });
     </script>
 </body>

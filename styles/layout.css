@@ -86,6 +86,36 @@ pf-header {
     text-decoration: underline;
 }
 
+.pf-header__escola {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-space-2);
+    margin-right: var(--pf-space-4);
+}
+
+.pf-header__escola-select {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--pf-ice-50);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--pf-radius-md);
+    padding: var(--pf-space-1) var(--pf-space-2);
+    font-family: var(--pf-font-family);
+    font-size: 13px;
+    max-width: 160px;
+}
+
+.pf-header__escola-nova {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: inherit;
+    border-radius: var(--pf-radius-md);
+    padding: var(--pf-space-1) var(--pf-space-2);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--pf-font-family);
+    white-space: nowrap;
+}
+
 .pf-header__user {
     display: flex;
     align-items: center;

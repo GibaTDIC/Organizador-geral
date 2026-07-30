@@ -1014,12 +1014,16 @@
     <script type="module">
         // Importar Firebase
         import "../../scripts/layout/page-shell.js";
+        import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirAulas } from "../../scripts/services/aulas-service.js";
         import { ouvirTurmas } from "../../scripts/services/turmas-service.js";
         import { lerControlador, salvarControlador } from "../../scripts/services/controlador-service.js";
         // Estado da aplicação
+        let escolaAtualId = null;
+        let unsubAulas = null;
+        let unsubTurmas = null;
         let aulasFirebase = [];
         let aulasControlador = [];
         let aulasFiltradas = [];
@@ -1098,7 +1102,7 @@
         // Carrega as aulas cadastradas no Planejamento (coleção 'aulas') em tempo real.
         // Sempre que uma aula é criada, editada ou excluída lá, o Controlador é ressincronizado aqui.
         function carregarDadosFirebase() {
-            ouvirAulas((snapshot) => {
+            return ouvirAulas(escolaAtualId, (snapshot) => {
                 aulasFirebase = snapshot.docs.map(docSnap => {
                     const data = docSnap.data();
 
@@ -1121,7 +1125,7 @@
         // Escuta as turmas cadastradas (mesma fonte do index.html) e ressincroniza
         // o Controlador sempre que uma turma for adicionada ou removida.
         function carregarTurmasFirebase() {
-            ouvirTurmas((docSnap) => {
+            return ouvirTurmas(escolaAtualId, (docSnap) => {
                 const data = docSnap.data();
                 if (data && data.lista && data.lista.length) {
                     turmasAtuais = data.lista;
@@ -1140,7 +1144,7 @@
             atualizandoControlador = true;
             try {
 
-            const docSnap = await lerControlador();
+            const docSnap = await lerControlador(escolaAtualId);
             const data = docSnap.exists() ? docSnap.data() : null;
 
         let controladorBanco = data?.aulas || [];
@@ -1200,7 +1204,7 @@
         }
 
         if (alterou) {
-    await salvarControlador({
+    await salvarControlador(escolaAtualId, {
         aulas: controladorBanco,
         aulaAtualId: data?.aulaAtualId || null,
         ultimaAtualizacao: new Date().toISOString()
@@ -1388,7 +1392,7 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
                 aulaAtualId: aulaAtualId,
                 ultimaAtualizacao: new Date().toISOString()
             };
-            salvarControlador(data).catch(error => {
+            salvarControlador(escolaAtualId, data).catch(error => {
                 console.error('Erro ao salvar no Firebase:', error);
             });
         }
@@ -1801,13 +1805,16 @@ Observação da execução correta dos alongamentos. Percepção corporal dos al
         }
 
         // 🔒 Exige login para acessar esta página
-        requireAuth({
-            loginPath: '../../login.html',
-            onReady: () => {
-                // Só carrega os dados depois de confirmar que o professor está logado
-                carregarDadosFirebase();
-                carregarTurmasFirebase();
-            }
+        requireAuth({ loginPath: '../../login.html' });
+
+        // Só carrega os dados depois de confirmar login E qual escola está ativa.
+        // Ao trocar de escola, cancela os listeners antigos antes de abrir os novos.
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+            if (unsubAulas) unsubAulas();
+            if (unsubTurmas) unsubTurmas();
+            unsubAulas = carregarDadosFirebase();
+            unsubTurmas = carregarTurmasFirebase();
         });
     </script>
 </body>
