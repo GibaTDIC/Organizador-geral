@@ -326,14 +326,16 @@
         import { ouvirAulas } from "../../scripts/services/aulas-service.js";
         import { ouvirControlador, salvarControlador } from "../../scripts/services/controlador-service.js";
         import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
+        import { ouvirAtividades, registrarUso } from "../../scripts/services/atividades-service.js";
 
         // ---------- Estado ----------
         let escolaAtualId = null;
-        let unsubGrade = null, unsubTurmas = null, unsubAulas = null, unsubControlador = null;
+        let unsubGrade = null, unsubTurmas = null, unsubAulas = null, unsubControlador = null, unsubAtividades = null;
 
         let gradeAtual = { matutino: [], vespertino: [] };
         let turmasAtuais = [];
         let aulasFirebaseRaw = [];
+        let atividadesCarregadas = [];
         let controladorAtual = { aulas: [], aulaAtualId: null };
 
         let gradeCarregada = false;
@@ -477,7 +479,12 @@
             }
             entrada.aulasExecutadas++;
             entrada.status = entrada.aulasExecutadas >= total ? 'Concluída' : 'Em Andamento';
-            persistirControlador().then(() => showToast('Aula registrada!', 'success'));
+            persistirControlador().then(() => {
+                showToast('Aula registrada!', 'success');
+                atividadesVinculadasDaEntrada(entrada).forEach(at => {
+                    registrarUso(escolaAtualId, at.id, entrada.turma).catch(erro => console.error('Erro ao registrar uso da atividade:', erro));
+                });
+            });
         };
 
         window.anexarArquivo = function () {
@@ -710,6 +717,11 @@
                     <p><strong>Habilidades da BNCC:</strong> ${habilidadesTexto}</p>
                     <p><strong>Descrição/Metodologia:</strong> ${entrada.descricao || '-'}</p>
                     <p><strong>Recursos Didáticos:</strong> ${entrada.recursos || 'Não especificado'}</p>
+                    <p><strong>Atividades Vinculadas:</strong> ${
+                        atividadesVinculadasDaEntrada(entrada).length > 0
+                            ? atividadesVinculadasDaEntrada(entrada).map(at => `${at.titulo} (${at.tipo || 'Outros'})`).join(', ')
+                            : 'Nenhuma'
+                    }</p>
                 </div>
 
                 <div class="pd-painel-secao">
@@ -805,6 +817,23 @@
             });
         }
 
+        function carregarAtividadesPD() {
+            return ouvirAtividades(escolaAtualId, (snapshot) => {
+                atividadesCarregadas = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderizarTudo();
+            });
+        }
+
+        // Resolve as atividades vinculadas direto na aula ORIGINAL do Planejamento
+        // (via entrada.firebaseId) — não passa pelo Controlador, que só copia
+        // campos nomeados explicitamente e nunca soube desse campo.
+        function atividadesVinculadasDaEntrada(entrada) {
+            if (!entrada || !entrada.firebaseId) return [];
+            const aulaOriginal = aulasFirebaseRaw.find(a => a.id === entrada.firebaseId);
+            const ids = (aulaOriginal && aulaOriginal.atividadesVinculadas) || [];
+            return ids.map(id => atividadesCarregadas.find(at => at.id === id)).filter(Boolean);
+        }
+
         function carregarControlador() {
             return ouvirControlador(escolaAtualId, (docSnap) => {
                 const data = docSnap.exists() ? docSnap.data() : null;
@@ -830,10 +859,12 @@
             if (unsubTurmas) unsubTurmas();
             if (unsubAulas) unsubAulas();
             if (unsubControlador) unsubControlador();
+            if (unsubAtividades) unsubAtividades();
             unsubGrade = carregarGrade();
             unsubTurmas = carregarTurmas();
             unsubAulas = carregarAulas();
             unsubControlador = carregarControlador();
+            unsubAtividades = carregarAtividadesPD();
         });
     </script>
 </body>

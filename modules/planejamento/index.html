@@ -222,6 +222,7 @@
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirAulas, criarAula, excluirAula as excluirAulaService } from "../../scripts/services/aulas-service.js";
+        import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
         import { db } from "../../scripts/firebase-config.js";
@@ -243,9 +244,10 @@
         // ---------- Estado ----------
         let escolaAtualId = null;
         let unsubAulas = null, unsubConfiguracoes = null, unsubAnuais = null, unsubBimestrais = null, unsubMensais = null;
-        let unsubHistoricoAtual = null;
+        let unsubHistoricoAtual = null, unsubAtividades = null;
 
         let aulasTodas = [];
+        let atividadesDisponiveis = [];
         let bimestresConfig = [];
         let planejamentosAnuais = [];
         let planejamentosBimestrais = [];
@@ -496,6 +498,15 @@
             });
         }
 
+        function carregarAtividadesParaVinculo() {
+            return ouvirAtividades(escolaAtualId, (snapshot) => {
+                atividadesDisponiveis = snapshot.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(a => !a.arquivada);
+                renderizarTudo();
+            });
+        }
+
         function renderizarTudo() {
             renderizarArvore();
             renderizarAreaPrincipal();
@@ -544,11 +555,13 @@
             if (unsubAnuais) unsubAnuais();
             if (unsubBimestrais) unsubBimestrais();
             if (unsubMensais) unsubMensais();
+            if (unsubAtividades) unsubAtividades();
             unsubAulas = carregarAulas();
             unsubConfiguracoes = carregarConfiguracoes();
             unsubAnuais = carregarAnuais();
             unsubBimestrais = carregarBimestrais();
             unsubMensais = carregarMensais();
+            unsubAtividades = carregarAtividadesParaVinculo();
         });
 
         // ---------- Árvore de navegação ----------
@@ -1049,6 +1062,19 @@
                         <textarea id="recursos" rows="2">${existente ? (existente.recursos || '') : ''}</textarea>
                     </div>
                     <div class="pf-field">
+                        <label>Atividades Vinculadas (Banco de Atividades)</label>
+                        <div id="plAtividadesVinculadas" style="max-height:160px;overflow-y:auto;border:2px solid var(--pf-gray-300);border-radius:var(--pf-radius-md);padding:var(--pf-space-2);background:var(--pf-white);">
+                            ${atividadesDisponiveis.length === 0
+                                ? '<p style="color:#666;text-align:center;font-size:0.85rem;">Nenhuma atividade cadastrada no Banco de Atividades ainda.</p>'
+                                : atividadesDisponiveis.map(at => `
+                                    <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;padding:3px 0;font-weight:normal;">
+                                        <input type="checkbox" name="plAtividadeVinculada" value="${at.id}" style="width:auto;" ${existente && (existente.atividadesVinculadas || []).includes(at.id) ? 'checked' : ''}>
+                                        ${at.titulo} <span style="color:var(--pf-gray-500);">(${at.tipo || 'Outros'})</span>
+                                    </label>
+                                `).join('')}
+                        </div>
+                    </div>
+                    <div class="pf-field">
                         <label for="plAulaBimestre">Bimestre</label>
                         <select id="plAulaBimestre" class="pf-filter-select">
                             <option value="">Não definido</option>
@@ -1112,6 +1138,7 @@
                 numeroAulas: parseInt(document.getElementById('numeroAulas').value) || 1,
                 descricao: document.getElementById('descricao').value,
                 recursos: document.getElementById('recursos').value || null,
+                atividadesVinculadas: Array.from(document.querySelectorAll('input[name="plAtividadeVinculada"]:checked')).map(cb => cb.value),
                 bimestre: document.getElementById('plAulaBimestre').value ? parseInt(document.getElementById('plAulaBimestre').value, 10) : null,
                 planejamentoMensalId: document.getElementById('plAulaMes').value || null,
                 timestamp: new Date().toISOString()

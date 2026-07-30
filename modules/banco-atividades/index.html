@@ -9,48 +9,752 @@
     <link rel="stylesheet" href="../../styles/tokens.css">
     <link rel="stylesheet" href="../../styles/reset.css">
     <link rel="stylesheet" href="../../styles/base.css">
+    <link rel="stylesheet" href="../../styles/layout.css">
+    <link rel="stylesheet" href="../../styles/components/alert.css">
+    <link rel="stylesheet" href="../../styles/components/card.css">
+    <link rel="stylesheet" href="../../styles/components/button.css">
+    <link rel="stylesheet" href="../../styles/components/filter.css">
+    <link rel="stylesheet" href="../../styles/components/form.css">
+    <link rel="stylesheet" href="../../styles/components/search-field.css">
+    <link rel="stylesheet" href="../../styles/components/progress-bar.css">
+    <link rel="stylesheet" href="../../styles/components/modal.css">
     <style>
-        body {
-            min-height: 100vh;
+        body { background: var(--pf-gray-100); }
+
+        .ba-header { margin-bottom: var(--pf-space-4); }
+        .ba-header h1 { font-size: 1.5rem; color: var(--pf-gray-900); }
+        .ba-header p { color: var(--pf-gray-500); font-size: 0.9rem; }
+
+        .ba-barra {
             display: flex;
+            flex-wrap: wrap;
+            gap: var(--pf-space-3);
             align-items: center;
-            justify-content: center;
-            background: var(--pf-slate-900);
-            padding: var(--pf-space-4);
-        }
-        .em-breve {
-            text-align: center;
-            color: var(--pf-ice-50);
-            max-width: 420px;
-        }
-        .em-breve .icone {
-            font-size: 48px;
+            justify-content: space-between;
             margin-bottom: var(--pf-space-4);
         }
-        .em-breve h1 {
-            font-size: 1.5rem;
-            margin-bottom: var(--pf-space-2);
+        .ba-barra-campos { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); align-items: center; flex: 1; min-width: 260px; }
+        .ba-barra-campos .pf-search-field { flex: 1; min-width: 200px; }
+        .ba-barra-acoes { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); }
+
+        .ba-favoritos-toggle, .ba-arquivadas-toggle {
+            display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: var(--pf-gray-700); cursor: pointer;
+            white-space: nowrap;
         }
-        .em-breve p {
-            color: var(--pf-gray-300);
-            margin-bottom: var(--pf-space-6);
+
+        .ba-estatisticas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--pf-space-3);
+            margin-bottom: var(--pf-space-4);
         }
-        .em-breve a {
-            color: var(--pf-orange-500);
-            text-decoration: none;
-            font-weight: 600;
+        .ba-estatistica { text-align: center; }
+        .ba-estatistica-valor { font-size: 1.4rem; font-weight: 800; color: var(--pf-blue-700); }
+        .ba-estatistica-label { font-size: 0.7rem; color: var(--pf-gray-500); text-transform: uppercase; letter-spacing: 0.4px; }
+
+        .ba-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: var(--pf-space-4);
         }
-        .em-breve a:hover {
-            text-decoration: underline;
+
+        .ba-card { display: flex; flex-direction: column; gap: var(--pf-space-2); position: relative; }
+        .ba-card-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--pf-space-2); }
+        .ba-card-titulo { font-size: 1rem; font-weight: 700; color: var(--pf-gray-900); }
+        .ba-card-fav { background: none; border: none; cursor: pointer; font-size: 1.1rem; line-height: 1; }
+        .ba-card-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+        .ba-card-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: var(--pf-radius-lg); background: var(--pf-gray-200); color: var(--pf-gray-700); }
+        .ba-card-badge--tipo { background: var(--pf-blue-700); color: var(--pf-white); }
+        .ba-card-desc { font-size: 0.82rem; color: var(--pf-gray-500); flex: 1; }
+        .ba-card-meta { font-size: 0.72rem; color: var(--pf-gray-500); display: flex; justify-content: space-between; }
+        .ba-card-acoes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: var(--pf-space-2); }
+        .ba-card-acoes .pf-btn { font-size: 0.72rem; padding: 4px 8px; }
+        .ba-card--arquivada { opacity: 0.55; }
+
+        .ba-estado-vazio { color: var(--pf-gray-500); font-size: 0.9rem; text-align: center; padding: var(--pf-space-8); }
+
+        #modalAtividade .pf-modal { max-width: 640px; max-height: 90vh; overflow-y: auto; }
+        .ba-especificacao-group.hidden { display: none; }
+        .ba-habilidades-container {
+            max-height: 200px; overflow-y: auto; border: 2px solid var(--pf-gray-300);
+            border-radius: var(--pf-radius-md); padding: var(--pf-space-2); background: var(--pf-white);
+        }
+        .ba-habilidade-checkbox { display: block; margin: var(--pf-space-1) 0; padding: 4px; border-bottom: 1px solid var(--pf-gray-200); }
+        .ba-habilidade-checkbox label { display: flex; align-items: flex-start; gap: var(--pf-space-2); cursor: pointer; font-weight: normal; }
+        .ba-habilidade-checkbox input[type="checkbox"] { width: auto; margin-top: 3px; flex-shrink: 0; }
+        .ba-habilidade-descricao { font-size: 0.8rem; color: var(--pf-gray-500); }
+
+        .ba-arquivos-lista { display: flex; flex-direction: column; gap: 4px; margin-top: var(--pf-space-2); }
+        .ba-arquivo-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; background: var(--pf-gray-100); padding: 6px 10px; border-radius: var(--pf-radius-md); }
+        .ba-arquivo-item button { background: none; border: none; color: var(--pf-danger); cursor: pointer; }
+
+        @media (max-width: 700px) {
+            .ba-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="em-breve">
-        <div class="icone">🗂️</div>
-        <h1>Banco de Atividades</h1>
-        <p>Este módulo do Prof GB ainda está em desenvolvimento.</p>
-        <a href="../programacao-diaria/index.html">← Voltar para a Programação Diária</a>
+    <div class="pf-app-shell">
+        <pf-header></pf-header>
+        <pf-sidebar active="banco-atividades"></pf-sidebar>
+        <div class="pf-app-main">
+            <div class="container">
+
+                <div class="ba-header">
+                    <h1>🗂️ Banco de Atividades</h1>
+                    <p>Sua biblioteca pedagógica — crie, organize e reutilize atividades vinculadas à BNCC.</p>
+                </div>
+
+                <div class="pf-card ba-barra">
+                    <div class="ba-barra-campos">
+                        <div class="pf-search-field">
+                            <input type="text" id="baBusca" placeholder="Buscar por título, descrição, palavra-chave ou habilidade (ex: EF05MA08)...">
+                        </div>
+                        <select class="pf-filter-select" id="baFiltroSerie">
+                            <option value="">Todas as séries</option>
+                        </select>
+                        <select class="pf-filter-select" id="baFiltroTipo">
+                            <option value="">Todos os tipos</option>
+                        </select>
+                        <label class="ba-favoritos-toggle"><input type="checkbox" id="baFiltroFavoritos"> ⭐ Só favoritas</label>
+                        <label class="ba-arquivadas-toggle"><input type="checkbox" id="baMostrarArquivadas"> Mostrar arquivadas</label>
+                    </div>
+                    <div class="ba-barra-acoes">
+                        <button class="pf-btn pf-btn--success" onclick="novaAtividade()">➕ Nova Atividade</button>
+                        <button class="pf-btn pf-btn--info" onclick="exportarAtividadesCsv()">⬇️ Exportar</button>
+                    </div>
+                </div>
+
+                <div class="pf-card ba-estatisticas" id="baEstatisticas"></div>
+
+                <div class="ba-grid" id="baGrid">
+                    <p class="ba-estado-vazio">Carregando atividades…</p>
+                </div>
+
+            </div>
+        </div>
     </div>
+
+    <pf-modal id="modalAtividade">
+        <div class="pf-modal-header">
+            <h2 id="modalAtividadeTitulo" style="font-size:1.1rem;">➕ Nova Atividade</h2>
+            <span style="cursor:pointer;" onclick="document.getElementById('modalAtividade').close()">&times;</span>
+        </div>
+        <div class="pf-modal-body">
+            <form id="formAtividade">
+                <div class="pf-field">
+                    <label for="baTitulo">Título *</label>
+                    <input type="text" id="baTitulo" required>
+                </div>
+                <div class="pf-field">
+                    <label for="baDescricao">Descrição</label>
+                    <textarea id="baDescricao" rows="3"></textarea>
+                </div>
+                <div class="pf-field">
+                    <label for="baObjetivo">Objetivo</label>
+                    <textarea id="baObjetivo" rows="2"></textarea>
+                </div>
+                <div class="pf-field">
+                    <label for="baTipo">Tipo de Atividade *</label>
+                    <select id="baTipo" required></select>
+                </div>
+                <div class="pf-field">
+                    <label for="baTurma">Série (BNCC)</label>
+                    <select id="baTurma" onchange="atualizarUnidadesTematicasBA()">
+                        <option value="">Selecione a série</option>
+                    </select>
+                </div>
+                <div class="pf-field">
+                    <label for="baUnidadeTematica">Unidade Temática</label>
+                    <select id="baUnidadeTematica" onchange="atualizarEspecificacoesBA()">
+                        <option value="">Selecione a série primeiro</option>
+                    </select>
+                </div>
+                <div class="pf-field ba-especificacao-group hidden" id="baEspecificacaoGroup">
+                    <label for="baEspecificacao">Especificação</label>
+                    <select id="baEspecificacao" onchange="atualizarHabilidadesBA()">
+                        <option value="">Selecione a especificação</option>
+                    </select>
+                </div>
+                <div class="pf-field">
+                    <label>Habilidades da BNCC</label>
+                    <div id="baHabilidadesContainer" class="ba-habilidades-container">
+                        <p style="color:#666;text-align:center;">Selecione a série e a unidade temática primeiro</p>
+                    </div>
+                </div>
+                <div class="pf-field">
+                    <label for="baPalavrasChave">Palavras-chave (separadas por vírgula)</label>
+                    <input type="text" id="baPalavrasChave" placeholder="frações, jogos, matemática...">
+                </div>
+                <div class="pf-field">
+                    <label for="baVisibilidade">Visibilidade</label>
+                    <select id="baVisibilidade">
+                        <option value="privada">🔒 Privada (só eu)</option>
+                        <option value="escola">🏫 Compartilhada com a escola</option>
+                    </select>
+                </div>
+                <div class="pf-field">
+                    <label for="baLinkExterno">Link externo (opcional, ex: vídeo no YouTube)</label>
+                    <input type="url" id="baLinkExterno" placeholder="https://...">
+                </div>
+                <div class="pf-field">
+                    <label for="baArquivoInput">Anexar arquivo(s)</label>
+                    <input type="file" id="baArquivoInput" multiple>
+                    <div class="ba-arquivos-lista" id="baArquivosLista"></div>
+                </div>
+                <button type="submit" class="pf-btn pf-btn--success">💾 Salvar Atividade</button>
+            </form>
+        </div>
+    </pf-modal>
+
+    <script type="module">
+        import "../../scripts/layout/page-shell.js";
+        import "../../scripts/components/pf-modal.js";
+        import "../../scripts/services/escola-context.js";
+        import { requireAuth } from "../../scripts/services/auth-guard.js";
+        import { showToast } from "../../scripts/components/pf-alert.js";
+        import { auth } from "../../scripts/firebase-config.js";
+        import {
+            ouvirAtividades, criarAtividade, atualizarAtividade, excluirAtividade,
+            duplicarAtividade, favoritar, desfavoritar, arquivar, desarquivar
+        } from "../../scripts/services/atividades-service.js";
+        import { uploadArquivo, excluirArquivo } from "../../scripts/services/storage-service.js";
+        import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
+
+        // ---------- Constantes ----------
+        const TURMAS_DISPONIVEIS = ["1º Ano","2º Ano","3º Ano","4º Ano","5º Ano","6º Ano","7º Ano","8º Ano","9º Ano"];
+        const TIPOS_ATIVIDADE = [
+            "Exercícios", "Lista de exercícios", "Jogos", "Sequência didática", "Experimentos",
+            "Projetos", "Produção textual", "Avaliações", "Trabalhos", "Dinâmicas",
+            "Apresentações", "Vídeos", "Leituras", "Outros"
+        ];
+
+        // ---------- Estado ----------
+        let escolaAtualId = null;
+        let unsubAtividades = null;
+        let atividades = [];
+        let uidAtual = null;
+
+        let termoBusca = '';
+        let filtroSerie = '';
+        let filtroTipo = '';
+        let somenteFavoritas = false;
+        let mostrarArquivadas = false;
+
+        let atividadeEditando = null; // id da atividade em edição, null = criando nova
+        let arquivosExistentes = [];  // arquivos já salvos da atividade em edição
+        let arquivosNovos = [];       // File[] escolhidos agora, ainda não enviados
+
+        // ---------- Helpers ----------
+        function mostrarMensagem(texto, tipo) {
+            showToast(texto, tipo);
+        }
+
+        function formatarData(isoString) {
+            if (!isoString) return '-';
+            const d = new Date(isoString);
+            return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        }
+
+        // ---------- Cascata BNCC (cópia fiel do Planejamento — mesmos quirks:
+        // branch de unidade sem especificação em atualizarEspecificacoesBA, e
+        // habilidadesPreSelecionadasBA setada/resetada ao redor da cascata na edição) ----------
+        let habilidadesPreSelecionadasBA = null;
+
+        window.atualizarUnidadesTematicasBA = function () {
+            const turmaSelect = document.getElementById('baTurma');
+            const unidadeTematicaSelect = document.getElementById('baUnidadeTematica');
+            const especificacaoGroup = document.getElementById('baEspecificacaoGroup');
+            const especificacaoSelect = document.getElementById('baEspecificacao');
+            const habilidadesContainer = document.getElementById('baHabilidadesContainer');
+
+            const turmaSelecionada = turmaSelect.value;
+            unidadeTematicaSelect.innerHTML = '';
+            especificacaoGroup.classList.add('hidden');
+            especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+
+            if (!turmaSelecionada) {
+                unidadeTematicaSelect.innerHTML = '<option value="">Selecione a série primeiro</option>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a série, unidade temática e especificação primeiro</p>';
+                return;
+            }
+
+            const unidades = unidadesPorAno[turmaSelecionada] || [];
+            if (unidades.length === 0) {
+                unidadeTematicaSelect.innerHTML = '<option value="">Nenhuma unidade encontrada</option>';
+                return;
+            }
+
+            const optionDefault = document.createElement('option');
+            optionDefault.value = '';
+            optionDefault.textContent = 'Selecione a unidade temática';
+            unidadeTematicaSelect.appendChild(optionDefault);
+
+            unidades.forEach(unidade => {
+                const option = document.createElement('option');
+                option.value = unidade;
+                option.textContent = unidade;
+                unidadeTematicaSelect.appendChild(option);
+            });
+
+            habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma unidade temática</p>';
+        };
+
+        window.atualizarEspecificacoesBA = function () {
+            const turmaSelect = document.getElementById('baTurma');
+            const unidadeTematicaSelect = document.getElementById('baUnidadeTematica');
+            const especificacaoGroup = document.getElementById('baEspecificacaoGroup');
+            const especificacaoSelect = document.getElementById('baEspecificacao');
+            const habilidadesContainer = document.getElementById('baHabilidadesContainer');
+
+            const unidadeSelecionada = unidadeTematicaSelect.value;
+            especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+
+            if (!unidadeSelecionada) {
+                especificacaoGroup.classList.add('hidden');
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma unidade temática</p>';
+                return;
+            }
+
+            const especificacoes = especificacoesPorUnidade[unidadeSelecionada] || [];
+            if (especificacoes.length > 0) {
+                especificacaoGroup.classList.remove('hidden');
+                especificacoes.forEach(espec => {
+                    const option = document.createElement('option');
+                    option.value = espec;
+                    option.textContent = espec;
+                    especificacaoSelect.appendChild(option);
+                });
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
+            } else {
+                especificacaoGroup.classList.add('hidden');
+                const turmaSelecionada = turmaSelect.value;
+                const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
+                if (habilidadesTurma && habilidadesTurma[unidadeSelecionada]) {
+                    const habilidades = [];
+                    Object.values(habilidadesTurma[unidadeSelecionada]).forEach(especHabilidades => {
+                        habilidades.push(...especHabilidades);
+                    });
+                    exibirHabilidadesBA(habilidades);
+                }
+            }
+        };
+
+        window.atualizarHabilidadesBA = function () {
+            const turmaSelect = document.getElementById('baTurma');
+            const unidadeTematicaSelect = document.getElementById('baUnidadeTematica');
+            const especificacaoSelect = document.getElementById('baEspecificacao');
+            const especificacaoGroup = document.getElementById('baEspecificacaoGroup');
+            const habilidadesContainer = document.getElementById('baHabilidadesContainer');
+
+            const turmaSelecionada = turmaSelect.value;
+            const unidadeSelecionada = unidadeTematicaSelect.value;
+            const especificacaoSelecionada = especificacaoSelect.value;
+
+            if (!turmaSelecionada || !unidadeSelecionada) {
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a série e unidade temática primeiro</p>';
+                return;
+            }
+            if (especificacaoGroup.classList.contains('hidden') === false && !especificacaoSelecionada) {
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
+                return;
+            }
+
+            const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
+            if (!habilidadesTurma) {
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade encontrada para esta série</p>';
+                return;
+            }
+            const habilidadesUnidade = habilidadesTurma[unidadeSelecionada];
+            if (!habilidadesUnidade) {
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade encontrada para esta unidade</p>';
+                return;
+            }
+
+            let habilidades = [];
+            if (especificacaoSelecionada) {
+                habilidades = habilidadesUnidade[especificacaoSelecionada] || [];
+            } else {
+                Object.values(habilidadesUnidade).forEach(especHabilidades => {
+                    habilidades.push(...especHabilidades);
+                });
+            }
+            exibirHabilidadesBA(habilidades);
+        };
+
+        function exibirHabilidadesBA(habilidades, selecionadas) {
+            const habilidadesContainer = document.getElementById('baHabilidadesContainer');
+            if (habilidades.length === 0) {
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade disponível para esta combinação</p>';
+                return;
+            }
+            const habilidadesUnicas = [];
+            const codigosVistos = new Set();
+            habilidades.forEach(h => {
+                if (!codigosVistos.has(h.codigo)) {
+                    codigosVistos.add(h.codigo);
+                    habilidadesUnicas.push(h);
+                }
+            });
+            const codigosSelecionados = new Set((selecionadas || habilidadesPreSelecionadasBA || []).map(h => h.codigo || h));
+
+            let html = '';
+            habilidadesUnicas.forEach(h => {
+                html += `
+                    <div class="ba-habilidade-checkbox">
+                        <label>
+                            <input type="checkbox" name="baHabilidades" value="${h.codigo}" data-descricao="${h.descricao.replace(/"/g, '&quot;')}" ${codigosSelecionados.has(h.codigo) ? 'checked' : ''}>
+                            <div>
+                                <strong>${h.codigo}</strong><br>
+                                <span class="ba-habilidade-descricao">${h.descricao}</span>
+                            </div>
+                        </label>
+                    </div>
+                `;
+            });
+            habilidadesContainer.innerHTML = html;
+        }
+
+        function getHabilidadesSelecionadasBA() {
+            const checkboxes = document.querySelectorAll('input[name="baHabilidades"]:checked');
+            return Array.from(checkboxes).map(cb => ({ codigo: cb.value, descricao: cb.getAttribute('data-descricao') }));
+        }
+
+        // ---------- Carregamento Firestore ----------
+        function carregarAtividades() {
+            return ouvirAtividades(escolaAtualId, (snapshot) => {
+                atividades = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderizarTudo();
+            });
+        }
+
+        function renderizarTudo() {
+            renderizarEstatisticas();
+            renderizarGrid();
+        }
+
+        // ---------- Barra superior ----------
+        function inicializarBarraSuperior() {
+            const selectSerie = document.getElementById('baFiltroSerie');
+            selectSerie.innerHTML += TURMAS_DISPONIVEIS.map(t => `<option value="${t}">${t}</option>`).join('');
+            selectSerie.addEventListener('change', (e) => { filtroSerie = e.target.value; renderizarGrid(); });
+
+            const selectTipo = document.getElementById('baFiltroTipo');
+            selectTipo.innerHTML += TIPOS_ATIVIDADE.map(t => `<option value="${t}">${t}</option>`).join('');
+            selectTipo.addEventListener('change', (e) => { filtroTipo = e.target.value; renderizarGrid(); });
+
+            document.getElementById('baBusca').addEventListener('input', (e) => {
+                termoBusca = e.target.value.toLowerCase();
+                renderizarGrid();
+            });
+            document.getElementById('baFiltroFavoritos').addEventListener('change', (e) => {
+                somenteFavoritas = e.target.checked;
+                renderizarGrid();
+            });
+            document.getElementById('baMostrarArquivadas').addEventListener('change', (e) => {
+                mostrarArquivadas = e.target.checked;
+                renderizarGrid();
+            });
+
+            // Selects do formulário de cadastro (fixos, não dependem de dados carregados)
+            const selectTurmaForm = document.getElementById('baTurma');
+            selectTurmaForm.innerHTML += TURMAS_DISPONIVEIS.map(t => `<option value="${t}">${t}</option>`).join('');
+            const selectTipoForm = document.getElementById('baTipo');
+            selectTipoForm.innerHTML = TIPOS_ATIVIDADE.map(t => `<option value="${t}">${t}</option>`).join('');
+        }
+
+        // ---------- Inicialização ----------
+        inicializarBarraSuperior();
+
+        requireAuth({ loginPath: '../../login.html' });
+
+        document.addEventListener('pf-auth-ready', (evento) => {
+            uidAtual = evento.detail.user.uid;
+        });
+
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+            if (unsubAtividades) unsubAtividades();
+            unsubAtividades = carregarAtividades();
+        });
+
+        // ---------- Filtro + Estatísticas + Grid ----------
+        function atividadesFiltradas() {
+            return atividades.filter(a => {
+                if (!mostrarArquivadas && a.arquivada) return false;
+                if (filtroSerie && a.turma !== filtroSerie) return false;
+                if (filtroTipo && a.tipo !== filtroTipo) return false;
+                if (somenteFavoritas && !(a.favoritadoPor || []).includes(uidAtual)) return false;
+                if (termoBusca) {
+                    const alvo = [
+                        a.titulo, a.descricao, a.objetoConhecimento, a.unidadeTematica,
+                        ...(a.palavrasChave || []),
+                        ...(a.habilidades || []).map(h => h.codigo)
+                    ].filter(Boolean).join(' ').toLowerCase();
+                    if (!alvo.includes(termoBusca)) return false;
+                }
+                return true;
+            });
+        }
+
+        function renderizarEstatisticas() {
+            const ativas = atividades.filter(a => !a.arquivada);
+            const nuncaUsadas = ativas.filter(a => (a.usos || []).length === 0).length;
+            const favoritasMinhas = ativas.filter(a => (a.favoritadoPor || []).includes(uidAtual)).length;
+            const hoje = new Date();
+            const criadasEsteMes = ativas.filter(a => {
+                const d = new Date(a.criadoEm);
+                return d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth();
+            }).length;
+
+            const indicadores = [
+                { valor: atividades.length, label: 'Total' },
+                { valor: ativas.length, label: 'Ativas' },
+                { valor: nuncaUsadas, label: 'Nunca Usadas' },
+                { valor: criadasEsteMes, label: 'Criadas este Mês' },
+                { valor: favoritasMinhas, label: 'Minhas Favoritas' },
+            ];
+            document.getElementById('baEstatisticas').innerHTML = indicadores.map(i => `
+                <div class="ba-estatistica">
+                    <div class="ba-estatistica-valor">${i.valor}</div>
+                    <div class="ba-estatistica-label">${i.label}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderizarGrid() {
+            const lista = atividadesFiltradas();
+            const container = document.getElementById('baGrid');
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="ba-estado-vazio">Nenhuma atividade encontrada com os filtros atuais.</p>';
+                return;
+            }
+            container.innerHTML = lista.map(a => {
+                const favoritada = (a.favoritadoPor || []).includes(uidAtual);
+                const habilidadesTexto = (a.habilidades || []).map(h => h.codigo).join(', ');
+                const descricaoResumo = (a.descricao || '').length > 100 ? a.descricao.substring(0, 100) + '…' : (a.descricao || '');
+                return `
+                    <div class="pf-card ba-card ${a.arquivada ? 'ba-card--arquivada' : ''}">
+                        <div class="ba-card-topo">
+                            <div class="ba-card-titulo">${a.titulo}</div>
+                            <button class="ba-card-fav" onclick="toggleFavorito('${a.id}')" title="Favoritar">${favoritada ? '⭐' : '☆'}</button>
+                        </div>
+                        <div class="ba-card-badges">
+                            <span class="ba-card-badge ba-card-badge--tipo">${a.tipo || 'Outros'}</span>
+                            ${a.turma ? `<span class="ba-card-badge">${a.turma}</span>` : ''}
+                            ${a.arquivada ? `<span class="ba-card-badge">Arquivada</span>` : ''}
+                        </div>
+                        ${habilidadesTexto ? `<div style="font-size:0.75rem;color:var(--pf-gray-500);">${habilidadesTexto}</div>` : ''}
+                        <div class="ba-card-desc">${descricaoResumo || 'Sem descrição.'}</div>
+                        <div class="ba-card-meta">
+                            <span>${formatarData(a.criadoEm)}</span>
+                            <span>${(a.usos || []).length} uso(s) · ${(a.arquivos || []).length} arquivo(s)</span>
+                        </div>
+                        <div class="ba-card-acoes">
+                            <button class="pf-btn pf-btn--secondary" onclick="editarAtividade('${a.id}')">✏️ Editar</button>
+                            <button class="pf-btn pf-btn--secondary" onclick="duplicarAtividadeAtual('${a.id}')">📋 Duplicar</button>
+                            <button class="pf-btn pf-btn--secondary" onclick="toggleArquivar('${a.id}', ${a.arquivada ? 'true' : 'false'})">${a.arquivada ? '📤 Restaurar' : '🗄️ Arquivar'}</button>
+                            <button class="pf-btn pf-btn--danger" onclick="excluirAtividadeAtual('${a.id}')">🗑️ Excluir</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ---------- Modal de cadastro/edição ----------
+        function renderizarArquivosLista() {
+            const container = document.getElementById('baArquivosLista');
+            const itensExistentes = arquivosExistentes.map((arq, i) => `
+                <div class="ba-arquivo-item">
+                    <span>📎 ${arq.nome}</span>
+                    <button type="button" onclick="removerArquivoExistente(${i})">✕</button>
+                </div>
+            `).join('');
+            const itensNovos = arquivosNovos.map((file, i) => `
+                <div class="ba-arquivo-item">
+                    <span>🆕 ${file.name}</span>
+                    <button type="button" onclick="removerArquivoNovo(${i})">✕</button>
+                </div>
+            `).join('');
+            container.innerHTML = itensExistentes + itensNovos;
+        }
+
+        // Remover um arquivo já salvo durante a edição só tira da lista local —
+        // não apaga do Storage aqui (o mesmo arquivo pode estar referenciado por
+        // uma duplicata; ver excluirAtividade no serviço, que já trata esse caso
+        // na exclusão da atividade inteira). O blob órfão é uma limitação aceita.
+        window.removerArquivoExistente = function (index) {
+            arquivosExistentes.splice(index, 1);
+            renderizarArquivosLista();
+        };
+
+        window.removerArquivoNovo = function (index) {
+            arquivosNovos.splice(index, 1);
+            renderizarArquivosLista();
+        };
+
+        window.novaAtividade = function () {
+            atividadeEditando = null;
+            arquivosExistentes = [];
+            arquivosNovos = [];
+            document.getElementById('modalAtividadeTitulo').textContent = '➕ Nova Atividade';
+            document.getElementById('formAtividade').reset();
+            atualizarUnidadesTematicasBA();
+            renderizarArquivosLista();
+            document.getElementById('modalAtividade').open();
+        };
+
+        window.editarAtividade = function (id) {
+            const a = atividades.find(x => x.id === id);
+            if (!a) return;
+            atividadeEditando = id;
+            arquivosExistentes = (a.arquivos || []).filter(arq => arq.tipo !== 'link');
+            const linkExistente = (a.arquivos || []).find(arq => arq.tipo === 'link');
+            arquivosNovos = [];
+
+            document.getElementById('modalAtividadeTitulo').textContent = '✏️ Editar Atividade';
+            document.getElementById('baTitulo').value = a.titulo || '';
+            document.getElementById('baDescricao').value = a.descricao || '';
+            document.getElementById('baObjetivo').value = a.objetivo || '';
+            document.getElementById('baTipo').value = a.tipo || '';
+            document.getElementById('baPalavrasChave').value = (a.palavrasChave || []).join(', ');
+            document.getElementById('baVisibilidade').value = a.visibilidade || 'privada';
+            document.getElementById('baLinkExterno').value = linkExistente ? linkExistente.url : '';
+
+            document.getElementById('baTurma').value = a.turma || '';
+            habilidadesPreSelecionadasBA = a.habilidades || [];
+            atualizarUnidadesTematicasBA();
+            document.getElementById('baUnidadeTematica').value = a.unidadeTematica || '';
+            atualizarEspecificacoesBA();
+            if (a.especificacao) document.getElementById('baEspecificacao').value = a.especificacao;
+            atualizarHabilidadesBA();
+            habilidadesPreSelecionadasBA = null;
+
+            renderizarArquivosLista();
+            document.getElementById('modalAtividade').open();
+        };
+
+        async function salvarAtividade(evento) {
+            evento.preventDefault();
+            const palavrasChave = document.getElementById('baPalavrasChave').value.split(',').map(s => s.trim()).filter(Boolean);
+            const linkExterno = document.getElementById('baLinkExterno').value.trim();
+
+            const dados = {
+                titulo: document.getElementById('baTitulo').value,
+                descricao: document.getElementById('baDescricao').value,
+                objetivo: document.getElementById('baObjetivo').value,
+                tipo: document.getElementById('baTipo').value,
+                turma: document.getElementById('baTurma').value || null,
+                unidadeTematica: document.getElementById('baUnidadeTematica').value || null,
+                especificacao: document.getElementById('baEspecificacao').value || null,
+                habilidades: getHabilidadesSelecionadasBA(),
+                palavrasChave,
+                visibilidade: document.getElementById('baVisibilidade').value,
+                autorUid: uidAtual,
+                autorNome: auth.currentUser?.displayName || auth.currentUser?.email || 'Professor(a)'
+            };
+
+            try {
+                let id = atividadeEditando;
+                if (!id) {
+                    const ref = await criarAtividade(escolaAtualId, dados);
+                    id = ref.id;
+                } else {
+                    await atualizarAtividade(escolaAtualId, id, dados);
+                }
+
+                // Sequenciamento obrigatório: só depois que o doc existe com um id
+                // real é que dá pra montar o path do Storage pros arquivos novos.
+                const arquivosEnviados = [];
+                for (const file of arquivosNovos) {
+                    arquivosEnviados.push(await uploadArquivo(escolaAtualId, id, file));
+                }
+                if (linkExterno) {
+                    arquivosEnviados.push({ nome: linkExterno, caminhoStorage: null, url: linkExterno, tipo: 'link', tamanho: 0 });
+                }
+
+                await atualizarAtividade(escolaAtualId, id, { arquivos: [...arquivosExistentes, ...arquivosEnviados] });
+
+                mostrarMensagem('Atividade salva!', 'success');
+                document.getElementById('modalAtividade').close();
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Erro ao salvar atividade: ' + erro.message, 'error');
+            }
+        }
+
+        // ---------- Ações do card ----------
+        window.toggleFavorito = async function (id) {
+            const a = atividades.find(x => x.id === id);
+            if (!a) return;
+            const favoritada = (a.favoritadoPor || []).includes(uidAtual);
+            try {
+                if (favoritada) await desfavoritar(escolaAtualId, id, uidAtual);
+                else await favoritar(escolaAtualId, id, uidAtual);
+            } catch (erro) {
+                mostrarMensagem('Erro: ' + erro.message, 'error');
+            }
+        };
+
+        window.duplicarAtividadeAtual = async function (id) {
+            const original = atividades.find(a => a.id === id);
+            try {
+                await duplicarAtividade(escolaAtualId, id, { titulo: `${original ? original.titulo : ''} (cópia)` });
+                mostrarMensagem('Atividade duplicada!', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao duplicar: ' + erro.message, 'error');
+            }
+        };
+
+        window.toggleArquivar = async function (id, estaArquivada) {
+            try {
+                if (estaArquivada) await desarquivar(escolaAtualId, id);
+                else await arquivar(escolaAtualId, id);
+            } catch (erro) {
+                mostrarMensagem('Erro: ' + erro.message, 'error');
+            }
+        };
+
+        window.excluirAtividadeAtual = async function (id) {
+            if (!confirm('Excluir esta atividade? Os arquivos anexados (se não usados em outra atividade) também serão apagados.')) return;
+            try {
+                await excluirAtividade(escolaAtualId, id);
+                mostrarMensagem('Atividade excluída!', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao excluir: ' + erro.message, 'error');
+            }
+        };
+
+        // ---------- Exportação ----------
+        window.exportarAtividadesCsv = function () {
+            const lista = atividadesFiltradas();
+            const linhas = [
+                ['Título', 'Tipo', 'Série', 'Habilidades', 'Usos', 'Favoritada por mim', 'Criada em'],
+                ...lista.map(a => [
+                    a.titulo || '', a.tipo || '', a.turma || '',
+                    (a.habilidades || []).map(h => h.codigo).join(', '),
+                    (a.usos || []).length,
+                    (a.favoritadoPor || []).includes(uidAtual) ? 'Sim' : 'Não',
+                    formatarData(a.criadoEm)
+                ])
+            ];
+            const csv = linhas.map(linha => linha.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\n');
+            const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `banco-atividades-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            mostrarMensagem('Relatório exportado!', 'success');
+        };
+
+        document.getElementById('formAtividade').addEventListener('submit', salvarAtividade);
+        document.getElementById('baArquivoInput').addEventListener('change', (e) => {
+            arquivosNovos.push(...Array.from(e.target.files));
+            e.target.value = '';
+            renderizarArquivosLista();
+        });
+    </script>
 </body>
 </html>
