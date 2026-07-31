@@ -224,7 +224,7 @@
         </div>
         <div class="pf-modal-body" style="display:flex;flex-direction:column;gap:var(--pf-space-3);">
             <button class="pf-btn pf-btn--success" onclick="document.getElementById('modalNovoPlanejamento').close(); novaAulaAvulsa();">✍️ Criar Manualmente</button>
-            <button class="pf-btn pf-btn--secondary" onclick="mostrarMensagem('O Assistente Pedagógico (IA) chega em breve.', 'info')">🤖 Criar com Assistente Pedagógico (IA)</button>
+            <button class="pf-btn pf-btn--secondary" onclick="document.getElementById('modalNovoPlanejamento').close(); novaAulaAvulsa();">🤖 Criar com Assistente Pedagógico (IA)</button>
             <button class="pf-btn pf-btn--info" onclick="document.getElementById('modalNovoPlanejamento').close(); document.getElementById('inputArquivoDocx').click();">📄 Importar Planejamento (Word)</button>
         </div>
     </pf-modal>

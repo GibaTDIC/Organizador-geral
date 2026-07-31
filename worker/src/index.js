@@ -52,7 +52,10 @@ export default {
             });
         } catch (erro) {
             console.error("Falha ao chamar Gemini:", erro);
-            return jsonError("Não foi possível gerar a resposta agora. Tente novamente.", 502);
+            // Detalhe do erro incluído na resposta (não vaza a chave, só o
+            // que o Gemini respondeu) — sem isso, debugar exigia sempre
+            // `wrangler tail` pra ver o que realmente falhou.
+            return jsonError(`Não foi possível gerar a resposta agora: ${erro.message}`, 502);
         }
     },
 };
@@ -72,6 +75,9 @@ async function verificarIdToken(idToken) {
 }
 
 async function chamarGemini(env, prompt, contexto) {
+    if (!env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY não configurada no Worker (rode: wrangler secret put GEMINI_API_KEY).");
+    }
     const promptCompleto = montarPrompt(prompt, contexto);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`;
     const resp = await fetch(url, {
