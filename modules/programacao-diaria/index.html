@@ -480,9 +480,28 @@
                 return;
             }
             entrada.aulasExecutadas++;
-            entrada.status = entrada.aulasExecutadas >= total ? 'Concluída' : 'Em Andamento';
+            const concluiuConteudo = entrada.aulasExecutadas >= total;
+            entrada.status = concluiuConteudo ? 'Concluída' : 'Em Andamento';
+
+            // Quando o conteúdo termina, essa turma/período passa a apontar
+            // pro próximo planejamento pendente (mesma lógica de
+            // derivarStatusTurma) — sem avisar qual é, a troca parece um
+            // reset pro professor (a mesma turma "voltando" pra Não
+            // iniciada, quando na verdade é uma aula nova começando).
+            let mensagem = `Aula registrada (${entrada.aulasExecutadas}/${total})!`;
+            if (concluiuConteudo) {
+                // derivarStatusTurma cai num fallback "mais recente" quando
+                // não sobra nenhuma pendente — que pode ser a própria
+                // entrada que acabou de virar "Concluída". Só anuncia como
+                // "próxima aula" quando é de fato uma pendente diferente.
+                const { entrada: proxima } = derivarStatusTurma(entrada.turma, entrada.componenteCurricular, controladorAtual);
+                mensagem = (proxima && proxima.id !== entrada.id && proxima.status !== 'Concluída')
+                    ? `Conteúdo concluído! Próxima aula: ${proxima.titulo}`
+                    : 'Conteúdo concluído! Nenhuma outra aula planejada pra essa turma ainda.';
+            }
+
             persistirControlador().then(() => {
-                showToast('Aula registrada!', 'success');
+                showToast(mensagem, 'success');
                 atividadesVinculadasDaEntrada(entrada).forEach(at => {
                     registrarUso(escolaAtualId, at.id, entrada.turma).catch(erro => console.error('Erro ao registrar uso da atividade:', erro));
                 });

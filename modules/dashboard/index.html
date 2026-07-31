@@ -116,10 +116,24 @@
             min-width: 52px;
         }
 
+        .dash-rotina-item__info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+        }
+
         .dash-rotina-item__turma {
             font-weight: 600;
             color: var(--pf-gray-900);
-            flex: 1;
+        }
+
+        .dash-rotina-item__conteudo {
+            font-size: 0.78rem;
+            color: var(--pf-gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         /* Badges de status — compartilhados entre Rotina, Próxima Aula e Pendências */
@@ -154,6 +168,11 @@
             font-size: 1.3rem;
             font-weight: 700;
             color: var(--pf-slate-900);
+        }
+
+        .dash-proxima-conteudo {
+            font-size: 0.95rem;
+            color: var(--pf-gray-700);
         }
 
         .dash-proxima-meta {
@@ -709,7 +728,10 @@
                     ${cabecalho}
                     <div class="dash-rotina-item" onclick="irParaProgramacaoDiaria()">
                         <span class="dash-rotina-item__horario">${item.horario}</span>
-                        <span class="dash-rotina-item__turma">${item.valor}</span>
+                        <div class="dash-rotina-item__info">
+                            <span class="dash-rotina-item__turma">${item.valor}</span>
+                            ${item.entrada ? `<span class="dash-rotina-item__conteudo">${item.entrada.titulo}</span>` : ''}
+                        </div>
                         <span class="dash-badge ${classeBadge(item.status)}">${item.status}</span>
                     </div>
                 `;
@@ -735,6 +757,7 @@
                 <div class="dash-proxima-destaque">
                     <span class="dash-badge ${classeBadge(proxima.status)}">${proxima.status}</span>
                     <span class="dash-proxima-turma">${proxima.valor}</span>
+                    ${proxima.entrada ? `<span class="dash-proxima-conteudo">${proxima.entrada.titulo}</span>` : ''}
                     <span class="dash-proxima-meta">${proxima.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'} · ${proxima.horario}</span>
                     <button class="pf-btn pf-btn--primary" onclick="irParaProgramacaoDiaria()">▶️ Iniciar Aula</button>
                 </div>
