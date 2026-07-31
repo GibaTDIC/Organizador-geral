@@ -26,6 +26,14 @@
             align-items: start;
         }
 
+        /* Sem isso, um card é um item de grid com min-width:auto por padrão —
+           texto comprido (ex.: título da aula) força o card a crescer além
+           da coluna em vez de encolher/truncar, e o card empurra a tela
+           inteira pra precisar de rolagem lateral no celular. */
+        .dash-grid > .pf-card {
+            min-width: 0;
+        }
+
         .dash-card--full {
             grid-column: 1 / -1;
         }
@@ -286,12 +294,17 @@
             opacity: 0.55;
         }
 
-        /* Calendário do Bimestre */
+        /* Calendário do Bimestre — largura limitada pra não virar uma grade
+           de quadrados gigantes em telas largas (o card ocupa a largura
+           inteira do dashboard, mas o calendário não precisa). */
         .dash-cal-semana, .dash-cal-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 4px;
             text-align: center;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .dash-cal-semana {
