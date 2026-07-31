@@ -353,6 +353,12 @@
         // professor limpa o filtro aqui mesmo (não precisa de outra tela).
         let filtroTurma = new URLSearchParams(window.location.search).get('turma') || '';
         let selecaoInicialPendente = !!filtroTurma;
+        // Diferente de selecaoInicialPendente (consumida uma vez), este fica
+        // true a sessão inteira — usado só pra decidir se "Concluir Aula"
+        // volta sozinho pro Dashboard (o professor veio de lá pra resolver
+        // UMA aula específica) ou fica na página (navegação direta, onde ele
+        // pode estar resolvendo várias aulas/turmas em sequência).
+        const veioDoDashboard = !!filtroTurma;
         let chaveSelecionada = null; // chave (encodeURIComponent) do slot selecionado na lista
 
         // Fixa o ID da entrada do Controlador no momento em que o professor
@@ -592,6 +598,16 @@
                 atividadesVinculadasDaEntrada(entrada).forEach(at => {
                     registrarUso(escolaAtualId, at.id, entrada.turma).catch(erro => console.error('Erro ao registrar uso da atividade:', erro));
                 });
+                // Só volta sozinho quando o professor veio do Dashboard pra
+                // resolver essa aula específica (ver veioDoDashboard) — dá
+                // tempo de ler o toast antes de sair da página. Navegação
+                // direta na Programação Diária não redireciona, já que o
+                // professor pode estar resolvendo várias aulas em sequência.
+                if (veioDoDashboard) {
+                    setTimeout(() => {
+                        window.location.href = '../dashboard/index.html';
+                    }, 1500);
+                }
             });
         };
 
