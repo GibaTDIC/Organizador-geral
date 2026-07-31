@@ -35,3 +35,9 @@ export function sair() {
 export function observarEstadoAuth(callback) {
     return onAuthStateChanged(auth, callback);
 }
+
+// Sem argumento: usa o cache do SDK e renova sozinho se o token expirou —
+// não precisa forçar refresh manualmente.
+export function obterIdToken() {
+    return auth.currentUser?.getIdToken();
+}

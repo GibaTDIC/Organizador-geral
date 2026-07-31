@@ -244,6 +244,7 @@
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
         import { salvarComHistorico, ouvirHistorico, restaurarVersao } from "../../scripts/services/historico-service.js";
+        import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
         import { criarImportacaoPlanejamento, atualizarImportacaoPlanejamento } from "../../scripts/services/importacoes-planejamento-service.js";
         import { parseArquivoDocxPlanejamento } from "../../scripts/services/docx-planejamento-parser.js";
         import { sugerirClassificacaoBNCC } from "../../scripts/services/bncc-sugestao.js";
@@ -1228,6 +1229,8 @@
                     </div>
                     <div class="pf-field">
                         <label for="descricao">Descrição da Aula / Atividades *</label>
+                        <button type="button" class="pf-btn pf-btn--info" id="btnGerarObjetivosIA" style="margin-bottom:6px;font-size:0.8rem;">💡 Gerar objetivos com IA</button>
+                        <div id="iaSugestaoBox" style="display:none;background:var(--pf-gray-100);border:2px dashed var(--pf-gray-300);border-radius:var(--pf-radius-md);padding:var(--pf-space-2);margin-bottom:6px;font-size:0.85rem;white-space:pre-wrap;"></div>
                         <textarea id="descricao" required rows="4">${existente ? (existente.descricao || '') : ''}</textarea>
                     </div>
                     <div class="pf-field">
@@ -1262,6 +1265,7 @@
             `;
 
             document.getElementById('formAula').addEventListener('submit', salvarAula);
+            document.getElementById('btnGerarObjetivosIA').addEventListener('click', gerarObjetivosComIA);
 
             if (existente) {
                 habilidadesPreSelecionadas = existente.habilidades || [];
@@ -1281,6 +1285,44 @@
                 document.getElementById('plAulaBimestre').value = bimestreContexto || '';
                 atualizarUnidadesTematicas();
                 document.getElementById('plAulaMes').value = mensalIdContexto || '';
+            }
+        }
+
+        // Sugestão da IA nunca entra direto no campo — fica numa caixa à
+        // parte até o professor clicar "Usar este texto", cumprindo a regra
+        // de que toda sugestão precisa ser revisada antes de valer.
+        async function gerarObjetivosComIA() {
+            const botao = document.getElementById('btnGerarObjetivosIA');
+            const box = document.getElementById('iaSugestaoBox');
+            const contexto = {
+                turma: document.getElementById('turma').value,
+                unidadeTematica: document.getElementById('unidadeTematica').value,
+                especificacao: document.getElementById('especificacao')?.value || null,
+                objetoConhecimento: document.getElementById('objetoConhecimento').value,
+                habilidades: getHabilidadesSelecionadas(),
+                tituloAula: document.getElementById('titulo').value
+            };
+            if (!contexto.turma || !contexto.unidadeTematica) {
+                mostrarMensagem('Preencha turma e unidade temática antes de gerar sugestões.', 'error');
+                return;
+            }
+            botao.disabled = true;
+            botao.textContent = '⏳ Gerando...';
+            try {
+                const prompt = 'Sugira uma descrição de aula (atividades e objetivos) de Educação Física, em português, considerando os dados da turma e habilidades BNCC informados no contexto.';
+                const sugestao = await chamarAssistenteIA(prompt, contexto);
+                box.textContent = sugestao;
+                box.style.display = 'block';
+                box.insertAdjacentHTML('beforeend', '<div style="margin-top:8px;"><button type="button" class="pf-btn pf-btn--success" id="btnAceitarSugestaoIA" style="font-size:0.75rem;">✅ Usar este texto</button></div>');
+                document.getElementById('btnAceitarSugestaoIA').addEventListener('click', () => {
+                    document.getElementById('descricao').value = sugestao;
+                    box.style.display = 'none';
+                });
+            } catch (erro) {
+                mostrarMensagem(erro.message, 'error');
+            } finally {
+                botao.disabled = false;
+                botao.textContent = '💡 Gerar objetivos com IA';
             }
         }
 

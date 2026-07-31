@@ -9,48 +9,167 @@
     <link rel="stylesheet" href="../../styles/tokens.css">
     <link rel="stylesheet" href="../../styles/reset.css">
     <link rel="stylesheet" href="../../styles/base.css">
+    <link rel="stylesheet" href="../../styles/layout.css">
+    <link rel="stylesheet" href="../../styles/components/alert.css">
+    <link rel="stylesheet" href="../../styles/components/card.css">
+    <link rel="stylesheet" href="../../styles/components/button.css">
     <style>
-        body {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--pf-slate-900);
-            padding: var(--pf-space-4);
-        }
-        .em-breve {
-            text-align: center;
-            color: var(--pf-ice-50);
-            max-width: 420px;
-        }
-        .em-breve .icone {
-            font-size: 48px;
-            margin-bottom: var(--pf-space-4);
-        }
-        .em-breve h1 {
-            font-size: 1.5rem;
-            margin-bottom: var(--pf-space-2);
-        }
-        .em-breve p {
-            color: var(--pf-gray-300);
-            margin-bottom: var(--pf-space-6);
-        }
-        .em-breve a {
-            color: var(--pf-orange-500);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .em-breve a:hover {
-            text-decoration: underline;
-        }
+        body { background: var(--pf-gray-100); }
+
+        .ia-header { margin-bottom: var(--pf-space-4); }
+        .ia-header h1 { font-size: 1.5rem; color: var(--pf-gray-900); }
+        .ia-header p { color: var(--pf-gray-500); font-size: 0.9rem; }
+
+        /* Grid 2 colunas desktop (chat + ferramentas), empilha em coluna
+           única abaixo de 900px — sem sistema de abas dedicado pra tablet
+           no MVP (ver plano: fica pra uma iteração futura se o uso mostrar
+           necessidade real). */
+        .ia-layout { display: grid; grid-template-columns: 1fr 280px; gap: var(--pf-space-4); align-items: start; }
+        @media (max-width: 900px) { .ia-layout { grid-template-columns: 1fr; } }
+
+        .ia-chat { display: flex; flex-direction: column; height: 70vh; padding: 0; overflow: hidden; }
+        .ia-mensagens { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--pf-space-3); padding: var(--pf-space-3); }
+        .ia-msg { max-width: 80%; padding: var(--pf-space-2) var(--pf-space-3); border-radius: var(--pf-radius-md); white-space: pre-wrap; font-size: 0.9rem; }
+        .ia-msg--usuario { align-self: flex-end; background: var(--pf-blue-700); color: var(--pf-white); }
+        .ia-msg--ia { align-self: flex-start; background: var(--pf-gray-200); color: var(--pf-gray-900); }
+        .ia-estado-vazio { color: var(--pf-gray-500); font-size: 0.9rem; text-align: center; padding: var(--pf-space-8); }
+
+        .ia-form { display: flex; gap: var(--pf-space-2); padding: var(--pf-space-3); border-top: 1px solid var(--pf-gray-200); }
+        .ia-form textarea { flex: 1; resize: none; font-family: inherit; }
+
+        .ia-ferramentas { display: flex; flex-direction: column; gap: var(--pf-space-2); }
+        .ia-ferramentas h3 { font-size: 0.95rem; margin-bottom: var(--pf-space-1); }
+        .ia-ferramentas button { text-align: left; width: 100%; }
+        .ia-ferramentas-nota { font-size: 0.75rem; color: var(--pf-gray-500); margin-top: var(--pf-space-2); }
     </style>
 </head>
 <body>
-    <div class="em-breve">
-        <div class="icone">🤖</div>
-        <h1>Inteligência Artificial</h1>
-        <p>Este módulo do Prof GB ainda está em desenvolvimento.</p>
-        <a href="../programacao-diaria/index.html">← Voltar para a Programação Diária</a>
+    <div class="pf-app-shell">
+        <pf-header></pf-header>
+        <pf-sidebar active="ia"></pf-sidebar>
+        <div class="pf-app-main">
+            <div class="container">
+
+                <div class="ia-header">
+                    <h1>🤖 Assistente Pedagógico</h1>
+                    <p>Converse ou use um atalho rápido — toda sugestão é sua pra revisar antes de usar.</p>
+                </div>
+
+                <div class="ia-layout">
+                    <div class="pf-card ia-chat">
+                        <div class="ia-mensagens" id="iaMensagens">
+                            <p class="ia-estado-vazio">Faça uma pergunta ou escolha uma ferramenta ao lado pra começar.</p>
+                        </div>
+                        <form class="ia-form" id="iaForm">
+                            <textarea id="iaInput" rows="2" placeholder="Pergunte algo..." required></textarea>
+                            <button type="submit" class="pf-btn pf-btn--success" id="iaEnviarBtn">Enviar</button>
+                        </form>
+                    </div>
+                    <div class="pf-card ia-ferramentas">
+                        <h3>Ferramentas rápidas</h3>
+                        <button type="button" class="pf-btn pf-btn--secondary" data-ferramenta="planejamento">📚 Gerar objetivos de aula</button>
+                        <button type="button" class="pf-btn pf-btn--secondary" data-ferramenta="atividade">🗂️ Criar atividade</button>
+                        <button type="button" class="pf-btn pf-btn--secondary" data-ferramenta="rubrica">📐 Elaborar rubrica</button>
+                        <p class="ia-ferramentas-nota">Isso só preenche a pergunta abaixo — você ainda revisa e edita antes de enviar.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
+
+    <script type="module">
+        import "../../scripts/layout/page-shell.js";
+        import "../../scripts/services/escola-context.js";
+        import { requireAuth } from "../../scripts/services/auth-guard.js";
+        import { showToast } from "../../scripts/components/pf-alert.js";
+        import { chamarAssistenteIA, criarConversaIA, adicionarMensagemConversaIA } from "../../scripts/services/ia-service.js";
+
+        requireAuth({ loginPath: '../../login.html' });
+
+        let uidAtual = null;
+        let escolaAtualId = null;
+        let usuarioAtual = null;
+        let conversaAtualId = null;
+        let mensagens = [];
+
+        document.addEventListener('pf-auth-ready', (evento) => {
+            uidAtual = evento.detail.user.uid;
+            usuarioAtual = evento.detail.user;
+        });
+
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+        });
+
+        const FERRAMENTAS = {
+            planejamento: 'Gere sugestões de objetivos de aula de Educação Física para a turma e conteúdo que eu descrever a seguir: ',
+            atividade: 'Crie uma atividade prática de Educação Física, com materiais e passo a passo, para: ',
+            rubrica: 'Elabore uma rubrica de avaliação (critérios e níveis de desempenho) para: '
+        };
+
+        document.querySelectorAll('[data-ferramenta]').forEach(botao => {
+            botao.addEventListener('click', () => {
+                const input = document.getElementById('iaInput');
+                input.value = FERRAMENTAS[botao.dataset.ferramenta];
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+            });
+        });
+
+        function renderizarMensagem(autor, texto) {
+            const container = document.getElementById('iaMensagens');
+            const vazio = container.querySelector('.ia-estado-vazio');
+            if (vazio) vazio.remove();
+            const div = document.createElement('div');
+            div.className = `ia-msg ia-msg--${autor}`;
+            div.textContent = texto;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function persistirConversa(prompt, resposta) {
+            mensagens.push({ autor: 'usuario', texto: prompt, em: new Date().toISOString() });
+            mensagens.push({ autor: 'ia', texto: resposta, em: new Date().toISOString() });
+            if (!conversaAtualId) {
+                const ref = await criarConversaIA(escolaAtualId, { professorUid: uidAtual, mensagens });
+                conversaAtualId = ref.id;
+            } else {
+                await adicionarMensagemConversaIA(escolaAtualId, conversaAtualId, mensagens);
+            }
+        }
+
+        document.getElementById('iaForm').addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+            const input = document.getElementById('iaInput');
+            const enviarBtn = document.getElementById('iaEnviarBtn');
+            const prompt = input.value.trim();
+            if (!prompt) return;
+
+            renderizarMensagem('usuario', prompt);
+            input.value = '';
+            input.disabled = true;
+            enviarBtn.disabled = true;
+
+            try {
+                const contexto = {
+                    professor: usuarioAtual?.displayName || usuarioAtual?.email || null,
+                    escolaId: escolaAtualId
+                    // turma/planejamento ativo entram aqui quando este módulo
+                    // ganhar seletor de turma próprio — de propósito omitido
+                    // no MVP porque ele ainda não tem esse seletor.
+                };
+                const resposta = await chamarAssistenteIA(prompt, contexto);
+                renderizarMensagem('ia', resposta);
+                await persistirConversa(prompt, resposta);
+            } catch (erro) {
+                showToast(erro.message, 'error', 6000);
+            } finally {
+                input.disabled = false;
+                enviarBtn.disabled = false;
+                input.focus();
+            }
+        });
+    </script>
 </body>
 </html>
