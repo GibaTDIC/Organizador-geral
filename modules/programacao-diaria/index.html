@@ -354,6 +354,16 @@
         let filtroTurma = new URLSearchParams(window.location.search).get('turma') || '';
         let selecaoInicialPendente = !!filtroTurma;
         let chaveSelecionada = null; // chave (encodeURIComponent) do slot selecionado na lista
+
+        // Fixa o ID da entrada do Controlador no momento em que o professor
+        // seleciona o card — Iniciar/Concluir/Registrar sempre agem sobre
+        // ESSA entrada específica, nunca recalculada. Antes, cada ação
+        // rederivava "qual é a aula da vez" pra turma na hora do clique; se
+        // esse cálculo mudasse entre o Iniciar e o Concluir (nova entrada
+        // sincronizada nesse meio-tempo, empate de data, etc.), os dois
+        // cliques podiam acabar mexendo em aulas diferentes sem o professor
+        // perceber.
+        let entradaFixadaId = null;
         let nomeUsuario = null;
 
         // ---------- Constantes ----------
@@ -469,9 +479,18 @@
             return montarAulasDoDia().find(i => chaveDoItem(i) === chaveDecodificada) || null;
         }
 
+        // Retorna a entrada FIXADA no momento da seleção (por id), não a
+        // "aula da vez" recalculada agora — ver comentário de
+        // entradaFixadaId. Ainda busca em controladorAtual.aulas a cada
+        // chamada, então reflete atualizações de status feitas em outra aba,
+        // só não muda de ENTRADA sozinha.
+        function entradaFixada() {
+            if (!entradaFixadaId) return null;
+            return (controladorAtual.aulas || []).find(a => a.id === entradaFixadaId) || null;
+        }
+
         function encontrarEntradaSelecionada() {
-            const item = encontrarItemSelecionado();
-            return item ? item.entrada : null;
+            return entradaFixada();
         }
 
         // ---------- Reconciliação (aulas do Planejamento × turmas) ----------
@@ -610,12 +629,14 @@
         window.diaAnterior = function () {
             dataSelecionada.setDate(dataSelecionada.getDate() - 1);
             chaveSelecionada = null;
+            entradaFixadaId = null;
             renderizarTudo();
         };
 
         window.diaSeguinte = function () {
             dataSelecionada.setDate(dataSelecionada.getDate() + 1);
             chaveSelecionada = null;
+            entradaFixadaId = null;
             renderizarTudo();
         };
 
@@ -623,17 +644,25 @@
             dataSelecionada = new Date();
             dataSelecionada.setHours(0, 0, 0, 0);
             chaveSelecionada = null;
+            entradaFixadaId = null;
             renderizarTudo();
         };
 
         window.aplicarFiltroTurma = function () {
             filtroTurma = document.getElementById('pdFiltroTurma').value;
             chaveSelecionada = null;
+            entradaFixadaId = null;
             renderizarTudo();
         };
 
         window.selecionarAula = function (chaveCodificada) {
             chaveSelecionada = chaveCodificada;
+            // Fixa qual entrada essa seleção representa NESTE momento —
+            // Iniciar/Concluir/etc. vão continuar agindo nela mesmo que a
+            // resolução "aula da vez" da turma mude depois (ver
+            // entradaFixadaId).
+            const item = encontrarItemSelecionado();
+            entradaFixadaId = item && item.entrada ? item.entrada.id : null;
             renderizarLista();
             renderizarPainel();
             if (window.matchMedia('(max-width: 600px)').matches) {
@@ -760,24 +789,26 @@
                 return '<p class="pd-estado-vazio">Selecione uma aula na lista para ver os detalhes.</p>';
             }
 
+            // A entrada FIXADA (por id, ver entradaFixadaId) é quem manda no
+            // painel e nas ações — não item.entrada/item.status, que
+            // recalculam "qual é a aula da vez" da turma a cada render e
+            // podiam divergir da aula que o professor está de fato olhando.
+            const entrada = entradaFixada();
+            const ehFutura = entrada ? ehAulaFutura(entrada) : false;
+            const statusExibido = entrada ? (ehFutura ? 'Aula futura' : (entrada.status || 'Não iniciada')) : item.status;
+
             let html = `
                 <div class="pd-painel-cabecalho">
-                    <span class="pd-badge ${classeBadge(item.status)}">${item.status}</span>
+                    <span class="pd-badge ${classeBadge(statusExibido)}">${statusExibido}</span>
                     <h3>${item.turma} · ${item.horario}</h3>
                 </div>
             `;
 
-            const entrada = item.entrada;
             if (!entrada) {
                 html += '<p class="pd-estado-vazio">Nenhum plano de aula cadastrado para esta turma. <a href="../planejamento/index.html">Cadastrar no Planejamento</a>.</p>';
                 return html;
             }
 
-            // Aula futura: existe planejamento, mas a data ainda não chegou —
-            // trava as ações pra não deixar o professor adiantar conteúdo
-            // (ver derivarStatusTurma). Continua mostrando os dados, só sem
-            // liberar Iniciar/Concluir.
-            const ehFutura = item.status === 'Aula futura';
             const somenteLeitura = !ehHoje(dataSelecionada) || ehFutura;
             const habilidadesTexto = Array.isArray(entrada.habilidades) && entrada.habilidades.length > 0
                 ? entrada.habilidades.map(h => h.codigo || h).join(', ')
@@ -867,7 +898,10 @@
             if (selecaoInicialPendente) {
                 selecaoInicialPendente = false;
                 const item = montarAulasDoDia().find(i => i.turma === filtroTurma);
-                if (item) chaveSelecionada = encodeURIComponent(chaveDoItem(item));
+                if (item) {
+                    chaveSelecionada = encodeURIComponent(chaveDoItem(item));
+                    entradaFixadaId = item.entrada ? item.entrada.id : null;
+                }
             }
 
             renderizarBarraSuperior();
@@ -941,6 +975,7 @@
             escolaAtualId = evento.detail.escolaId;
             gradeCarregada = turmasCarregada = aulasCarregada = controladorCarregada = false;
             chaveSelecionada = null;
+            entradaFixadaId = null;
             if (unsubGrade) unsubGrade();
             if (unsubTurmas) unsubTurmas();
             if (unsubAulas) unsubAulas();
