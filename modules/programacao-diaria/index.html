@@ -168,6 +168,7 @@
         .pd-badge--sem-planejamento { background: var(--pf-gray-300); color: var(--pf-gray-700); }
         .pd-badge--cancelada { background: var(--pf-danger); color: var(--pf-white); }
         .pd-badge--reposicao { background: var(--pf-info); color: var(--pf-white); }
+        .pd-badge--futura { background: var(--pf-slate-600); color: var(--pf-white); }
 
         /* Painel de detalhes */
         .pd-painel-cabecalho {
@@ -346,7 +347,12 @@
         let dataSelecionada = new Date();
         dataSelecionada.setHours(0, 0, 0, 0);
 
-        let filtroTurma = '';
+        // Vindo do Dashboard ("Iniciar Aula" de uma turma específica) a URL
+        // carrega ?turma=... — abre já filtrado e com a aula selecionada,
+        // pra não expor as outras turmas por engano. Pra ver as outras, o
+        // professor limpa o filtro aqui mesmo (não precisa de outra tela).
+        let filtroTurma = new URLSearchParams(window.location.search).get('turma') || '';
+        let selecaoInicialPendente = !!filtroTurma;
         let chaveSelecionada = null; // chave (encodeURIComponent) do slot selecionado na lista
         let nomeUsuario = null;
 
@@ -366,6 +372,12 @@
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
             return data.getTime() === hoje.getTime();
+        }
+
+        function formatarData(data) {
+            if (!data) return '-';
+            const [ano, mes, dia] = data.split('-');
+            return `${dia}/${mes}/${ano}`;
         }
 
         function obterChaveDiaSemana(data) {
@@ -391,12 +403,28 @@
             // deixou de ter seleção manual de aula) — não priorizar mais por ele,
             // senão uma entrada antiga fica "grudada" pra sempre. Só o fallback
             // por pendente mais antigo abaixo.
-            const pendentes = entradas
-                .filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada')
+            const emAberto = entradas.filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada');
+
+            // Nunca deixa o professor adiantar aula: só vira "a aula da vez"
+            // quem já chegou na data (hoje ou atrasada). Uma aula com
+            // dataReferencia futura fica de fora daqui mesmo sendo a única
+            // pendente — sem isso, terminar tudo antes do previsto liberava
+            // a próxima semana de conteúdo antes da hora.
+            const hojeStr = new Date().toISOString().split('T')[0];
+            const disponiveisHoje = emAberto
+                .filter(a => !a.dataInicio || a.dataInicio <= hojeStr)
                 .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
-            if (pendentes.length > 0) {
-                return { status: pendentes[0].status || 'Não iniciada', entrada: pendentes[0] };
+            if (disponiveisHoje.length > 0) {
+                return { status: disponiveisHoje[0].status || 'Não iniciada', entrada: disponiveisHoje[0] };
             }
+
+            const futuras = emAberto
+                .filter(a => a.dataInicio && a.dataInicio > hojeStr)
+                .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
+            if (futuras.length > 0) {
+                return { status: 'Aula futura', entrada: futuras[0] };
+            }
+
             const maisRecente = entradas.slice()
                 .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''))[0];
             return { status: maisRecente.status || 'Concluída', entrada: maisRecente };
@@ -409,6 +437,7 @@
                 case 'Sem planejamento': return 'pd-badge--sem-planejamento';
                 case 'Cancelada': return 'pd-badge--cancelada';
                 case 'Reposição': return 'pd-badge--reposicao';
+                case 'Aula futura': return 'pd-badge--futura';
                 default: return 'pd-badge--nao-iniciada';
             }
         }
@@ -463,9 +492,21 @@
             });
         }
 
+        // Segunda trava (a primeira é o botão desabilitado no painel) contra
+        // adiantar aula: mesmo que o clique chegue aqui de algum jeito
+        // (estado da UI dessincronizado, etc.), a mutação não acontece.
+        function ehAulaFutura(entrada) {
+            if (!entrada.dataInicio) return false;
+            return entrada.dataInicio > new Date().toISOString().split('T')[0];
+        }
+
         window.iniciarAula = function () {
             const entrada = encontrarEntradaSelecionada();
             if (!entrada) return;
+            if (ehAulaFutura(entrada)) {
+                showToast(`Esta aula está agendada para ${formatarData(entrada.dataInicio)} — ainda não pode ser iniciada.`, 'info');
+                return;
+            }
             if (entrada.status !== 'Concluída') entrada.status = 'Em Andamento';
             persistirControlador().then(() => showToast('Aula iniciada!', 'success'));
         };
@@ -473,6 +514,10 @@
         window.concluirAula = function () {
             const entrada = encontrarEntradaSelecionada();
             if (!entrada) return;
+            if (ehAulaFutura(entrada)) {
+                showToast(`Esta aula está agendada para ${formatarData(entrada.dataInicio)} — ainda não pode ser concluída.`, 'info');
+                return;
+            }
             if (!entrada.aulasExecutadas) entrada.aulasExecutadas = 0;
             const total = entrada.numAulas || 2;
             if (entrada.aulasExecutadas >= total) {
@@ -630,11 +675,13 @@
             document.getElementById('pdDataAtual').textContent = formatarDataCompleta(dataSelecionada) + sufixo;
 
             const select = document.getElementById('pdFiltroTurma');
-            const valorAtual = select.value;
             const nomesTurmas = turmasAtuais.map(t => t.nome).sort();
             select.innerHTML = '<option value="">Todas as turmas</option>' +
                 nomesTurmas.map(nome => `<option value="${nome}">${nome}</option>`).join('');
-            select.value = nomesTurmas.includes(valorAtual) ? valorAtual : '';
+            // Fonte da verdade é filtroTurma (não o valor atual do <select>) —
+            // assim um filtro aplicado via ?turma= na URL aparece refletido
+            // aqui mesmo antes de qualquer interação do professor.
+            select.value = nomesTurmas.includes(filtroTurma) ? filtroTurma : '';
         }
 
         function renderizarLista() {
@@ -726,7 +773,12 @@
                 return html;
             }
 
-            const somenteLeitura = !ehHoje(dataSelecionada);
+            // Aula futura: existe planejamento, mas a data ainda não chegou —
+            // trava as ações pra não deixar o professor adiantar conteúdo
+            // (ver derivarStatusTurma). Continua mostrando os dados, só sem
+            // liberar Iniciar/Concluir.
+            const ehFutura = item.status === 'Aula futura';
+            const somenteLeitura = !ehHoje(dataSelecionada) || ehFutura;
             const habilidadesTexto = Array.isArray(entrada.habilidades) && entrada.habilidades.length > 0
                 ? entrada.habilidades.map(h => h.codigo || h).join(', ')
                 : 'Não definidas';
@@ -756,7 +808,9 @@
                         <a class="pf-btn pf-btn--secondary" href="../banco-atividades/index.html">🗂️ Banco de Atividades</a>
                         <a class="pf-btn pf-btn--secondary" href="../inteligencia-artificial/index.html">🤖 IA</a>
                     </div>
-                    ${somenteLeitura ? '<p class="pd-aviso-somente-leitura">Ações de execução só ficam disponíveis para o dia de hoje.</p>' : ''}
+                    ${ehFutura
+                        ? `<p class="pd-aviso-somente-leitura">Esta aula está agendada para ${formatarData(entrada.dataInicio)} — ainda não pode ser iniciada.</p>`
+                        : (somenteLeitura ? '<p class="pd-aviso-somente-leitura">Ações de execução só ficam disponíveis para o dia de hoje.</p>' : '')}
                 </div>
 
                 <div class="pd-painel-secao">
@@ -806,6 +860,16 @@
 
         function renderizarTudo() {
             if (!gradeCarregada || !turmasCarregada || !controladorCarregada) return;
+
+            // Primeira renderização com tudo carregado, vindo de ?turma= no
+            // link: seleciona sozinho o item daquela turma pra abrir direto
+            // no painel, sem o professor precisar clicar de novo.
+            if (selecaoInicialPendente) {
+                selecaoInicialPendente = false;
+                const item = montarAulasDoDia().find(i => i.turma === filtroTurma);
+                if (item) chaveSelecionada = encodeURIComponent(chaveDoItem(item));
+            }
+
             renderizarBarraSuperior();
             renderizarLista();
             renderizarPainel();

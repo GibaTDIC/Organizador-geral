@@ -152,6 +152,7 @@
         .dash-badge--sem-planejamento { background: var(--pf-gray-300); color: var(--pf-gray-700); }
         .dash-badge--cancelada { background: var(--pf-danger); color: var(--pf-white); }
         .dash-badge--reposicao { background: var(--pf-info); color: var(--pf-white); }
+        .dash-badge--futura { background: var(--pf-slate-600); color: var(--pf-white); }
 
         /* Próxima Aula */
         .dash-proxima-destaque {
@@ -552,12 +553,28 @@
             // deixou de ter seleção manual de aula) — não priorizar mais por ele,
             // senão uma entrada antiga fica "grudada" pra sempre. Só o fallback
             // por pendente mais antigo abaixo.
-            const pendentes = entradas
-                .filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada')
+            const emAberto = entradas.filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada');
+
+            // Nunca deixa o professor adiantar aula: só vira "a aula da vez"
+            // quem já chegou na data (hoje ou atrasada). Uma aula com
+            // dataReferencia futura fica de fora daqui mesmo sendo a única
+            // pendente — sem isso, terminar tudo antes do previsto liberava
+            // a próxima semana de conteúdo antes da hora.
+            const hojeStr = new Date().toISOString().split('T')[0];
+            const disponiveisHoje = emAberto
+                .filter(a => !a.dataInicio || a.dataInicio <= hojeStr)
                 .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
-            if (pendentes.length > 0) {
-                return { status: pendentes[0].status || 'Não iniciada', entrada: pendentes[0] };
+            if (disponiveisHoje.length > 0) {
+                return { status: disponiveisHoje[0].status || 'Não iniciada', entrada: disponiveisHoje[0] };
             }
+
+            const futuras = emAberto
+                .filter(a => a.dataInicio && a.dataInicio > hojeStr)
+                .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
+            if (futuras.length > 0) {
+                return { status: 'Aula futura', entrada: futuras[0] };
+            }
+
             const maisRecente = entradas.slice()
                 .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''))[0];
             return { status: maisRecente.status || 'Concluída', entrada: maisRecente };
@@ -586,7 +603,13 @@
         }
 
         function calcularProximaAula() {
-            return montarRotinaHoje().find(item => item.status !== 'Concluída' && item.status !== 'Cancelada') || null;
+            // "Aula futura" fica de fora daqui de propósito: não é a próxima
+            // coisa acionável de hoje, é conteúdo que ainda não chegou a
+            // data (ver derivarStatusTurma) — sugerir isso como "próxima
+            // aula" induziria o professor a adiantar o planejamento.
+            return montarRotinaHoje().find(item =>
+                item.status !== 'Concluída' && item.status !== 'Cancelada' && item.status !== 'Aula futura'
+            ) || null;
         }
 
         // ---------- Pendências — mesmo critério de data do Controlador ----------
@@ -685,6 +708,7 @@
                 case 'Sem planejamento': return 'dash-badge--sem-planejamento';
                 case 'Cancelada': return 'dash-badge--cancelada';
                 case 'Reposição': return 'dash-badge--reposicao';
+                case 'Aula futura': return 'dash-badge--futura';
                 default: return 'dash-badge--nao-iniciada';
             }
         }
@@ -694,8 +718,15 @@
         // nenhuma ação. Levar o professor pra lá antes fazia o "Iniciar Aula"
         // do Dashboard não ter efeito nenhum (ele via a aula na tabela, mas
         // não tinha como registrar nada).
-        window.irParaProgramacaoDiaria = function () {
-            window.location.href = '../programacao-diaria/index.html';
+        //
+        // Recebe a turma específica que o professor clicou e leva isso na
+        // URL — a Programação Diária abre já filtrada só nessa turma, com a
+        // aula selecionada. Pra ver as outras turmas do dia, o professor
+        // limpa o filtro por lá mesmo (não é escondido, só não some logo de
+        // cara sugerindo trocar de turma sem querer).
+        window.irParaProgramacaoDiaria = function (turma) {
+            const query = turma ? `?turma=${encodeURIComponent(turma)}` : '';
+            window.location.href = `../programacao-diaria/index.html${query}`;
         };
 
         function renderizarRotinaHoje() {
@@ -726,7 +757,7 @@
                 }
                 return `
                     ${cabecalho}
-                    <div class="dash-rotina-item" onclick="irParaProgramacaoDiaria()">
+                    <div class="dash-rotina-item" onclick="irParaProgramacaoDiaria('${item.valor}')">
                         <span class="dash-rotina-item__horario">${item.horario}</span>
                         <div class="dash-rotina-item__info">
                             <span class="dash-rotina-item__turma">${item.valor}</span>
@@ -759,7 +790,7 @@
                     <span class="dash-proxima-turma">${proxima.valor}</span>
                     ${proxima.entrada ? `<span class="dash-proxima-conteudo">${proxima.entrada.titulo}</span>` : ''}
                     <span class="dash-proxima-meta">${proxima.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'} · ${proxima.horario}</span>
-                    <button class="pf-btn pf-btn--primary" onclick="irParaProgramacaoDiaria()">▶️ Iniciar Aula</button>
+                    <button class="pf-btn pf-btn--primary" onclick="irParaProgramacaoDiaria('${proxima.valor}')">▶️ Iniciar Aula</button>
                 </div>
             `;
         }
@@ -774,7 +805,7 @@
             }
 
             const listar = (lista, tipo) => lista.map(a => `
-                <div class="dash-pendencia-item dash-pendencia-item--${tipo}" onclick="irParaProgramacaoDiaria()">
+                <div class="dash-pendencia-item dash-pendencia-item--${tipo}" onclick="irParaProgramacaoDiaria('${a.turma}')">
                     <span>${a.turma} — ${a.titulo}</span>
                     <span>${formatarData(a.prazo)}</span>
                 </div>
