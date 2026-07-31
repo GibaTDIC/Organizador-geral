@@ -670,8 +670,13 @@
             }
         }
 
-        window.irParaControlador = function () {
-            window.location.href = '../controlador/index.html';
+        // Programação Diária é a única tela com os botões de fato (Iniciar/
+        // Concluir aula) — o Controlador é só uma tabela de leitura, sem
+        // nenhuma ação. Levar o professor pra lá antes fazia o "Iniciar Aula"
+        // do Dashboard não ter efeito nenhum (ele via a aula na tabela, mas
+        // não tinha como registrar nada).
+        window.irParaProgramacaoDiaria = function () {
+            window.location.href = '../programacao-diaria/index.html';
         };
 
         function renderizarRotinaHoje() {
@@ -702,7 +707,7 @@
                 }
                 return `
                     ${cabecalho}
-                    <div class="dash-rotina-item" onclick="irParaControlador()">
+                    <div class="dash-rotina-item" onclick="irParaProgramacaoDiaria()">
                         <span class="dash-rotina-item__horario">${item.horario}</span>
                         <span class="dash-rotina-item__turma">${item.valor}</span>
                         <span class="dash-badge ${classeBadge(item.status)}">${item.status}</span>
@@ -731,7 +736,7 @@
                     <span class="dash-badge ${classeBadge(proxima.status)}">${proxima.status}</span>
                     <span class="dash-proxima-turma">${proxima.valor}</span>
                     <span class="dash-proxima-meta">${proxima.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'} · ${proxima.horario}</span>
-                    <button class="pf-btn pf-btn--primary" onclick="irParaControlador()">▶️ Iniciar Aula</button>
+                    <button class="pf-btn pf-btn--primary" onclick="irParaProgramacaoDiaria()">▶️ Iniciar Aula</button>
                 </div>
             `;
         }
@@ -746,7 +751,7 @@
             }
 
             const listar = (lista, tipo) => lista.map(a => `
-                <div class="dash-pendencia-item dash-pendencia-item--${tipo}" onclick="irParaControlador()">
+                <div class="dash-pendencia-item dash-pendencia-item--${tipo}" onclick="irParaProgramacaoDiaria()">
                     <span>${a.turma} — ${a.titulo}</span>
                     <span>${formatarData(a.prazo)}</span>
                 </div>
