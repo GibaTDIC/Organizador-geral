@@ -64,11 +64,24 @@ export async function sincronizarControlador({ escolaId, aulasFirebase, turmasAt
                 );
 
                 if (!jaExiste) {
-                    const dataInicio = new Date();
-                    dataInicio.setDate(dataInicio.getDate() + (indexAula * 3));
+                    // Usa a data real da aula quando o professor a preencheu
+                    // (dataReferencia, YYYY-MM-DD — mesmo campo que a
+                    // importação DOCX já popula). Fallback pro comportamento
+                    // antigo (hoje + índice×3 dias) só quando a aula não tem
+                    // essa data — aulas antigas continuam funcionando sem
+                    // migração.
+                    let dataInicioObj;
+                    if (aulaBase.dataReferencia) {
+                        dataInicioObj = new Date(aulaBase.dataReferencia + 'T12:00:00');
+                    } else {
+                        dataInicioObj = new Date();
+                        dataInicioObj.setDate(dataInicioObj.getDate() + (indexAula * 3));
+                    }
+                    const dataInicio = aulaBase.dataReferencia || dataInicioObj.toISOString().split('T')[0];
 
-                    const prazo = new Date(dataInicio);
-                    prazo.setDate(prazo.getDate() + 7);
+                    const prazoObj = new Date(dataInicioObj);
+                    prazoObj.setDate(prazoObj.getDate() + 7);
+                    const prazo = prazoObj.toISOString().split('T')[0];
 
                     // Correção: o Planejamento salva "habilidades" (array) e
                     // "especificacao" hoje — o campo legado singular
@@ -95,8 +108,8 @@ export async function sincronizarControlador({ escolaId, aulasFirebase, turmasAt
                         // documento, então isso sempre caía no fallback 2.
                         numAulas: aulaBase.numeroAulas || 2,
                         aulasExecutadas: 0,
-                        dataInicio: dataInicio.toISOString().split('T')[0],
-                        prazo: prazo.toISOString().split('T')[0],
+                        dataInicio: dataInicio,
+                        prazo: prazo,
                         conteudoMinistrado: '',
                         tempoUtilizado: null,
                         dificuldades: '',
