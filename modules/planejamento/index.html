@@ -239,7 +239,7 @@
         import { ouvirAulas, criarAula, excluirAula as excluirAulaService } from "../../scripts/services/aulas-service.js";
         import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
-        import { ouvirGrade } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
@@ -1357,6 +1357,7 @@
                 atividadesVinculadas: Array.from(document.querySelectorAll('input[name="plAtividadeVinculada"]:checked')).map(cb => cb.value),
                 bimestre: document.getElementById('plAulaBimestre').value ? parseInt(document.getElementById('plAulaBimestre').value, 10) : null,
                 planejamentoMensalId: document.getElementById('plAulaMes').value || null,
+                componenteCurricular: COMPONENTE_CURRICULAR_PADRAO,
                 timestamp: new Date().toISOString()
             };
             if (!aulaData.turma || !aulaData.unidadeTematica) {
@@ -1901,6 +1902,7 @@
                             bimestre: bimestre || semana.bimestreSugerido || null,
                             planejamentoMensalId,
                             dataReferencia: dataInicioComoISO(semana.dataInicio),
+                            componenteCurricular: COMPONENTE_CURRICULAR_PADRAO,
                             origemImportacao: { importacaoId: refImportacao.id },
                             timestamp: new Date().toISOString()
                         };

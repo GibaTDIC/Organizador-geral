@@ -321,8 +321,8 @@
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
-        import { ouvirGrade } from "../../scripts/services/grade-service.js";
-        import { ouvirTurmas } from "../../scripts/services/turmas-service.js";
+        import { ouvirGrade, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
+        import { ouvirTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
         import { ouvirAulas } from "../../scripts/services/aulas-service.js";
         import { ouvirControlador, salvarControlador } from "../../scripts/services/controlador-service.js";
         import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
@@ -352,7 +352,6 @@
 
         // ---------- Constantes ----------
         const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
-        const SLOTS_ESPECIAIS = ['Folga', 'Planejamento', 'CEMFOR', '---'];
         const DIAS_SEMANA_EXTENSO = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
         const MESES_EXTENSO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
         const DISCIPLINA_FIXA = 'Educação Física';
@@ -380,8 +379,11 @@
         // extraídas pra um util compartilhado). "Cancelada" é neutra: não
         // conta como pendente, e o fallback mostra o status real da entrada
         // mais recente em vez de forçar "Concluída".
-        function derivarStatusTurma(turma, controlador) {
-            const entradas = (controlador.aulas || []).filter(a => a.turma === turma);
+        function derivarStatusTurma(turma, componenteCurricular, controlador) {
+            const entradas = (controlador.aulas || []).filter(a =>
+                a.turma === turma &&
+                (a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO) === componenteCurricular
+            );
             if (entradas.length === 0) {
                 return { status: 'Sem planejamento', entrada: null };
             }
@@ -422,11 +424,11 @@
             const itens = [];
             ['matutino', 'vespertino'].forEach(periodo => {
                 (gradeAtual[periodo] || []).forEach(linha => {
-                    const valor = linha[diaChave];
-                    if (!valor || SLOTS_ESPECIAIS.includes(valor)) return;
-                    if (filtroTurma && valor !== filtroTurma) return;
-                    const { status, entrada } = derivarStatusTurma(valor, controladorAtual);
-                    itens.push({ periodo, horario: linha.horario, turma: valor, status, entrada });
+                    const celula = normalizarCelula(linha[diaChave]);
+                    if (celula.tipo !== 'turma') return;
+                    if (filtroTurma && celula.turma !== filtroTurma) return;
+                    const { status, entrada } = derivarStatusTurma(celula.turma, celula.componenteCurricular, controladorAtual);
+                    itens.push({ periodo, horario: linha.horario, turma: celula.turma, componenteCurricular: celula.componenteCurricular, status, entrada });
                 });
             });
             return itens;
@@ -610,9 +612,10 @@
 
             const select = document.getElementById('pdFiltroTurma');
             const valorAtual = select.value;
+            const nomesTurmas = turmasAtuais.map(t => t.nome).sort();
             select.innerHTML = '<option value="">Todas as turmas</option>' +
-                turmasAtuais.slice().sort().map(t => `<option value="${t}">${t}</option>`).join('');
-            select.value = turmasAtuais.includes(valorAtual) ? valorAtual : '';
+                nomesTurmas.map(nome => `<option value="${nome}">${nome}</option>`).join('');
+            select.value = nomesTurmas.includes(valorAtual) ? valorAtual : '';
         }
 
         function renderizarLista() {
@@ -802,7 +805,7 @@
         function carregarTurmas() {
             return ouvirTurmas(escolaAtualId, (docSnap) => {
                 const data = docSnap.data();
-                turmasAtuais = (data && data.lista) ? data.lista : [];
+                turmasAtuais = normalizarTurmas(data && data.lista);
                 turmasCarregada = true;
                 talvezSincronizar();
                 renderizarTudo();

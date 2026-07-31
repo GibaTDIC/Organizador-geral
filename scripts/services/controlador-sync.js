@@ -5,6 +5,17 @@
 // deixava o professor sem nenhuma entrada pra ver. Função pura: só lê/grava
 // Firestore e retorna o resultado, nenhum efeito colateral de UI.
 import { lerControlador, salvarControlador } from './controlador-service.js';
+import { COMPONENTE_CURRICULAR_PADRAO } from './grade-service.js';
+
+// Turma FÍSICA ("6º A") → SÉRIE ("6º Ano"). Compartilhada com Controlador e
+// Dashboard: deixou de ser só uma conveniência de exibição (cruzamento com a
+// BNCC) e passou a decidir se uma aula do Planejamento entra ou não no
+// Controlador de uma turma — uma cópia dessincronizada aqui volta a zerar o
+// Controlador inteiro, então isso não fica mais duplicado por página.
+export function serieDaTurma(turmaFisica) {
+    const m = /^(\d+)º/.exec(turmaFisica || '');
+    return m ? `${m[1]}º Ano` : null;
+}
 
 function gerarIdUnico(tituloAula, turma, index) {
     const slug = tituloAula
@@ -36,9 +47,20 @@ export async function sincronizarControlador({ escolaId, aulasFirebase, turmasAt
         let alterou = false;
 
         aulasFirebase.forEach((aulaBase, indexAula) => {
+            const componenteAula = aulaBase.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO;
+
             turmasAtuais.forEach((turma) => {
+                // Só cruza quando a turma física é da MESMA série da aula E
+                // do MESMO componente curricular — antes não havia nenhum
+                // dos dois checks, e toda aula era cruzada com toda turma
+                // cadastrada, sem relação nenhuma com a série real dela
+                // (causa raiz do Dashboard/Controlador aparecerem zerados).
+                const serie = serieDaTurma(turma.nome);
+                const componenteTurma = turma.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO;
+                if (serie !== aulaBase.turma || componenteTurma !== componenteAula) return;
+
                 const jaExiste = controladorBanco.find(a =>
-                    a.firebaseId === aulaBase.id && a.turma === turma
+                    a.firebaseId === aulaBase.id && a.turma === turma.nome
                 );
 
                 if (!jaExiste) {
@@ -56,9 +78,10 @@ export async function sincronizarControlador({ escolaId, aulasFirebase, turmasAt
                         : (aulaBase.habilidade ? [{ codigo: aulaBase.habilidade, descricao: '' }] : []);
 
                     controladorBanco.push({
-                        id: gerarIdUnico(aulaBase.titulo, turma, indexAula),
+                        id: gerarIdUnico(aulaBase.titulo, turma.nome, indexAula),
                         firebaseId: aulaBase.id,
-                        turma: turma,
+                        turma: turma.nome,
+                        componenteCurricular: componenteTurma,
                         titulo: aulaBase.titulo,
                         objetoConhecimento: aulaBase.objetoConhecimento,
                         unidadeTematica: aulaBase.unidadeTematica || "Ginásticas",

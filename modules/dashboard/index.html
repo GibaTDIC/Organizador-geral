@@ -438,10 +438,11 @@
         import "../../scripts/layout/page-shell.js";
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
-        import { ouvirGrade } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { ouvirControlador } from "../../scripts/services/controlador-service.js";
         import { ouvirPlanejamentosBimestrais } from "../../scripts/services/planejamento-bimestral-service.js";
+        import { serieDaTurma } from "../../scripts/services/controlador-sync.js";
         import { habilidadesBNCC } from "../../data/bncc-curriculum.js";
         import { MODULES } from "../../scripts/utils/constants.js";
 
@@ -466,7 +467,6 @@
 
         // ---------- Constantes ----------
         const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
-        const SLOTS_ESPECIAIS = ['Folga', 'Planejamento', 'CEMFOR', '---'];
         const DIAS_SEMANA_EXTENSO = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
         const MESES_EXTENSO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -521,8 +521,11 @@
         // ---------- Regra de junção grade × controlador ----------
         // "Cancelada" é neutra (decisão do usuário): não conta como pendente
         // nem força um rótulo "Concluída" no fallback — mostra o status real.
-        function derivarStatusTurma(turma, controlador) {
-            const entradas = (controlador.aulas || []).filter(a => a.turma === turma);
+        function derivarStatusTurma(turma, componenteCurricular, controlador) {
+            const entradas = (controlador.aulas || []).filter(a =>
+                a.turma === turma &&
+                (a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO) === componenteCurricular
+            );
             if (entradas.length === 0) {
                 return { status: 'Sem planejamento', entrada: null };
             }
@@ -546,7 +549,7 @@
             const slots = [];
             ['matutino', 'vespertino'].forEach(periodo => {
                 (gradeAtual[periodo] || []).forEach((linha, ordinal) => {
-                    slots.push({ periodo, ordinal, horario: linha.horario, valor: linha[diaChave] });
+                    slots.push({ periodo, ordinal, horario: linha.horario, celula: normalizarCelula(linha[diaChave]) });
                 });
             });
             return slots;
@@ -555,8 +558,12 @@
         function montarRotinaHoje() {
             const diaChave = obterChaveDiaHoje();
             return montarSlotsDoDia(diaChave)
-                .filter(slot => slot.valor && !SLOTS_ESPECIAIS.includes(slot.valor))
-                .map(slot => ({ ...slot, ...derivarStatusTurma(slot.valor, controladorAtual) }));
+                .filter(slot => slot.celula.tipo === 'turma')
+                .map(slot => ({
+                    ...slot,
+                    valor: slot.celula.turma, // mantém "valor" pra não quebrar os templates existentes
+                    ...derivarStatusTurma(slot.celula.turma, slot.celula.componenteCurricular, controladorAtual)
+                }));
         }
 
         function calcularProximaAula() {
@@ -623,9 +630,9 @@
             ['matutino', 'vespertino'].forEach(periodo => {
                 (gradeAtual[periodo] || []).forEach(linha => {
                     DIA_CHAVES.forEach(dia => {
-                        const valor = linha[dia];
-                        if (!valor || SLOTS_ESPECIAIS.includes(valor)) return;
-                        const statusDerivado = derivarStatusTurma(valor, controladorAtual).status;
+                        const celula = normalizarCelula(linha[dia]);
+                        if (celula.tipo !== 'turma') return;
+                        const statusDerivado = derivarStatusTurma(celula.turma, celula.componenteCurricular, controladorAtual).status;
                         // "Cancelada" é neutra: sai do cálculo por completo
                         // (não penaliza o professor por algo fora do controle dele).
                         if (statusDerivado === 'Cancelada') return;
@@ -760,12 +767,9 @@
         }
 
         // ---------- Alertas Inteligentes (duplicado do Controlador por convenção
-        // já estabelecida no repo — regras simples, sem IA) ----------
-        function serieDaTurma(turmaFisica) {
-            const m = /^(\d+)º/.exec(turmaFisica || '');
-            return m ? `${m[1]}º Ano` : null;
-        }
-
+        // já estabelecida no repo — regras simples, sem IA). serieDaTurma vem
+        // de controlador-sync.js — deixou de ser cópia local porque também
+        // decide o cruzamento aula×turma, não só estas consultas de BNCC. ----------
         function habilidadesNaoContempladasResumo() {
             const turmasPresentes = [...new Set((controladorAtual.aulas || []).map(a => a.turma).filter(Boolean))];
             let total = 0;

@@ -206,10 +206,10 @@
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirAulas } from "../../scripts/services/aulas-service.js";
-        import { ouvirTurmas } from "../../scripts/services/turmas-service.js";
+        import { ouvirTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { salvarControlador } from "../../scripts/services/controlador-service.js";
-        import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
+        import { sincronizarControlador, serieDaTurma } from "../../scripts/services/controlador-sync.js";
         import { ouvirPlanejamentosBimestrais } from "../../scripts/services/planejamento-bimestral-service.js";
         import { ouvirPlanejamentosMensais } from "../../scripts/services/planejamento-mensal-service.js";
         import { habilidadesBNCC } from "../../data/bncc-curriculum.js";
@@ -248,14 +248,10 @@
             return `${dia}/${mes}/${ano}`;
         }
 
-        // As entradas do Controlador guardam a turma FÍSICA ("6º A"), mas os
-        // dados da BNCC (data/bncc-curriculum.js) e a hierarquia de Planejamento
-        // são indexados pela SÉRIE ("6º Ano") — essa conversão é necessária
-        // sempre que for cruzar uma entrada do Controlador com esses dois.
-        function serieDaTurma(turmaFisica) {
-            const m = /^(\d+)º/.exec(turmaFisica || '');
-            return m ? `${m[1]}º Ano` : null;
-        }
+        // serieDaTurma vem de controlador-sync.js — deixou de ser cópia local
+        // porque também decide o cruzamento aula×turma, não só estas consultas
+        // de BNCC (uma cópia dessincronizada aqui já causou o Controlador
+        // aparecer zerado antes).
 
         // Todos os códigos de habilidade que a BNCC prevê pra uma série —
         // direto de habilidadesBNCC[serie], sem cruzar com os dicionários
@@ -314,7 +310,7 @@
             return ouvirTurmas(escolaAtualId, (docSnap) => {
                 const data = docSnap.data();
                 if (data && data.lista && data.lista.length) {
-                    turmasAtuais = data.lista;
+                    turmasAtuais = normalizarTurmas(data.lista);
                 }
                 turmasCarregadas = true;
                 reconciliarESincronizar();

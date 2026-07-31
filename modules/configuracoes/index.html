@@ -1037,6 +1037,7 @@
             <div class="turmas-content" id="turmasContent">
                 <div class="add-turma-form">
                     <input type="text" id="novaTurma" placeholder="Ex: 7º A, 8º B, 1º EM...">
+                    <input type="text" id="novoComponente" placeholder="Componente (padrão: Educação Física)" style="font-size:0.8rem;">
                     <button class="btn btn-success" onclick="adicionarTurma()">➕ Adicionar</button>
                     <button class="btn btn-info" onclick="recarregarTurmasFirebase()">🔄 Recarregar</button>
                 </div>
@@ -1097,9 +1098,9 @@
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
-        import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes, salvarConfiguracoes as salvarConfiguracoesService } from "../../scripts/services/configuracoes-service.js";
-        import { ouvirTurmas, salvarTurmas } from "../../scripts/services/turmas-service.js";
+        import { ouvirTurmas, salvarTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
 
         // Estado da aplicação
         let escolaAtualId = null;
@@ -1274,9 +1275,9 @@
         const data = docSnap.data();
 
         if (data && data.lista) {
-            turmas = data.lista;
+            turmas = normalizarTurmas(data.lista);
         } else {
-            turmas = ["6º A","6º B","6º C","6º D","6º E","6º F","6º G","6º H","6º I","6º J"];
+            turmas = normalizarTurmas(["6º A","6º B","6º C","6º D","6º E","6º F","6º G","6º H","6º I","6º J"]);
         }
 
         renderizarTurmasLista();
@@ -1325,38 +1326,46 @@
         // Adicionar nova turma
         window.adicionarTurma = function() {
             const input = document.getElementById('novaTurma');
+            const inputComponente = document.getElementById('novoComponente');
             const nomeTurma = input.value.trim();
+            const componenteInformado = inputComponente.value.trim();
 
             if (!nomeTurma) {
                 mostrarMensagem('Digite o nome da turma!', 'info');
                 return;
             }
 
-            if (turmas.includes(nomeTurma)) {
+            if (turmas.some(t => t.nome === nomeTurma)) {
                 mostrarMensagem('Esta turma já existe!', 'info');
                 return;
             }
 
-            turmas.push(nomeTurma);
+            turmas.push({ nome: nomeTurma, componenteCurricular: componenteInformado || COMPONENTE_CURRICULAR_PADRAO });
             salvarTurmasFirebase();
             renderizarTurmasLista();
             input.value = '';
+            inputComponente.value = '';
             mostrarMensagem(`Turma ${nomeTurma} adicionada com sucesso!`, 'success');
         };
 
         // Remover turma
         window.removerTurma = function(nomeTurma) {
             if (confirm(`Tem certeza que deseja remover a turma ${nomeTurma}?`)) {
-                turmas = turmas.filter(t => t !== nomeTurma);
+                turmas = turmas.filter(t => t.nome !== nomeTurma);
 
-                // Remover a turma da grade também
+                // Remover a turma da grade também — compara pela célula
+                // normalizada (aceita tanto string crua antiga quanto o
+                // formato objeto novo), já que os dois formatos podem
+                // coexistir até o próximo "Salvar Grade".
+                const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
                 for (let periodo in gradeHorarios) {
                     gradeHorarios[periodo].forEach(linha => {
-                        for (let dia in linha) {
-                            if (linha[dia] === nomeTurma) {
+                        DIA_CHAVES.forEach(dia => {
+                            const celula = normalizarCelula(linha[dia]);
+                            if (celula.tipo === 'turma' && celula.turma === nomeTurma) {
                                 linha[dia] = 'Folga'; // Substitui por folga
                             }
-                        }
+                        });
                     });
                 }
 
@@ -1385,11 +1394,15 @@
                 div.className = 'turma-item';
                 div.setAttribute('draggable', modoArrastarAtivo);
                 div.setAttribute('data-tipo', 'turma');
-                div.setAttribute('data-valor', turma);
+                div.setAttribute('data-valor', turma.nome);
+                div.setAttribute('data-componente', turma.componenteCurricular);
 
+                const badgeComponente = turma.componenteCurricular !== COMPONENTE_CURRICULAR_PADRAO
+                    ? ` <span style="opacity:0.7;font-size:0.75em;">(${turma.componenteCurricular})</span>`
+                    : '';
                 div.innerHTML = `
-                    <span>👥 ${turma}</span>
-                    <button class="remove-turma" onclick="removerTurma('${turma}')" title="Remover turma">×</button>
+                    <span>👥 ${turma.nome}${badgeComponente}</span>
+                    <button class="remove-turma" onclick="removerTurma('${turma.nome}')" title="Remover turma">×</button>
                 `;
 
                 if (modoArrastarAtivo) {
@@ -1434,7 +1447,8 @@
 
             itemArrastando = {
                 tipo: elemento.dataset.tipo,
-                valor: elemento.dataset.valor
+                valor: elemento.dataset.valor,
+                componente: elemento.dataset.componente || null
             };
 
             e.dataTransfer.setData('text/plain', JSON.stringify(itemArrastando));
@@ -1512,8 +1526,11 @@
                 const dia = diaMap[cellIndex - 1]; // -1 porque a primeira célula é o horário
 
                 if (periodo && linhaIndex !== undefined && dia && linhaIndex >= 0 && linhaIndex < gradeHorarios[periodo].length) {
-                    // Atualizar a grade
-                    gradeHorarios[periodo][linhaIndex][dia] = data.valor;
+                    // Atualizar a grade — turma vira {turma, componenteCurricular},
+                    // palavra reservada (Folga/Planejamento/CEMFOR/---) continua string.
+                    gradeHorarios[periodo][linhaIndex][dia] = data.tipo === 'turma'
+                        ? { turma: data.valor, componenteCurricular: data.componente || COMPONENTE_CURRICULAR_PADRAO }
+                        : data.valor;
 
                     // Renderizar novamente
                     renderizarProgramacao();
@@ -1622,26 +1639,20 @@
         }
 
         // Renderizar card da aula
-        function renderizarCard(valor) {
-            if (valor === '---') {
-    return `<div class="aula-card" style="opacity:0.3;">➕</div>`;
-}
-            if (valor === 'Folga') {
-                return `<div class="aula-card folga">🆓 Folga</div>`;
+        function renderizarCard(valorBruto) {
+            const celula = normalizarCelula(valorBruto);
+            if (celula.tipo === 'especial') {
+                switch (celula.valor) {
+                    case 'Folga': return `<div class="aula-card folga">🆓 Folga</div>`;
+                    case 'Planejamento': return `<div class="aula-card planejamento">📝 Planejamento</div>`;
+                    case 'CEMFOR': return `<div class="aula-card cemfor">🏛️ CEMFOR</div>`;
+                    default: return `<div class="aula-card" style="opacity:0.3;">➕</div>`; // '---'
+                }
             }
-
-            if (valor === 'Planejamento') {
-                return `<div class="aula-card planejamento">📝 Planejamento</div>`;
-            }
-
-            if (valor === 'CEMFOR') {
-                return `<div class="aula-card cemfor">🏛️ CEMFOR</div>`;
-            }
-
             // É uma turma
             return `
                 <div class="aula-card">
-                    <div class="aula-turma">👥 ${valor}</div>
+                    <div class="aula-turma">👥 ${celula.turma}</div>
                 </div>
             `;
         }
@@ -1804,6 +1815,20 @@
         };
 
         window.salvarGrade = function() {
+    // Migra célula-por-célula pro formato novo a cada salvamento — assim o
+    // documento inteiro é atualizado organicamente, sem precisar de script
+    // de migração em lote pra dados gravados antes desta mudança.
+    const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+    for (let periodo in gradeHorarios) {
+        gradeHorarios[periodo].forEach(linha => {
+            DIA_CHAVES.forEach(dia => {
+                const celula = normalizarCelula(linha[dia]);
+                linha[dia] = celula.tipo === 'turma'
+                    ? { turma: celula.turma, componenteCurricular: celula.componenteCurricular }
+                    : celula.valor;
+            });
+        });
+    }
     salvarGradeService(escolaAtualId, gradeHorarios)
         .then(() => {
             mostrarMensagem('Grade salva com sucesso!', 'success');
