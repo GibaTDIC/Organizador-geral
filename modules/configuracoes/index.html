@@ -313,6 +313,16 @@
             text-overflow: ellipsis;
         }
 
+        .aula-componente {
+            font-weight: 400;
+            color: #1e3c72;
+            opacity: 0.65;
+            font-size: clamp(0.55rem, 1.3vw, 0.68rem);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         /* Legenda */
         .legenda {
             background: white;
@@ -1037,7 +1047,17 @@
             <div class="turmas-content" id="turmasContent">
                 <div class="add-turma-form">
                     <input type="text" id="novaTurma" placeholder="Ex: 7º A, 8º B, 1º EM...">
-                    <input type="text" id="novoComponente" placeholder="Componente (padrão: Educação Física)" style="font-size:0.8rem;">
+                    <select id="novoComponente" style="font-size:0.8rem;">
+                        <option value="Educação Física">Educação Física</option>
+                        <option value="Língua Portuguesa">Língua Portuguesa</option>
+                        <option value="Matemática">Matemática</option>
+                        <option value="Ciências">Ciências</option>
+                        <option value="História">História</option>
+                        <option value="Geografia">Geografia</option>
+                        <option value="Arte">Arte</option>
+                        <option value="Língua Inglesa">Língua Inglesa</option>
+                        <option value="Ensino Religioso">Ensino Religioso</option>
+                    </select>
                     <button class="btn btn-success" onclick="adicionarTurma()">➕ Adicionar</button>
                     <button class="btn btn-info" onclick="recarregarTurmasFirebase()">🔄 Recarregar</button>
                 </div>
@@ -1344,7 +1364,7 @@
             salvarTurmasFirebase();
             renderizarTurmasLista();
             input.value = '';
-            inputComponente.value = '';
+            inputComponente.value = COMPONENTE_CURRICULAR_PADRAO;
             mostrarMensagem(`Turma ${nomeTurma} adicionada com sucesso!`, 'success');
         };
 
@@ -1653,6 +1673,7 @@
             return `
                 <div class="aula-card">
                     <div class="aula-turma">👥 ${celula.turma}</div>
+                    <div class="aula-componente">${celula.componenteCurricular}</div>
                 </div>
             `;
         }
