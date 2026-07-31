@@ -1313,10 +1313,21 @@
                 const sugestao = await chamarAssistenteIA(prompt, contexto);
                 box.textContent = sugestao;
                 box.style.display = 'block';
-                box.insertAdjacentHTML('beforeend', '<div style="margin-top:8px;"><button type="button" class="pf-btn pf-btn--success" id="btnAceitarSugestaoIA" style="font-size:0.75rem;">✅ Usar este texto</button></div>');
+                const acoes = document.createElement('div');
+                acoes.style.cssText = 'margin-top:8px;display:flex;gap:6px;';
+                acoes.innerHTML = `
+                    <button type="button" class="pf-btn pf-btn--success" id="btnAceitarSugestaoIA" style="font-size:0.75rem;">✅ Usar este texto</button>
+                    <button type="button" class="pf-btn pf-btn--secondary" id="btnDescartarSugestaoIA" style="font-size:0.75rem;">❌ Descartar</button>
+                `;
+                box.appendChild(acoes);
                 document.getElementById('btnAceitarSugestaoIA').addEventListener('click', () => {
                     document.getElementById('descricao').value = sugestao;
                     box.style.display = 'none';
+                    box.textContent = '';
+                });
+                document.getElementById('btnDescartarSugestaoIA').addEventListener('click', () => {
+                    box.style.display = 'none';
+                    box.textContent = '';
                 });
             } catch (erro) {
                 mostrarMensagem(erro.message, 'error');
