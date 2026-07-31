@@ -5,4 +5,4 @@ compatibility_date = "2026-07-30"
 # Não é segredo, só configuração — trocar aqui + `wrangler deploy` se a
 # cota gratuita mudar de modelo de novo (ver Limite de taxa no AI Studio).
 [vars]
-GEMINI_MODEL = "gemini-2.5-flash-lite"
+GEMINI_MODEL = "gemini-3.1-flash-lite"

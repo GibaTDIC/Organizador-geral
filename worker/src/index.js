@@ -10,7 +10,7 @@ const FIREBASE_WEB_API_KEY = "AIzaSyBnwbnCSPLH8yjkYrgLgK5Q8g1Q8RoDz1s"; // públ
 // (ex: "gemini-2.0-flash" apareceu com cota 0 pra esta chave, enquanto
 // "gemini-2.5-flash-lite" tinha cota real). Trocar o modelo não deve
 // exigir editar este arquivo, só o wrangler.toml + `wrangler deploy`.
-const GEMINI_MODEL_PADRAO = "gemini-2.5-flash-lite";
+const GEMINI_MODEL_PADRAO = "gemini-3.1-flash-lite";
 
 const CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*", // restringir à origem real do site publicado depois do primeiro deploy
