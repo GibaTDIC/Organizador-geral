@@ -4,7 +4,7 @@
 // então abrir a Programação Diária sem nunca ter aberto o Controlador
 // deixava o professor sem nenhuma entrada pra ver. Função pura: só lê/grava
 // Firestore e retorna o resultado, nenhum efeito colateral de UI.
-import { lerControlador, salvarControlador } from './controlador-service.js';
+import { transacionarControlador } from './controlador-service.js';
 import { COMPONENTE_CURRICULAR_PADRAO } from './grade-service.js';
 
 // Turma FÍSICA ("6º A") → SÉRIE ("6º Ano"). Compartilhada com Controlador e
@@ -41,12 +41,18 @@ export async function sincronizarControlador({ escolaId, aulasFirebase, turmasAt
 
     atualizandoControlador = true;
     try {
-        const docSnap = await lerControlador(escolaId);
-        const data = docSnap.exists() ? docSnap.data() : null;
-        let controladorBanco = data?.aulas || [];
-        let alterou = false;
+        // transacionarControlador lê e escreve dentro de uma transação do
+        // Firestore: se o documento mudar entre a leitura e a escrita (ex.:
+        // o professor clica "Iniciar Aula" enquanto esta sincronização
+        // automática ainda está em andamento — o cenário real que apagava
+        // esse clique), o SDK detecta o conflito e roda esta função de novo
+        // sozinho, com o dado mais recente, em vez de sobrescrever por cima
+        // da mutação do professor.
+        return await transacionarControlador(escolaId, (data) => {
+            let controladorBanco = data?.aulas || [];
+            let alterou = false;
 
-        aulasFirebase.forEach((aulaBase, indexAula) => {
+            aulasFirebase.forEach((aulaBase, indexAula) => {
             const componenteAula = aulaBase.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO;
 
             turmasAtuais.forEach((turma) => {
@@ -121,26 +127,26 @@ export async function sincronizarControlador({ escolaId, aulasFirebase, turmasAt
                     alterou = true;
                 }
             });
-        });
-
-        // Remove entradas cujo plano de aula original foi excluído do Planejamento.
-        const tamanhoAntes = controladorBanco.length;
-        controladorBanco = controladorBanco.filter(aulaControlador =>
-            aulasFirebase.some(aulaFirebase => aulaFirebase.id === aulaControlador.firebaseId)
-        );
-        if (controladorBanco.length !== tamanhoAntes) {
-            alterou = true;
-        }
-
-        if (alterou) {
-            await salvarControlador(escolaId, {
-                aulas: controladorBanco,
-                aulaAtualId: data?.aulaAtualId || null,
-                ultimaAtualizacao: new Date().toISOString()
             });
-        }
 
-        return { aulas: controladorBanco, aulaAtualId: data?.aulaAtualId || null };
+            // Remove entradas cujo plano de aula original foi excluído do Planejamento.
+            const tamanhoAntes = controladorBanco.length;
+            controladorBanco = controladorBanco.filter(aulaControlador =>
+                aulasFirebase.some(aulaFirebase => aulaFirebase.id === aulaControlador.firebaseId)
+            );
+            if (controladorBanco.length !== tamanhoAntes) {
+                alterou = true;
+            }
+
+            return {
+                alterou,
+                dados: {
+                    aulas: controladorBanco,
+                    aulaAtualId: data?.aulaAtualId || null,
+                    ultimaAtualizacao: new Date().toISOString()
+                }
+            };
+        });
     } finally {
         atualizandoControlador = false;
     }
