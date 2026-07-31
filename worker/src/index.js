@@ -5,7 +5,12 @@
 // Sem streaming — request/response simples, suficiente pro MVP.
 
 const FIREBASE_WEB_API_KEY = "AIzaSyBnwbnCSPLH8yjkYrgLgK5Q8g1Q8RoDz1s"; // pública, não é segredo
-const GEMINI_MODEL = "gemini-2.0-flash"; // conferir se o nome/versão do modelo ainda é o atual no dia do deploy
+// Nome do modelo configurável via wrangler.toml ([vars] GEMINI_MODEL), não
+// hardcoded — a cota gratuita por modelo muda bastante e varia por conta
+// (ex: "gemini-2.0-flash" apareceu com cota 0 pra esta chave, enquanto
+// "gemini-2.5-flash-lite" tinha cota real). Trocar o modelo não deve
+// exigir editar este arquivo, só o wrangler.toml + `wrangler deploy`.
+const GEMINI_MODEL_PADRAO = "gemini-2.5-flash-lite";
 
 const CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*", // restringir à origem real do site publicado depois do primeiro deploy
@@ -79,7 +84,8 @@ async function chamarGemini(env, prompt, contexto) {
         throw new Error("GEMINI_API_KEY não configurada no Worker (rode: wrangler secret put GEMINI_API_KEY).");
     }
     const promptCompleto = montarPrompt(prompt, contexto);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`;
+    const modelo = env.GEMINI_MODEL || GEMINI_MODEL_PADRAO;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${env.GEMINI_API_KEY}`;
     const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
