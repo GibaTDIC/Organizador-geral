@@ -420,10 +420,16 @@
             // dataReferencia futura fica de fora daqui mesmo sendo a única
             // pendente — sem isso, terminar tudo antes do previsto liberava
             // a próxima semana de conteúdo antes da hora.
+            // Escolhe a MAIS RECENTE (não a mais antiga) entre as disponíveis
+            // até hoje: cada dia tem sua própria aula prevista, e uma
+            // atrasada de semanas atrás não pode travar a turma de avançar
+            // pro conteúdo da semana atual. A atrasada continua existindo e
+            // fica acessível pela lista "Aulas pendentes desta turma" — só
+            // não é mais ela quem define "a aula de hoje".
             const hojeStr = new Date().toISOString().split('T')[0];
             const disponiveisHoje = emAberto
                 .filter(a => !a.dataInicio || a.dataInicio <= hojeStr)
-                .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
+                .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''));
             if (disponiveisHoje.length > 0) {
                 return { status: disponiveisHoje[0].status || 'Não iniciada', entrada: disponiveisHoje[0] };
             }
@@ -471,6 +477,23 @@
                 });
             });
             return itens;
+        }
+
+        // Aulas atrasadas/pendentes da turma filtrada que NÃO são "a aula de
+        // hoje" (essa já aparece no card normal, via montarAulasDoDia) — dão
+        // ao professor um jeito explícito de escolher e resolver backlog sem
+        // que isso mude o que o Dashboard mostra como aula do dia.
+        function pendentesDaTurma(turma) {
+            if (!turma) return [];
+            const turmaObj = turmasAtuais.find(t => t.nome === turma);
+            const componente = (turmaObj && turmaObj.componenteCurricular) || COMPONENTE_CURRICULAR_PADRAO;
+            const itemDeHoje = montarAulasDoDia().find(i => i.turma === turma);
+            const idDeHoje = itemDeHoje && itemDeHoje.entrada ? itemDeHoje.entrada.id : null;
+            return (controladorAtual.aulas || [])
+                .filter(a => a.turma === turma && (a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO) === componente)
+                .filter(a => a.status !== 'Concluída' && a.status !== 'Cancelada')
+                .filter(a => a.id !== idDeHoje)
+                .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
         }
 
         function encontrarItemSelecionado() {
@@ -670,6 +693,22 @@
             }
         };
 
+        // Seleciona uma aula ATRASADA da lista "pendentes desta turma" —
+        // ancora num card de hoje da mesma turma (só pra exibir turma/
+        // horário no cabeçalho do painel) e fixa a entrada atrasada
+        // escolhida, sem depender de qual aula o algoritmo resolveria pra
+        // hoje. Resolver isso aqui não muda o que o Dashboard mostra.
+        window.selecionarPendente = function (entradaId) {
+            const itemDeHoje = montarAulasDoDia().find(i => i.turma === filtroTurma);
+            if (itemDeHoje) chaveSelecionada = encodeURIComponent(chaveDoItem(itemDeHoje));
+            entradaFixadaId = entradaId;
+            renderizarLista();
+            renderizarPainel();
+            if (window.matchMedia('(max-width: 600px)').matches) {
+                document.getElementById('pdPainelModal').open();
+            }
+        };
+
         // ---------- Impressão / exportação ----------
         window.imprimirDia = function () {
             window.print();
@@ -733,7 +772,7 @@
             }
 
             let periodoAtual = null;
-            container.innerHTML = itens.map(item => {
+            const cardsHtml = itens.map(item => {
                 let cabecalho = '';
                 if (item.periodo !== periodoAtual) {
                     periodoAtual = item.periodo;
@@ -766,6 +805,29 @@
                     </div>
                 `;
             }).join('');
+
+            // Só aparece com uma turma filtrada — é aqui que o professor
+            // resolve atrasadas manualmente, sem que isso mude o que o
+            // Dashboard mostra como aula de hoje (ver derivarStatusTurma).
+            const pendentes = filtroTurma ? pendentesDaTurma(filtroTurma) : [];
+            const pendentesHtml = pendentes.length === 0 ? '' : `
+                <div class="pd-periodo-titulo">⏳ Aulas pendentes de ${filtroTurma}</div>
+                ${pendentes.map(p => {
+                    const selecionada = entradaFixadaId === p.id ? ' pd-card--selecionada' : '';
+                    return `
+                        <div class="pf-card pd-card${selecionada}" onclick="selecionarPendente('${p.id}')">
+                            <div class="pd-card-topo">
+                                <span class="pd-card-horario">${formatarData(p.dataInicio)}</span>
+                                <span class="pd-badge ${classeBadge(p.status)}">${p.status}</span>
+                            </div>
+                            <div class="pd-card-turma">${p.turma}</div>
+                            <div class="pd-card-conteudo">${p.titulo}</div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+
+            container.innerHTML = cardsHtml + pendentesHtml;
         }
 
         function construirHabilidadesTrabalhadasHtml(entrada) {

@@ -490,6 +490,37 @@
         const DIAS_SEMANA_EXTENSO = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
         const MESES_EXTENSO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+        // Janela de horário real de cada período — usada só pelo quadro
+        // "Próxima Aula" pra saber qual período é "agora" e avançar sozinho
+        // conforme o relógio, mesmo que o professor não registre nada. Fixo
+        // por enquanto (grade de horários da escola não muda com frequência);
+        // se um rótulo de horário não bater com essa tabela (grade
+        // customizada), o período simplesmente não entra na ordenação por
+        // hora — não trava o quadro, só perde esse refinamento.
+        const JANELAS_HORARIO = {
+            matutino: {
+                '1ª Aula': { inicio: '07:00', fim: '08:00' },
+                '2ª Aula': { inicio: '08:00', fim: '09:00' },
+                '3ª Aula': { inicio: '09:00', fim: '10:00' },
+                '4ª Aula': { inicio: '10:00', fim: '11:00' }
+            },
+            vespertino: {
+                '1ª Aula': { inicio: '13:00', fim: '14:00' },
+                '2ª Aula': { inicio: '14:00', fim: '15:00' },
+                '3ª Aula': { inicio: '15:00', fim: '16:00' },
+                '4ª Aula': { inicio: '16:00', fim: '17:00' }
+            }
+        };
+
+        function janelaDoSlot(periodo, horario) {
+            return (JANELAS_HORARIO[periodo] && JANELAS_HORARIO[periodo][horario]) || null;
+        }
+
+        function horaAtualStr() {
+            const agora = new Date();
+            return `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+        }
+
         // ---------- Helpers de data ----------
         // Duplicado de propósito de programacao-diaria/index.html — este
         // codebase trata funções puras pequenas como seguras para duplicar
@@ -560,10 +591,16 @@
             // dataReferencia futura fica de fora daqui mesmo sendo a única
             // pendente — sem isso, terminar tudo antes do previsto liberava
             // a próxima semana de conteúdo antes da hora.
+            // Escolhe a MAIS RECENTE (não a mais antiga) entre as disponíveis
+            // até hoje: cada dia tem sua própria aula prevista, e uma
+            // atrasada de semanas atrás não pode travar a turma de avançar
+            // pro conteúdo da semana atual. A atrasada continua existindo e
+            // aparece nas Pendências — só não é mais ela quem define "a aula
+            // de hoje".
             const hojeStr = new Date().toISOString().split('T')[0];
             const disponiveisHoje = emAberto
                 .filter(a => !a.dataInicio || a.dataInicio <= hojeStr)
-                .sort((a, b) => (a.dataInicio || '').localeCompare(b.dataInicio || ''));
+                .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''));
             if (disponiveisHoje.length > 0) {
                 return { status: disponiveisHoje[0].status || 'Não iniciada', entrada: disponiveisHoje[0] };
             }
@@ -607,9 +644,34 @@
             // coisa acionável de hoje, é conteúdo que ainda não chegou a
             // data (ver derivarStatusTurma) — sugerir isso como "próxima
             // aula" induziria o professor a adiantar o planejamento.
-            return montarRotinaHoje().find(item =>
+            const candidatos = montarRotinaHoje().filter(item =>
                 item.status !== 'Concluída' && item.status !== 'Cancelada' && item.status !== 'Aula futura'
-            ) || null;
+            );
+            if (candidatos.length === 0) return null;
+
+            // Segue o relógio: acompanha o período cujo horário é AGORA;
+            // se já passou (o professor não registrou nada naquele horário),
+            // não fica preso nele — avança pro próximo período do dia. O que
+            // ficou pra trás continua existindo como pendência (ver
+            // calcularPendencias), só não trava mais este quadro.
+            const agora = horaAtualStr();
+            const comJanela = candidatos
+                .map(item => ({ item, janela: janelaDoSlot(item.periodo, item.horario) }))
+                .filter(x => x.janela)
+                .sort((a, b) => a.janela.inicio.localeCompare(b.janela.inicio));
+
+            const emAndamentoAgora = comJanela.find(x => agora >= x.janela.inicio && agora < x.janela.fim);
+            if (emAndamentoAgora) return emAndamentoAgora.item;
+
+            const aindaNaoComecou = comJanela.find(x => agora < x.janela.inicio);
+            if (aindaNaoComecou) return aindaNaoComecou.item;
+
+            // Passou de todos os horários conhecidos de hoje — não sobra
+            // "próxima aula" pra hoje. Períodos sem janela reconhecida
+            // (rótulo de horário fora do padrão) ainda entram como último
+            // recurso, já que não dá pra saber se o horário deles já passou.
+            const semJanela = candidatos.find(item => !janelaDoSlot(item.periodo, item.horario));
+            return semJanela || null;
         }
 
         // ---------- Pendências — mesmo critério de data do Controlador ----------
@@ -780,7 +842,16 @@
 
             const proxima = calcularProximaAula();
             if (!proxima) {
-                container.innerHTML = '<p class="dash-estado-vazio">Todas as aulas de hoje foram concluídas! 🎉</p>';
+                // Duas razões distintas pra não sobrar "próxima aula": ou
+                // terminou tudo (bom sinal), ou só passou do horário de
+                // todos os períodos de hoje sem registro (vira pendência,
+                // não trava mais este quadro — ver calcularProximaAula).
+                const aindaHaPendente = montarRotinaHoje().some(item =>
+                    item.status !== 'Concluída' && item.status !== 'Cancelada' && item.status !== 'Aula futura'
+                );
+                container.innerHTML = aindaHaPendente
+                    ? '<p class="dash-estado-vazio">As aulas de hoje já passaram do horário. Confira as pendências abaixo.</p>'
+                    : '<p class="dash-estado-vazio">Todas as aulas de hoje foram concluídas! 🎉</p>';
                 return;
             }
 
