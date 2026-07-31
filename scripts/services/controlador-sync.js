@@ -69,6 +69,26 @@ export async function sincronizarControlador({ escolaId, aulasFirebase, turmasAt
                     a.firebaseId === aulaBase.id && a.turma === turma.nome
                 );
 
+                // Uma entrada já sincronizada nunca era revisitada — se o
+                // professor criasse a aula sem data (ganhando o fallback
+                // fabricado hoje+índice×3) e só depois voltasse no
+                // Planejamento pra preencher "Data de referência", essa
+                // correção nunca chegava ao Controlador: a entrada ficava
+                // congelada pra sempre com a data fabricada, podendo cair no
+                // futuro e travar Iniciar/Concluir por engano ("Aula
+                // futura"). Agora, sempre que dataReferencia existir e
+                // divergir da data já salva, a entrada é realinhada — sem
+                // tocar em status/aulasExecutadas/observações, que são do
+                // Controlador, não do Planejamento.
+                if (jaExiste && aulaBase.dataReferencia && jaExiste.dataInicio !== aulaBase.dataReferencia) {
+                    const dataInicioObj = new Date(aulaBase.dataReferencia + 'T12:00:00');
+                    const prazoObj = new Date(dataInicioObj);
+                    prazoObj.setDate(prazoObj.getDate() + 7);
+                    jaExiste.dataInicio = aulaBase.dataReferencia;
+                    jaExiste.prazo = prazoObj.toISOString().split('T')[0];
+                    alterou = true;
+                }
+
                 if (!jaExiste) {
                     // Usa a data real da aula quando o professor a preencheu
                     // (dataReferencia, YYYY-MM-DD — mesmo campo que a
