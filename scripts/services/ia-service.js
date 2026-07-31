@@ -14,8 +14,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { obterIdToken } from './auth-service.js';
 
-// Trocar pela URL real depois do primeiro `wrangler deploy` (worker/).
-const IA_WORKER_URL = 'https://profgb-ia-worker.SEU-SUBDOMINIO.workers.dev';
+const IA_WORKER_URL = 'https://profgb-ia-worker.gibabit.workers.dev';
 
 function conversasIARef(escolaId) {
     return collection(db, 'escolas', escolaId, 'conversasIA');
