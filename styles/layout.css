@@ -34,6 +34,11 @@ pf-header {
     padding: 0 var(--pf-space-4);
     background: var(--pf-slate-900);
     color: var(--pf-ice-50);
+    /* Item de grid de .pf-app-shell, na MESMA coluna de .pf-app-main —
+       sem isso, o conteúdo do cabeçalho (email, nome da escola) que não
+       cabe força a coluna inteira a ficar larga, e .pf-app-main fica
+       largo junto mesmo já tendo o próprio min-width:0. */
+    min-width: 0;
 }
 
 .pf-header__left {
@@ -192,6 +197,10 @@ pf-sidebar {
 @media (max-width: 900px) {
     .pf-app-shell {
         grid-template-columns: 1fr;
+        /* "auto" na linha do cabeçalho (era a altura fixa
+           --pf-header-height): o cabeçalho pode quebrar em duas linhas
+           aqui embaixo sem cortar a segunda linha por falta de espaço. */
+        grid-template-rows: auto 1fr;
         grid-template-areas:
             "header"
             "main";
@@ -201,9 +210,31 @@ pf-sidebar {
         display: block;
     }
 
+    /* Cabeçalho: marca+menu numa linha, escola+usuário quebram pra uma
+       segunda linha quando não cabe tudo — nada fica cortado/escondido. */
+    pf-header {
+        flex-wrap: wrap;
+        row-gap: var(--pf-space-2);
+        padding: var(--pf-space-2) var(--pf-space-3);
+    }
+
+    .pf-header__escola {
+        margin-right: 0;
+    }
+
+    .pf-header__email {
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* top:0 (em vez de var(--pf-header-height)) porque agora o cabeçalho
+       pode ter altura variável (quebra de linha) — a gaveta cobre a tela
+       inteira quando aberta, em vez de tentar encaixar embaixo dele. */
     pf-sidebar {
         position: fixed;
-        top: var(--pf-header-height);
+        top: 0;
         left: 0;
         bottom: 0;
         width: var(--pf-sidebar-width);
