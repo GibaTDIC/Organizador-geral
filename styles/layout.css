@@ -16,6 +16,12 @@
 .pf-app-main {
     grid-area: main;
     overflow-y: auto;
+    overflow-x: hidden;
+    /* Item de grid de .pf-app-shell — sem min-width:0 ele herda
+       min-width:auto e não encolhe abaixo do conteúdo mais largo lá
+       dentro (uma linha de texto comprida, por exemplo), o que empurra
+       a página inteira a precisar de rolagem lateral no celular. */
+    min-width: 0;
     padding: var(--pf-space-4);
 }
 

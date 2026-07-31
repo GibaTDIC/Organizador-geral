@@ -1,4 +1,14 @@
 /* Prof GB — Base de tipografia/corpo compartilhada (deduplicada das 4 páginas) */
+html, body {
+  /* Rede de segurança contra rolagem lateral no celular: se algum
+     elemento em qualquer página ainda tentar ser mais largo que a tela
+     (texto comprido, tabela, etc.), ele é cortado em vez de esticar a
+     página inteira. A correção de verdade é cada componente encolher
+     direito (ver .pf-app-main em layout.css) — isso aqui só garante que
+     nunca mais volta a acontecer por engano em outro lugar. */
+  overflow-x: hidden;
+}
+
 body {
   font-family: var(--pf-font-family);
   color: var(--pf-gray-900);
