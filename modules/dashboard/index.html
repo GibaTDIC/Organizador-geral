@@ -96,6 +96,42 @@
             font-size: 0.95rem;
         }
 
+        /* Sino de Alertas — minimalista, a mensagem completa só aparece no
+           pop-up (#dashAlertasModal) ao clicar. */
+        .dash-alertas-sino {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--pf-space-2);
+            background: var(--pf-white);
+            border: 1px solid var(--pf-orange-100);
+            color: var(--pf-gray-900);
+            border-radius: 999px;
+            padding: var(--pf-space-2) var(--pf-space-3);
+            font-family: var(--pf-font-family);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: var(--pf-shadow-sm);
+        }
+
+        .dash-alertas-sino:hover {
+            border-color: var(--pf-orange-400);
+        }
+
+        .dash-alertas-contagem {
+            background: var(--pf-orange-500);
+            color: var(--pf-white);
+            border-radius: 999px;
+            min-width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            padding: 0 6px;
+        }
+
         /* Minha Rotina Hoje */
         .dash-rotina-lista {
             display: flex;
@@ -402,11 +438,11 @@
                         <p id="dashData">Carregando data…</p>
                     </section>
 
-                    <!-- Alertas Inteligentes (some quando não há nenhum) -->
-                    <section class="pf-card" style="display:none;">
-                        <h2 class="dash-card-titulo">🔔 Alertas</h2>
-                        <div id="dashAlertas" style="font-size:0.85rem;color:var(--pf-gray-700);"></div>
-                    </section>
+                    <!-- Alertas Inteligentes: só o sino, minimalista — a mensagem
+                         completa fica no pop-up (ver #dashAlertasModal) -->
+                    <button type="button" class="dash-alertas-sino" id="dashAlertasSino" style="display:none;" onclick="abrirAlertas()">
+                        🔔 Alertas <span class="dash-alertas-contagem" id="dashAlertasContagem"></span>
+                    </button>
 
                     <div class="dash-grid">
                         <!-- Minha Rotina Hoje -->
@@ -495,7 +531,16 @@
         </div>
     </div>
 
+    <!-- Pop-up de alertas, aberto pelo sino -->
+    <pf-modal id="dashAlertasModal">
+        <div class="pf-modal-body">
+            <h3 style="margin-bottom:var(--pf-space-3);">🔔 Alertas</h3>
+            <div id="dashAlertasConteudo"></div>
+        </div>
+    </pf-modal>
+
     <script type="module">
+        import "../../scripts/components/pf-modal.js";
         import "../../scripts/layout/page-shell.js";
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
@@ -1008,16 +1053,22 @@
         }
 
         function renderizarAlertas() {
-            const container = document.getElementById('dashAlertas');
-            if (!container) return;
+            const sino = document.getElementById('dashAlertasSino');
+            if (!sino) return;
             const alertas = calcularAlertas();
             if (alertas.length === 0) {
-                container.closest('.pf-card').style.display = 'none';
+                sino.style.display = 'none';
                 return;
             }
-            container.closest('.pf-card').style.display = '';
-            container.innerHTML = alertas.map(a => `<p style="margin-bottom:6px;">${a}</p>`).join('');
+            sino.style.display = '';
+            document.getElementById('dashAlertasContagem').textContent = alertas.length;
+            document.getElementById('dashAlertasConteudo').innerHTML =
+                alertas.map(a => `<p style="margin-bottom:6px;">${a}</p>`).join('');
         }
+
+        window.abrirAlertas = function () {
+            document.getElementById('dashAlertasModal').open();
+        };
 
         function renderizarProgresso() {
             const anual = calcularProgressoAnual();

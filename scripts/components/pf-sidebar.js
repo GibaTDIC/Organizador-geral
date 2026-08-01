@@ -30,6 +30,19 @@ export class PfSidebar extends HTMLElement {
             this.classList.toggle('pf-sidebar--open');
         });
 
+        // Fecha a gaveta ao tocar fora dela (só existe como gaveta sobreposta
+        // no breakpoint mobile — em telas largas a classe não muda nada
+        // visualmente, então esse listener não interfere lá). O toggle do
+        // cabeçalho já corre no momento em que o clique acontece (listener
+        // dele fica no próprio botão, dispara antes deste aqui em document),
+        // então o guard abaixo evita fechar e reabrir no mesmo clique.
+        document.addEventListener('click', (evento) => {
+            if (!this.classList.contains('pf-sidebar--open')) return;
+            if (this.contains(evento.target)) return;
+            if (evento.target.closest('.pf-header__menu-toggle')) return;
+            this.classList.remove('pf-sidebar--open');
+        });
+
         // window.close() só funciona em abas abertas por script — pra uma
         // aba aberta digitando o endereço ou pelo ícone salvo, o navegador
         // ignora silenciosamente (sem erro pra detectar). Por isso sempre
