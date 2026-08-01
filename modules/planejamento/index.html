@@ -383,17 +383,27 @@
         // <select id="unidadeTematica"> por um <input> (e vice-versa) mantendo
         // o mesmo id evita qualquer mudança em salvarAula/gerarObjetivosComIA,
         // que só leem ".value" desse elemento sem saber sua tag.
-        function garantirCampoUnidadeTematica(tipo) {
-            const atual = document.getElementById('unidadeTematica');
+        function garantirCampoSelecaoOuTexto(id, tipo, onchangeSelect) {
+            const atual = document.getElementById(id);
             if (atual && atual.tagName.toLowerCase() === tipo) return atual;
             const valorAnterior = atual ? atual.value : '';
             const novoHtml = tipo === 'input'
-                ? '<input type="text" id="unidadeTematica" required placeholder="Ex: Frações e números decimais">'
-                : '<select id="unidadeTematica" required onchange="atualizarEspecificacoes()"></select>';
+                ? `<input type="text" id="${id}" required>`
+                : `<select id="${id}" required onchange="${onchangeSelect}"></select>`;
             atual.outerHTML = novoHtml;
-            const novo = document.getElementById('unidadeTematica');
+            const novo = document.getElementById(id);
             novo.value = valorAnterior;
             return novo;
+        }
+        function garantirCampoUnidadeTematica(tipo) {
+            return garantirCampoSelecaoOuTexto('unidadeTematica', tipo, 'atualizarEspecificacoes()');
+        }
+        // "especificacao" é o id herdado — desde a mudança pedida pelo
+        // usuário, esse campo passou a SER o Objeto de Conhecimento oficial
+        // da BNCC (não mais um texto livre separado), então ganhou o mesmo
+        // mecanismo de troca select↔input que unidadeTematica já tinha.
+        function garantirCampoObjetoConhecimento(tipo) {
+            return garantirCampoSelecaoOuTexto('especificacao', tipo, 'atualizarHabilidades()');
         }
 
         // habilidadesPreSelecionadas (mesma variável usada pela cascata de EF,
@@ -417,19 +427,14 @@
             const componenteSelect = document.getElementById('plAulaComponente');
             const componenteSelecionado = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
             const bncc = BNCC_POR_COMPONENTE[componenteSelecionado];
-            const especificacaoGroup = document.getElementById('especificacaoGroup');
             const hint = document.getElementById('unidadeTematicaHint');
 
             if (!bncc) {
                 const input = garantirCampoUnidadeTematica('input');
                 if (manterUnidade) input.value = manterUnidade;
                 input.placeholder = `Ex: unidade temática de ${componenteSelecionado}`;
-                especificacaoGroup.classList.add('hidden');
-                // Some select existe mas fica escondido — zera o valor pra
-                // não salvar uma especificação de EF que ficou selecionada
-                // de antes de trocar o componente.
-                const especificacaoSelectAntigo = document.getElementById('especificacao');
-                if (especificacaoSelectAntigo) especificacaoSelectAntigo.innerHTML = '<option value="">Selecione a especificação</option>';
+                const objetoInput = garantirCampoObjetoConhecimento('input');
+                objetoInput.placeholder = `Ex: objeto de conhecimento de ${componenteSelecionado}`;
                 if (hint) hint.textContent = `O app ainda não tem a BNCC de ${componenteSelecionado} cadastrada — digite livremente.`;
                 renderizarHabilidadesLivres();
                 return;
@@ -437,19 +442,18 @@
 
             const bimestreSelect = document.getElementById('plAulaBimestre');
             const unidadeTematicaSelect = garantirCampoUnidadeTematica('select');
-            const especificacaoSelect = document.getElementById('especificacao');
+            garantirCampoObjetoConhecimento('select');
             const habilidadesContainer = document.getElementById('habilidadesContainer');
 
             const valorAnterior = manterUnidade || unidadeTematicaSelect.value;
             const turmaSelecionada = turmaSelect.value;
             unidadeTematicaSelect.innerHTML = '';
-            especificacaoGroup.classList.add('hidden');
-            especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
             if (hint) hint.textContent = '';
 
             if (!turmaSelecionada) {
                 unidadeTematicaSelect.innerHTML = '<option value="">Selecione a turma primeiro</option>';
-                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a turma, unidade temática e especificação primeiro</p>';
+                document.getElementById('especificacao').innerHTML = '<option value="">Selecione a turma primeiro</option>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a turma, unidade temática e objeto de conhecimento primeiro</p>';
                 return;
             }
 
@@ -511,95 +515,108 @@
             habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma unidade temática</p>';
 
             // Se a unidade já saiu selecionada (valor mantido ou sugestão única),
-            // a cascata de especificação/habilidades precisa rodar também — só o
-            // 'change' do <select> dispara isso sozinho, e aqui não houve clique.
+            // a cascata de objeto de conhecimento/habilidades precisa rodar
+            // também — só o 'change' do <select> dispara isso sozinho, e aqui
+            // não houve clique.
             if (unidadeTematicaSelect.value) {
                 atualizarEspecificacoes();
+            } else {
+                document.getElementById('especificacao').innerHTML = '<option value="">Selecione a unidade temática primeiro</option>';
             }
         };
 
+        // "Especificação" aqui É o Objeto de Conhecimento oficial da BNCC —
+        // sempre visível e sempre com pelo menos 1 opção real (nunca mais
+        // escondido), derivada diretamente das chaves de
+        // bncc.habilidadesBNCC[turma][unidade] (que cobrem TODOS os objetos
+        // de uma unidade, mesmo quando ela só tem um só). especificacoesPorUnidade
+        // continua existindo só pra alimentar a sugestão do bimestre
+        // (destacar quais objetos foram planejados em Configurações).
         window.atualizarEspecificacoes = function () {
             const componenteSelect = document.getElementById('plAulaComponente');
             const componenteAtual = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
             const bncc = BNCC_POR_COMPONENTE[componenteAtual];
-            // Cascata (especificação/habilidades) só existe pra componentes
-            // com BNCC curada (ver BNCC_POR_COMPONENTE) — no modo livre, quem
-            // cuida do habilidadesContainer é renderizarHabilidadesLivres,
-            // chamada só por atualizarUnidadesTematicas.
+            // Cascata (objeto de conhecimento/habilidades) só existe pra
+            // componentes com BNCC curada (ver BNCC_POR_COMPONENTE) — no modo
+            // livre, quem cuida do habilidadesContainer é
+            // renderizarHabilidadesLivres, chamada só por atualizarUnidadesTematicas.
             if (!bncc) return;
             const turmaSelect = document.getElementById('turma');
             const unidadeTematicaSelect = document.getElementById('unidadeTematica');
-            const especificacaoGroup = document.getElementById('especificacaoGroup');
-            const especificacaoSelect = document.getElementById('especificacao');
+            const especificacaoSelect = garantirCampoObjetoConhecimento('select');
             const habilidadesContainer = document.getElementById('habilidadesContainer');
             const hint = document.getElementById('especificacaoHint');
 
             const valorAnterior = especificacaoSelect.value;
             const unidadeSelecionada = unidadeTematicaSelect.value;
-            especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+            especificacaoSelect.innerHTML = '';
             if (hint) hint.textContent = '';
 
             if (!unidadeSelecionada) {
-                especificacaoGroup.classList.add('hidden');
+                especificacaoSelect.innerHTML = '<option value="">Selecione a unidade temática primeiro</option>';
                 habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma unidade temática</p>';
                 return;
             }
 
-            const especificacoes = (bncc.especificacoesPorUnidade[turmaSelect.value] || {})[unidadeSelecionada] || [];
-            if (especificacoes.length > 0) {
-                especificacaoGroup.classList.remove('hidden');
+            const turmaSelecionada = turmaSelect.value;
+            const habilidadesTurma = bncc.habilidadesBNCC[turmaSelecionada] || {};
+            const objetosDaUnidade = Object.keys(habilidadesTurma[unidadeSelecionada] || {});
+            if (objetosDaUnidade.length === 0) {
+                especificacaoSelect.innerHTML = '<option value="">Nenhum objeto de conhecimento encontrado</option>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade encontrada para esta unidade</p>';
+                return;
+            }
 
-                const sugeridas = especificacoesSugeridasBimestre(turmaSelect.value, unidadeSelecionada, componenteAtual);
-                const restantes = especificacoes.filter(e => !sugeridas.includes(e));
+            const optionDefault = document.createElement('option');
+            optionDefault.value = '';
+            optionDefault.textContent = 'Selecione o objeto de conhecimento';
+            especificacaoSelect.appendChild(optionDefault);
 
-                function adicionarOpcao(destino, espec) {
-                    const option = document.createElement('option');
-                    option.value = espec;
-                    option.textContent = espec;
-                    destino.appendChild(option);
-                }
+            const sugeridas = especificacoesSugeridasBimestre(turmaSelecionada, unidadeSelecionada, componenteAtual)
+                .filter(e => objetosDaUnidade.includes(e));
+            const restantes = objetosDaUnidade.filter(e => !sugeridas.includes(e));
 
-                if (sugeridas.length > 0) {
-                    const grupoSugeridas = document.createElement('optgroup');
-                    grupoSugeridas.label = '✅ Planejadas para este bimestre';
-                    sugeridas.forEach(e => adicionarOpcao(grupoSugeridas, e));
-                    especificacaoSelect.appendChild(grupoSugeridas);
+            function adicionarOpcao(destino, espec) {
+                const option = document.createElement('option');
+                option.value = espec;
+                option.textContent = espec;
+                destino.appendChild(option);
+            }
 
-                    const grupoRestantes = document.createElement('optgroup');
-                    grupoRestantes.label = 'Outras especificações';
-                    restantes.forEach(e => adicionarOpcao(grupoRestantes, e));
-                    especificacaoSelect.appendChild(grupoRestantes);
+            if (sugeridas.length > 0) {
+                const grupoSugeridas = document.createElement('optgroup');
+                grupoSugeridas.label = '✅ Planejados para este bimestre';
+                sugeridas.forEach(e => adicionarOpcao(grupoSugeridas, e));
+                especificacaoSelect.appendChild(grupoSugeridas);
 
-                    if (hint) {
-                        hint.textContent = sugeridas.length === 1
-                            ? 'Especificação sugerida automaticamente a partir do planejamento deste bimestre em Configurações.'
-                            : `${sugeridas.length} especificações planejadas para este bimestre em Configurações — destacadas acima.`;
-                    }
-                } else {
-                    especificacoes.forEach(e => adicionarOpcao(especificacaoSelect, e));
-                }
+                const grupoRestantes = document.createElement('optgroup');
+                grupoRestantes.label = 'Outros objetos desta unidade';
+                restantes.forEach(e => adicionarOpcao(grupoRestantes, e));
+                especificacaoSelect.appendChild(grupoRestantes);
 
-                if (valorAnterior && especificacoes.includes(valorAnterior)) {
-                    especificacaoSelect.value = valorAnterior;
-                } else if (sugeridas.length === 1) {
-                    especificacaoSelect.value = sugeridas[0];
-                }
-
-                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
-                if (especificacaoSelect.value) {
-                    atualizarHabilidades();
+                if (hint) {
+                    hint.textContent = sugeridas.length === 1
+                        ? 'Objeto de conhecimento sugerido automaticamente a partir do planejamento deste bimestre em Configurações.'
+                        : `${sugeridas.length} objetos de conhecimento planejados para este bimestre em Configurações — destacados acima.`;
                 }
             } else {
-                especificacaoGroup.classList.add('hidden');
-                const turmaSelecionada = turmaSelect.value;
-                const habilidadesTurma = bncc.habilidadesBNCC[turmaSelecionada];
-                if (habilidadesTurma && habilidadesTurma[unidadeSelecionada]) {
-                    const habilidades = [];
-                    Object.values(habilidadesTurma[unidadeSelecionada]).forEach(especHabilidades => {
-                        habilidades.push(...especHabilidades);
-                    });
-                    exibirHabilidades(habilidades);
-                }
+                objetosDaUnidade.forEach(e => adicionarOpcao(especificacaoSelect, e));
+            }
+
+            if (valorAnterior && objetosDaUnidade.includes(valorAnterior)) {
+                especificacaoSelect.value = valorAnterior;
+            } else if (objetosDaUnidade.length === 1) {
+                // Só existe 1 objeto de conhecimento pra essa unidade — não
+                // faz sentido obrigar o professor a "escolher" entre uma
+                // única opção.
+                especificacaoSelect.value = objetosDaUnidade[0];
+            } else if (sugeridas.length === 1) {
+                especificacaoSelect.value = sugeridas[0];
+            }
+
+            habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione um objeto de conhecimento</p>';
+            if (especificacaoSelect.value) {
+                atualizarHabilidades();
             }
         };
 
@@ -610,7 +627,6 @@
             const turmaSelect = document.getElementById('turma');
             const unidadeTematicaSelect = document.getElementById('unidadeTematica');
             const especificacaoSelect = document.getElementById('especificacao');
-            const especificacaoGroup = document.getElementById('especificacaoGroup');
             const habilidadesContainer = document.getElementById('habilidadesContainer');
 
             const turmaSelecionada = turmaSelect.value;
@@ -621,8 +637,8 @@
                 habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a turma e unidade temática primeiro</p>';
                 return;
             }
-            if (especificacaoGroup.classList.contains('hidden') === false && !especificacaoSelecionada) {
-                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
+            if (!especificacaoSelecionada) {
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione um objeto de conhecimento</p>';
                 return;
             }
 
@@ -637,15 +653,7 @@
                 return;
             }
 
-            let habilidades = [];
-            if (especificacaoSelecionada) {
-                habilidades = habilidadesUnidade[especificacaoSelecionada] || [];
-            } else {
-                Object.values(habilidadesUnidade).forEach(especHabilidades => {
-                    habilidades.push(...especHabilidades);
-                });
-            }
-            exibirHabilidades(habilidades);
+            exibirHabilidades(habilidadesUnidade[especificacaoSelecionada] || []);
         };
 
         function exibirHabilidades(habilidades, selecionadas) {
@@ -1310,16 +1318,12 @@
                         </select>
                         <small id="unidadeTematicaHint" style="display:block;color:var(--pf-gray-500);margin-top:4px;"></small>
                     </div>
-                    <div class="pf-field especificacao-group hidden" id="especificacaoGroup">
-                        <label for="especificacao">Especificação *</label>
-                        <select id="especificacao" onchange="atualizarHabilidades()">
-                            <option value="">Selecione a especificação</option>
+                    <div class="pf-field" id="especificacaoGroup">
+                        <label for="especificacao">Objeto de Conhecimento (BNCC) *</label>
+                        <select id="especificacao" required onchange="atualizarHabilidades()">
+                            <option value="">Selecione a unidade temática primeiro</option>
                         </select>
                         <small id="especificacaoHint" style="display:block;color:var(--pf-gray-500);margin-top:4px;"></small>
-                    </div>
-                    <div class="pf-field">
-                        <label for="objetoConhecimento">Objeto de Conhecimento *</label>
-                        <input type="text" id="objetoConhecimento" required placeholder="Ex: Jogos populares do Brasil e do mundo" value="${existente ? (existente.objetoConhecimento || '').replace(/"/g, '&quot;') : ''}">
                     </div>
                     <div class="pf-field">
                         <label>Quantidade de Aulas *</label>
@@ -1386,8 +1390,14 @@
                 atualizarUnidadesTematicas(existente.unidadeTematica || '');
                 document.getElementById('unidadeTematica').value = existente.unidadeTematica || '';
                 atualizarEspecificacoes();
-                if (existente.especificacao) {
-                    document.getElementById('especificacao').value = existente.especificacao;
+                // Prefere existente.especificacao (só existe se já veio de um
+                // objeto de conhecimento curado válido); objetoConhecimento
+                // como fallback cobre tanto aulas de componente sem BNCC
+                // (onde o campo virou <input> texto livre) quanto aulas
+                // antigas que só tinham esse campo preenchido.
+                const objetoConhecimentoExistente = existente.especificacao || existente.objetoConhecimento;
+                if (objetoConhecimentoExistente) {
+                    document.getElementById('especificacao').value = objetoConhecimentoExistente;
                 }
                 atualizarHabilidades();
                 habilidadesPreSelecionadas = null;
@@ -1407,11 +1417,12 @@
         async function gerarObjetivosComIA() {
             const botao = document.getElementById('btnGerarObjetivosIA');
             const box = document.getElementById('iaSugestaoBox');
+            const objetoConhecimentoAtual = document.getElementById('especificacao')?.value || null;
             const contexto = {
                 turma: document.getElementById('turma').value,
                 unidadeTematica: document.getElementById('unidadeTematica').value,
-                especificacao: document.getElementById('especificacao')?.value || null,
-                objetoConhecimento: document.getElementById('objetoConhecimento').value,
+                especificacao: objetoConhecimentoAtual,
+                objetoConhecimento: objetoConhecimentoAtual,
                 habilidades: getHabilidadesSelecionadas(),
                 tituloAula: document.getElementById('titulo').value
             };
@@ -1457,12 +1468,19 @@
                 mostrarMensagem('Selecione pelo menos uma habilidade.', 'error');
                 return;
             }
+            // "especificacao" é o Objeto de Conhecimento oficial da BNCC (ou
+            // texto livre, pra componente sem BNCC cadastrada) — os dois
+            // campos do documento salvo apontam pro mesmo valor: objetoConhecimento
+            // porque é o nome já usado em outros lugares que exibem esse dado
+            // (Controlador, painel da Programação Diária), especificacao por
+            // compatibilidade com aulas antigas que só tinham esse campo.
+            const objetoConhecimentoValor = document.getElementById('especificacao').value || null;
             const aulaData = {
                 titulo: document.getElementById('titulo').value,
                 turma: document.getElementById('turma').value,
                 unidadeTematica: document.getElementById('unidadeTematica').value,
-                especificacao: document.getElementById('especificacao').value || null,
-                objetoConhecimento: document.getElementById('objetoConhecimento').value,
+                especificacao: objetoConhecimentoValor,
+                objetoConhecimento: objetoConhecimentoValor || '',
                 habilidades: habilidadesSelecionadas,
                 numeroAulas: parseInt(document.getElementById('numeroAulas').value) || 1,
                 descricao: document.getElementById('descricao').value,
@@ -1476,8 +1494,8 @@
                     : COMPONENTE_CURRICULAR_PADRAO,
                 timestamp: new Date().toISOString()
             };
-            if (!aulaData.turma || !aulaData.unidadeTematica) {
-                mostrarMensagem('Preencha turma e unidade temática.', 'error');
+            if (!aulaData.turma || !aulaData.unidadeTematica || !objetoConhecimentoValor) {
+                mostrarMensagem('Preencha turma, unidade temática e objeto de conhecimento.', 'error');
                 return;
             }
             try {
