@@ -733,8 +733,12 @@
         // escolhida, sem depender de qual aula o algoritmo resolveria pra
         // hoje. Resolver isso aqui não muda o que o Dashboard mostra.
         window.selecionarPendente = function (entradaId) {
+            // Turma pode não ter aula na grade do dia selecionado — nesse
+            // caso não há item de hoje pra ancorar chaveSelecionada, e o
+            // painel cai no caminho alternativo (ver construirPainelHtml)
+            // que usa só a entrada fixada pra exibir turma/detalhes.
             const itemDeHoje = montarAulasDoDia().find(i => i.turma === filtroTurma);
-            if (itemDeHoje) chaveSelecionada = encodeURIComponent(chaveDoItem(itemDeHoje));
+            chaveSelecionada = itemDeHoje ? encodeURIComponent(chaveDoItem(itemDeHoje)) : null;
             entradaFixadaId = entradaId;
             renderizarLista();
             renderizarPainel();
@@ -800,13 +804,20 @@
             }
 
             const itens = montarAulasDoDia();
-            if (itens.length === 0) {
-                container.innerHTML = `<p class="pd-estado-vazio">Nenhuma aula encontrada${filtroTurma ? ' para esta turma' : ''} neste dia.</p>`;
+            // Turma filtrada sem aula na grade do dia selecionado: sem cards
+            // de "hoje", mas a lista de pendentes (abaixo) continua valendo —
+            // é exatamente o caso de regularizar backlog de uma turma que
+            // não cai na grade de hoje.
+            if (itens.length === 0 && !filtroTurma) {
+                container.innerHTML = '<p class="pd-estado-vazio">Nenhuma aula encontrada neste dia.</p>';
                 return;
             }
 
             let periodoAtual = null;
-            const cardsHtml = itens.map(item => {
+            const cardsHtmlBase = itens.length === 0
+                ? `<p class="pd-estado-vazio">Nenhuma aula encontrada para esta turma neste dia.</p>`
+                : '';
+            const cardsHtml = cardsHtmlBase || itens.map(item => {
                 let cabecalho = '';
                 if (item.periodo !== periodoAtual) {
                     periodoAtual = item.periodo;
@@ -881,22 +892,29 @@
 
         function construirPainelHtml() {
             const item = encontrarItemSelecionado();
-            if (!item) {
-                return '<p class="pd-estado-vazio">Selecione uma aula na lista para ver os detalhes.</p>';
-            }
-
             // A entrada FIXADA (por id, ver entradaFixadaId) é quem manda no
             // painel e nas ações — não item.entrada/item.status, que
             // recalculam "qual é a aula da vez" da turma a cada render e
             // podiam divergir da aula que o professor está de fato olhando.
             const entrada = entradaFixada();
+            // item só existe quando a seleção veio de um card da grade de
+            // hoje. Selecionar via "Aulas pendentes" (ver selecionarPendente)
+            // pode fixar uma entrada de turma sem aula na grade do dia
+            // selecionado — nesse caso não há item, mas a entrada sozinha já
+            // basta pra exibir e agir sobre o registro.
+            if (!item && !entrada) {
+                return '<p class="pd-estado-vazio">Selecione uma aula na lista para ver os detalhes.</p>';
+            }
+
             const ehFutura = entrada ? ehAulaFutura(entrada) : false;
             const statusExibido = entrada ? (ehFutura ? 'Aula futura' : (entrada.status || 'Não iniciada')) : item.status;
+            const turmaExibida = item ? item.turma : entrada.turma;
+            const horarioExibido = item ? item.horario : 'Aula pendente';
 
             let html = `
                 <div class="pd-painel-cabecalho">
                     <span class="pd-badge ${classeBadge(statusExibido)}">${statusExibido}</span>
-                    <h3>${item.turma} · ${item.horario}</h3>
+                    <h3>${turmaExibida} · ${horarioExibido}</h3>
                 </div>
             `;
 
@@ -1009,6 +1027,14 @@
                 if (item) {
                     chaveSelecionada = encodeURIComponent(chaveDoItem(item));
                     entradaFixadaId = item.entrada ? item.entrada.id : null;
+                } else {
+                    // Turma sem aula na grade do dia selecionado — o caso
+                    // comum ao vir do Dashboard resolver uma turma atrasada.
+                    // Seleciona a pendente mais antiga dela automaticamente,
+                    // senão o painel abriria em branco mesmo com backlog
+                    // esperando pra ser registrado.
+                    const pendentes = pendentesDaTurma(filtroTurma);
+                    if (pendentes.length > 0) entradaFixadaId = pendentes[0].id;
                 }
             }
 
