@@ -249,6 +249,7 @@
         import * as bnccMatematica from "../../data/bncc-curriculum-matematica.js";
         import * as bnccLinguaInglesa from "../../data/bncc-curriculum-lingua-inglesa.js";
         import * as bnccLinguaPortuguesa from "../../data/bncc-curriculum-lingua-portuguesa.js";
+        import * as bnccComputacao from "../../data/bncc-curriculum-computacao.js";
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
         import { salvarComHistorico, ouvirHistorico, restaurarVersao } from "../../scripts/services/historico-service.js";
@@ -283,7 +284,8 @@
             "História": bnccHistoria,
             "Matemática": bnccMatematica,
             "Língua Inglesa": bnccLinguaInglesa,
-            "Língua Portuguesa": bnccLinguaPortuguesa
+            "Língua Portuguesa": bnccLinguaPortuguesa,
+            "Computação": bnccComputacao
         };
 
         // ---------- Estado ----------
