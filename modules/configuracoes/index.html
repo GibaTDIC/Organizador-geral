@@ -1425,41 +1425,48 @@
             const input = document.getElementById('novaTurma');
             const inputComponente = document.getElementById('novoComponente');
             const nomeTurma = input.value.trim();
-            const componenteInformado = inputComponente.value.trim();
+            const componenteInformado = inputComponente.value.trim() || COMPONENTE_CURRICULAR_PADRAO;
 
             if (!nomeTurma) {
                 mostrarMensagem('Digite o nome da turma!', 'info');
                 return;
             }
 
-            if (turmas.some(t => t.nome === nomeTurma)) {
-                mostrarMensagem('Esta turma já existe!', 'info');
+            // Identidade da turma é (nome, componente) — permite a MESMA
+            // turma física existir em mais de um componente (ex.: "6º A" de
+            // Artes e "6º A" de Educação Física, professor que leciona os
+            // dois), cada uma com seu próprio horário na grade.
+            if (turmas.some(t => t.nome === nomeTurma && t.componenteCurricular === componenteInformado)) {
+                mostrarMensagem(`Esta turma já existe em ${componenteInformado}!`, 'info');
                 return;
             }
 
-            turmas.push({ nome: nomeTurma, componenteCurricular: componenteInformado || COMPONENTE_CURRICULAR_PADRAO });
+            turmas.push({ nome: nomeTurma, componenteCurricular: componenteInformado });
             salvarTurmasFirebase();
             renderizarTurmasLista();
             input.value = '';
-            inputComponente.value = COMPONENTE_CURRICULAR_PADRAO;
+            inputComponente.value = componentesAtivos[0];
             mostrarMensagem(`Turma ${nomeTurma} adicionada com sucesso!`, 'success');
         };
 
-        // Remover turma
-        window.removerTurma = function(nomeTurma) {
-            if (confirm(`Tem certeza que deseja remover a turma ${nomeTurma}?`)) {
-                turmas = turmas.filter(t => t.nome !== nomeTurma);
+        // Remover turma — identificada por (nome, componente), não só nome,
+        // pra excluir "6º A de Artes" sem afetar "6º A de Educação Física".
+        window.removerTurma = function(nomeTurma, componenteTurma) {
+            if (confirm(`Tem certeza que deseja remover a turma ${nomeTurma} (${componenteTurma})?`)) {
+                turmas = turmas.filter(t => !(t.nome === nomeTurma && t.componenteCurricular === componenteTurma));
 
                 // Remover a turma da grade também — compara pela célula
                 // normalizada (aceita tanto string crua antiga quanto o
                 // formato objeto novo), já que os dois formatos podem
-                // coexistir até o próximo "Salvar Grade".
+                // coexistir até o próximo "Salvar Grade". Exige também o
+                // componente bater, senão remover uma turma apagaria da
+                // grade a OUTRA turma de mesmo nome e componente diferente.
                 const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
                 for (let periodo in gradeHorarios) {
                     gradeHorarios[periodo].forEach(linha => {
                         DIA_CHAVES.forEach(dia => {
                             const celula = normalizarCelula(linha[dia]);
-                            if (celula.tipo === 'turma' && celula.turma === nomeTurma) {
+                            if (celula.tipo === 'turma' && celula.turma === nomeTurma && celula.componenteCurricular === componenteTurma) {
                                 linha[dia] = 'Folga'; // Substitui por folga
                             }
                         });
@@ -1470,7 +1477,7 @@
                 salvarGradeParcial(escolaAtualId, gradeHorarios);
                 renderizarTurmasLista();
                 renderizarProgramacao();
-                mostrarMensagem(`Turma ${nomeTurma} removida!`, 'info');
+                mostrarMensagem(`Turma ${nomeTurma} (${componenteTurma}) removida!`, 'info');
             }
         };
 
@@ -1499,7 +1506,7 @@
                     : '';
                 div.innerHTML = `
                     <span>👥 ${turma.nome}${badgeComponente}</span>
-                    <button class="remove-turma" onclick="removerTurma('${turma.nome}')" title="Remover turma">×</button>
+                    <button class="remove-turma" onclick="removerTurma('${turma.nome}', '${turma.componenteCurricular}')" title="Remover turma">×</button>
                 `;
 
                 if (modoArrastarAtivo) {

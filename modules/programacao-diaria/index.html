@@ -487,15 +487,31 @@
             return `${item.periodo}|${item.horario}|${item.turma}`;
         }
 
+        // filtroTurma normalmente é só o nome da turma ("6º A"). Quando duas
+        // turmas físicas compartilham o mesmo nome em componentes diferentes
+        // (ex.: "6º A" de Artes e "6º A" de Educação Física — professor que
+        // leciona os dois), o valor do filtro vira composto
+        // "nome|||componente" (ver renderizarBarraSuperior) pra saber qual
+        // das duas está selecionada. Nomes sem ambiguidade continuam como
+        // string simples, sem mudança de comportamento.
+        const SEPARADOR_FILTRO_TURMA = '|||';
+        function interpretarFiltroTurma(filtro) {
+            if (!filtro) return { nome: '', componente: null };
+            const [nome, componente] = filtro.split(SEPARADOR_FILTRO_TURMA);
+            return { nome, componente: componente || null };
+        }
+
         function montarAulasDoDia() {
             const diaChave = obterChaveDiaSemana(dataSelecionada);
             if (!diaChave) return [];
+            const { nome: nomeFiltro, componente: componenteFiltro } = interpretarFiltroTurma(filtroTurma);
             const itens = [];
             ['matutino', 'vespertino'].forEach(periodo => {
                 (gradeAtual[periodo] || []).forEach(linha => {
                     const celula = normalizarCelula(linha[diaChave]);
                     if (celula.tipo !== 'turma') return;
-                    if (filtroTurma && celula.turma !== filtroTurma) return;
+                    if (nomeFiltro && celula.turma !== nomeFiltro) return;
+                    if (componenteFiltro && celula.componenteCurricular !== componenteFiltro) return;
                     const { status, entrada } = derivarStatusTurma(celula.turma, celula.componenteCurricular, controladorAtual);
                     itens.push({ periodo, horario: linha.horario, turma: celula.turma, componenteCurricular: celula.componenteCurricular, status, entrada });
                 });
@@ -507,9 +523,12 @@
         // hoje" (essa já aparece no card normal, via montarAulasDoDia) — dão
         // ao professor um jeito explícito de escolher e resolver backlog sem
         // que isso mude o que o Dashboard mostra como aula do dia.
-        function pendentesDaTurma(turma) {
-            if (!turma) return [];
-            const turmaObj = turmasAtuais.find(t => t.nome === turma);
+        function pendentesDaTurma(filtro) {
+            if (!filtro) return [];
+            const { nome: turma, componente: componenteFiltro } = interpretarFiltroTurma(filtro);
+            const turmaObj = componenteFiltro
+                ? turmasAtuais.find(t => t.nome === turma && t.componenteCurricular === componenteFiltro)
+                : turmasAtuais.find(t => t.nome === turma);
             const componente = (turmaObj && turmaObj.componenteCurricular) || COMPONENTE_CURRICULAR_PADRAO;
             const itemDeHoje = montarAulasDoDia().find(i => i.turma === turma);
             const idDeHoje = itemDeHoje && itemDeHoje.entrada ? itemDeHoje.entrada.id : null;
@@ -737,7 +756,8 @@
             // caso não há item de hoje pra ancorar chaveSelecionada, e o
             // painel cai no caminho alternativo (ver construirPainelHtml)
             // que usa só a entrada fixada pra exibir turma/detalhes.
-            const itemDeHoje = montarAulasDoDia().find(i => i.turma === filtroTurma);
+            const { nome: nomeFiltroAtual } = interpretarFiltroTurma(filtroTurma);
+            const itemDeHoje = montarAulasDoDia().find(i => i.turma === nomeFiltroAtual);
             chaveSelecionada = itemDeHoje ? encodeURIComponent(chaveDoItem(itemDeHoje)) : null;
             entradaFixadaId = entradaId;
             renderizarLista();
@@ -781,13 +801,28 @@
             document.getElementById('pdDataAtual').textContent = formatarDataCompleta(dataSelecionada) + sufixo;
 
             const select = document.getElementById('pdFiltroTurma');
-            const nomesTurmas = turmasAtuais.map(t => t.nome).sort();
+            // Duas turmas físicas podem compartilhar o mesmo nome quando o
+            // professor leciona mais de um componente pra elas (ex.: "6º A"
+            // de Artes e "6º A" de Educação Física) — nesse caso o valor da
+            // opção vira composto (ver interpretarFiltroTurma) pra dar pra
+            // escolher qual das duas, com o componente aparecendo no rótulo.
+            const contagemPorNome = {};
+            turmasAtuais.forEach(t => { contagemPorNome[t.nome] = (contagemPorNome[t.nome] || 0) + 1; });
+            const opcoes = [...turmasAtuais]
+                .sort((a, b) => a.nome.localeCompare(b.nome) || a.componenteCurricular.localeCompare(b.componenteCurricular))
+                .map(t => {
+                    const ambiguo = contagemPorNome[t.nome] > 1;
+                    return {
+                        valor: ambiguo ? `${t.nome}${SEPARADOR_FILTRO_TURMA}${t.componenteCurricular}` : t.nome,
+                        rotulo: ambiguo ? `${t.nome} — ${t.componenteCurricular}` : t.nome
+                    };
+                });
             select.innerHTML = '<option value="">Todas as turmas</option>' +
-                nomesTurmas.map(nome => `<option value="${nome}">${nome}</option>`).join('');
+                opcoes.map(o => `<option value="${o.valor}">${o.rotulo}</option>`).join('');
             // Fonte da verdade é filtroTurma (não o valor atual do <select>) —
             // assim um filtro aplicado via ?turma= na URL aparece refletido
             // aqui mesmo antes de qualquer interação do professor.
-            select.value = nomesTurmas.includes(filtroTurma) ? filtroTurma : '';
+            select.value = opcoes.some(o => o.valor === filtroTurma) ? filtroTurma : '';
         }
 
         function renderizarLista() {
@@ -843,7 +878,7 @@
                             <span class="pd-badge ${classeBadge(item.status)}">${item.status}</span>
                         </div>
                         <div class="pd-card-turma">${item.turma}</div>
-                        <div class="pd-card-meta">${DISCIPLINA_FIXA} · ${nomeUsuario || 'Professor'}</div>
+                        <div class="pd-card-meta">${item.componenteCurricular || DISCIPLINA_FIXA} · ${nomeUsuario || 'Professor'}</div>
                         <div class="pd-card-conteudo">${conteudo}</div>
                         ${obsPreview}
                         <div class="pd-card-indicadores">${indicadores.join('')}</div>
@@ -855,8 +890,10 @@
             // resolve atrasadas manualmente, sem que isso mude o que o
             // Dashboard mostra como aula de hoje (ver derivarStatusTurma).
             const pendentes = filtroTurma ? pendentesDaTurma(filtroTurma) : [];
+            const { nome: nomeFiltroExibido, componente: componenteFiltroExibido } = interpretarFiltroTurma(filtroTurma);
+            const rotuloFiltro = componenteFiltroExibido ? `${nomeFiltroExibido} — ${componenteFiltroExibido}` : nomeFiltroExibido;
             const pendentesHtml = pendentes.length === 0 ? '' : `
-                <div class="pd-periodo-titulo">⏳ Aulas pendentes de ${filtroTurma}</div>
+                <div class="pd-periodo-titulo">⏳ Aulas pendentes de ${rotuloFiltro}</div>
                 ${pendentes.map(p => {
                     const selecionada = entradaFixadaId === p.id ? ' pd-card--selecionada' : '';
                     return `
@@ -1023,7 +1060,8 @@
             // no painel, sem o professor precisar clicar de novo.
             if (selecaoInicialPendente) {
                 selecaoInicialPendente = false;
-                const item = montarAulasDoDia().find(i => i.turma === filtroTurma);
+                const { nome: nomeFiltroInicial } = interpretarFiltroTurma(filtroTurma);
+                const item = montarAulasDoDia().find(i => i.turma === nomeFiltroInicial);
                 if (item) {
                     chaveSelecionada = encodeURIComponent(chaveDoItem(item));
                     entradaFixadaId = item.entrada ? item.entrada.id : null;
