@@ -33,29 +33,29 @@
             min-width: 0;
         }
 
-        /* Coluna principal (Rotina, naturalmente a mais alta do painel) ao
-           lado de uma coluna lateral que EMPILHA os cards mais curtos com
-           flexbox em vez de grid — cada card da lateral ocupa só a própria
-           altura, sem herdar a altura da linha de um grid (que antes
-           deixava uma faixa vazia atrás de cards curtos como "Pendências",
-           sentados ao lado da Rotina bem mais alta). */
-        .dash-colunas {
+        /* Grid responsivo pros cards de altura variável (Rotina, Próxima
+           Aula, Pendências, Progresso, Resumo, Acesso Rápido) — tentar
+           adivinhar qual card vai ficar mais alto (ex.: um layout fixo de
+           "coluna principal + lateral") não funciona: em dias com poucas
+           aulas e muitas turmas atrasadas, é a Rotina que fica curta e as
+           Pendências que ficam enormes, o oposto do dia seguinte. A
+           correção de verdade é cada card de lista ter seu próprio
+           max-height + rolagem (ver #dashRotinaLista/#dashPendencias) pra
+           nenhum deles dominar a altura da linha, seja qual for. */
+        .dash-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: var(--pf-space-4);
-            align-items: start;
+            /* stretch (padrão do grid, mas explícito aqui de propósito):
+               cards da mesma linha ficam com a mesma altura, então a sobra
+               de espaço de um card curto fica DENTRO da própria borda dele
+               (como parte do card) em vez de aparecer como um buraco de
+               fundo da página exposto ao lado. */
+            align-items: stretch;
         }
 
-        .dash-coluna-principal,
-        .dash-coluna-lateral {
-            display: flex;
-            flex-direction: column;
-            gap: var(--pf-space-4);
-            min-width: 0;
-        }
-
-        @media (max-width: 900px) {
-            .dash-colunas {
+        @media (max-width: 600px) {
+            .dash-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -101,6 +101,12 @@
             display: flex;
             flex-direction: column;
             gap: var(--pf-space-2);
+            /* Mesmo raciocínio de #dashPendencias: num dia com muitas aulas
+               (grade cheia + turno duplo), essa lista pode crescer mais que
+               qualquer card vizinho no grid — trava a altura em vez de
+               deixar dominar a linha inteira. */
+            max-height: 420px;
+            overflow-y: auto;
         }
 
         .dash-rotina-periodo {
@@ -200,6 +206,16 @@
         }
 
         /* Pendências */
+        /* Trava a altura da lista quando há muitas pendências (uma turma
+           atrasada por semana, multiplicada por várias turmas, cresce
+           rápido) — sem isso, esse card sozinho podia ficar bem mais alto
+           que "Minha Rotina Hoje" ao lado, criando um vazio enorme do outro
+           lado em vez de resolver o vazio original. */
+        #dashPendencias {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
         .dash-pendencias-secao + .dash-pendencias-secao {
             margin-top: var(--pf-space-3);
         }
@@ -392,86 +408,76 @@
                         <div id="dashAlertas" style="font-size:0.85rem;color:var(--pf-gray-700);"></div>
                     </section>
 
-                    <!-- No desktop, a coluna lateral empilha os cards mais
-                         curtos (Próxima Aula, Pendências, Progresso, Resumo,
-                         Acesso Rápido) ao lado da Rotina — sem isso, cada um
-                         virava um item de grid independente ao lado da
-                         Rotina (bem mais alta), e a diferença de altura
-                         deixava uma faixa de espaço vazio na linha inteira. -->
-                    <div class="dash-colunas">
-                        <div class="dash-coluna-principal">
-                            <!-- Minha Rotina Hoje -->
-                            <section class="pf-card">
-                                <h2 class="dash-card-titulo">📋 Minha Rotina Hoje</h2>
-                                <div id="dashRotinaLista" class="dash-rotina-lista">
-                                    <p class="dash-estado-vazio">Carregando rotina de hoje…</p>
-                                </div>
-                            </section>
-                        </div>
+                    <div class="dash-grid">
+                        <!-- Minha Rotina Hoje -->
+                        <section class="pf-card">
+                            <h2 class="dash-card-titulo">📋 Minha Rotina Hoje</h2>
+                            <div id="dashRotinaLista" class="dash-rotina-lista">
+                                <p class="dash-estado-vazio">Carregando rotina de hoje…</p>
+                            </div>
+                        </section>
 
-                        <div class="dash-coluna-lateral">
-                            <!-- Próxima Aula -->
-                            <section class="pf-card">
-                                <h2 class="dash-card-titulo">▶️ Próxima Aula</h2>
-                                <div id="dashProximaAula">
-                                    <p class="dash-estado-vazio">Carregando…</p>
-                                </div>
-                            </section>
+                        <!-- Próxima Aula -->
+                        <section class="pf-card">
+                            <h2 class="dash-card-titulo">▶️ Próxima Aula</h2>
+                            <div id="dashProximaAula">
+                                <p class="dash-estado-vazio">Carregando…</p>
+                            </div>
+                        </section>
 
-                            <!-- Pendências -->
-                            <section class="pf-card">
-                                <h2 class="dash-card-titulo">⚠️ Pendências</h2>
-                                <div id="dashPendencias">
-                                    <p class="dash-estado-vazio">Carregando pendências…</p>
-                                </div>
-                            </section>
+                        <!-- Pendências -->
+                        <section class="pf-card">
+                            <h2 class="dash-card-titulo">⚠️ Pendências</h2>
+                            <div id="dashPendencias">
+                                <p class="dash-estado-vazio">Carregando pendências…</p>
+                            </div>
+                        </section>
 
-                            <!-- Progresso do Planejamento -->
-                            <section class="pf-card">
-                                <h2 class="dash-card-titulo">📈 Progresso do Planejamento</h2>
-                                <div class="dash-progresso-item">
-                                    <div class="dash-progresso-cabecalho">
-                                        <span>Anual</span>
-                                        <span id="dashProgressoAnualLabel">—</span>
-                                    </div>
-                                    <div class="pf-progress-track">
-                                        <div class="pf-progress-fill" id="dashProgressoAnualFill" style="width:0%"></div>
-                                    </div>
+                        <!-- Progresso do Planejamento -->
+                        <section class="pf-card">
+                            <h2 class="dash-card-titulo">📈 Progresso do Planejamento</h2>
+                            <div class="dash-progresso-item">
+                                <div class="dash-progresso-cabecalho">
+                                    <span>Anual</span>
+                                    <span id="dashProgressoAnualLabel">—</span>
                                 </div>
-                                <div class="dash-progresso-item">
-                                    <div class="dash-progresso-cabecalho">
-                                        <span id="dashProgressoBimestralTitulo">Bimestral</span>
-                                        <span id="dashProgressoBimestralLabel">—</span>
-                                    </div>
-                                    <div class="pf-progress-track">
-                                        <div class="pf-progress-fill" id="dashProgressoBimestralFill" style="width:0%"></div>
-                                    </div>
+                                <div class="pf-progress-track">
+                                    <div class="pf-progress-fill" id="dashProgressoAnualFill" style="width:0%"></div>
                                 </div>
-                                <div class="dash-progresso-item">
-                                    <div class="dash-progresso-cabecalho">
-                                        <span>Semanal</span>
-                                        <span id="dashProgressoSemanalLabel">—</span>
-                                    </div>
-                                    <div class="pf-progress-track">
-                                        <div class="pf-progress-fill" id="dashProgressoSemanalFill" style="width:0%"></div>
-                                    </div>
+                            </div>
+                            <div class="dash-progresso-item">
+                                <div class="dash-progresso-cabecalho">
+                                    <span id="dashProgressoBimestralTitulo">Bimestral</span>
+                                    <span id="dashProgressoBimestralLabel">—</span>
                                 </div>
-                            </section>
+                                <div class="pf-progress-track">
+                                    <div class="pf-progress-fill" id="dashProgressoBimestralFill" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div class="dash-progresso-item">
+                                <div class="dash-progresso-cabecalho">
+                                    <span>Semanal</span>
+                                    <span id="dashProgressoSemanalLabel">—</span>
+                                </div>
+                                <div class="pf-progress-track">
+                                    <div class="pf-progress-fill" id="dashProgressoSemanalFill" style="width:0%"></div>
+                                </div>
+                            </div>
+                        </section>
 
-                            <!-- Resumo Estatístico -->
-                            <section class="pf-card">
-                                <h2 class="dash-card-titulo">📊 Resumo Estatístico</h2>
-                                <div class="dash-resumo-grid" id="dashResumoGrid">
-                                    <p class="dash-estado-vazio">Carregando estatísticas…</p>
-                                </div>
-                            </section>
+                        <!-- Resumo Estatístico -->
+                        <section class="pf-card">
+                            <h2 class="dash-card-titulo">📊 Resumo Estatístico</h2>
+                            <div class="dash-resumo-grid" id="dashResumoGrid">
+                                <p class="dash-estado-vazio">Carregando estatísticas…</p>
+                            </div>
+                        </section>
 
-                            <!-- Acesso Rápido -->
-                            <section class="pf-card">
-                                <h2 class="dash-card-titulo">🚀 Acesso Rápido</h2>
-                                <div class="dash-acesso-grid" id="dashAcessoGrid"></div>
-                            </section>
-                        </div>
+                        <!-- Acesso Rápido -->
+                        <section class="pf-card">
+                            <h2 class="dash-card-titulo">🚀 Acesso Rápido</h2>
+                            <div class="dash-acesso-grid" id="dashAcessoGrid"></div>
+                        </section>
                     </div>
 
                     <!-- Calendário do Bimestre -->
