@@ -874,6 +874,11 @@
             .aula-card {
                 min-height: 40px;
                 display: flex;
+                /* Sem isso, os dois <div> internos (turma e componente)
+                   viram uma LINHA em vez de empilhados — dois textos
+                   espremidos lado a lado numa célula de ~60-90px, cortando
+                   o nome da turma quase por completo. */
+                flex-direction: column;
                 align-items: center;
                 justify-content: center;
             }
