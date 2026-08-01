@@ -1427,14 +1427,19 @@
             }
         }
 
-        // Sugestão da IA nunca entra direto no campo — fica numa caixa à
-        // parte até o professor clicar "Usar este texto", cumprindo a regra
-        // de que toda sugestão precisa ser revisada antes de valer.
-        async function gerarObjetivosComIA() {
-            const botao = document.getElementById('btnGerarObjetivosIA');
-            const box = document.getElementById('iaSugestaoBox');
+        // Monta o contexto enviado pra IA a partir do formulário atual —
+        // inclui as atividades do Banco de Atividades marcadas em "Atividades
+        // Vinculadas", se houver, pra decidir em montarPromptIA() se a IA deve
+        // descrever a atividade já cadastrada (adaptada à turma) ou criar uma
+        // nova a partir do objeto de conhecimento/habilidades selecionados.
+        function montarContextoIA() {
             const objetoConhecimentoAtual = document.getElementById('especificacao')?.value || null;
+            const componenteSelect = document.getElementById('plAulaComponente');
+            const idsVinculados = Array.from(document.querySelectorAll('input[name="plAtividadeVinculada"]:checked')).map(cb => cb.value);
+            const atividadesVinculadas = atividadesDisponiveis.filter(a => idsVinculados.includes(a.id));
+
             const contexto = {
+                componenteCurricular: componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO,
                 turma: document.getElementById('turma').value,
                 unidadeTematica: document.getElementById('unidadeTematica').value,
                 especificacao: objetoConhecimentoAtual,
@@ -1442,39 +1447,107 @@
                 habilidades: getHabilidadesSelecionadas(),
                 tituloAula: document.getElementById('titulo').value
             };
+            if (atividadesVinculadas.length > 0) {
+                contexto.atividadesVinculadas = atividadesVinculadas.map(a => ({
+                    titulo: a.titulo,
+                    tipo: a.tipo || null,
+                    descricao: a.descricao || ''
+                }));
+            }
             if (!contexto.turma || !contexto.unidadeTematica) {
                 mostrarMensagem('Preencha turma e unidade temática antes de gerar sugestões.', 'error');
-                return;
+                return null;
             }
+            return contexto;
+        }
+
+        // Pede só a descrição da atividade em si (não uma "aula completa" com
+        // objetivos à parte). Com atividade vinculada, pede pra descrever COMO
+        // aplicar a atividade já cadastrada com esta turma — nunca inventar
+        // uma diferente. `ajuste` carrega o pedido de reformulação, quando o
+        // professor não aceita o texto e pede uma nova tentativa.
+        function montarPromptIA(contexto, ajuste) {
+            const base = (contexto.atividadesVinculadas && contexto.atividadesVinculadas.length > 0)
+                ? `Escreva, em português, a descrição de aula explicando como conduzir com esta turma a(s) atividade(s) já cadastrada(s) no Banco de Atividades (campo "atividadesVinculadas" do contexto), adaptando-a ao objeto de conhecimento e às habilidades da BNCC informados. Não invente uma atividade diferente da cadastrada nem apenas repita o texto dela — descreva como aplicá-la em sala, incluindo adaptações necessárias para a turma.`
+                : `Sugira, em português, a descrição de uma atividade de aula de ${contexto.componenteCurricular}, com base no objeto de conhecimento e nas habilidades da BNCC informados no contexto.`;
+            const restricao = 'Escreva apenas a descrição da aula/atividade em si, pronta para colar no campo "Descrição da Aula" — sem título, sem saudação e sem listar os objetivos separadamente.';
+            let textoPrompt = `${base} ${restricao}`;
+            if (ajuste) {
+                textoPrompt += `\n\nO professor recebeu uma sugestão anterior e pediu para reformulá-la assim: ${ajuste}`;
+            }
+            return textoPrompt;
+        }
+
+        // Sugestão da IA nunca entra direto no campo — fica numa caixa à
+        // parte, editável, até o professor clicar "Usar este texto",
+        // cumprindo a regra de que toda sugestão precisa ser revisada (e pode
+        // ser ajustada à mão) antes de valer. Se o professor não gostar,
+        // "Reformular" pede uma nova tentativa à IA, opcionalmente com uma
+        // instrução do que mudar.
+        async function gerarObjetivosComIA() {
+            const contexto = montarContextoIA();
+            if (!contexto) return;
+            await solicitarSugestaoIA(contexto, null);
+        }
+
+        async function solicitarSugestaoIA(contexto, ajuste) {
+            const botao = document.getElementById('btnGerarObjetivosIA');
             botao.disabled = true;
             botao.textContent = '⏳ Gerando...';
             try {
-                const prompt = 'Sugira uma descrição de aula (atividades e objetivos) de Educação Física, em português, considerando os dados da turma e habilidades BNCC informados no contexto.';
-                const sugestao = await chamarAssistenteIA(prompt, contexto);
-                box.textContent = sugestao;
-                box.style.display = 'block';
-                const acoes = document.createElement('div');
-                acoes.style.cssText = 'margin-top:8px;display:flex;gap:6px;';
-                acoes.innerHTML = `
-                    <button type="button" class="pf-btn pf-btn--success" id="btnAceitarSugestaoIA" style="font-size:0.75rem;">✅ Usar este texto</button>
-                    <button type="button" class="pf-btn pf-btn--secondary" id="btnDescartarSugestaoIA" style="font-size:0.75rem;">❌ Descartar</button>
-                `;
-                box.appendChild(acoes);
-                document.getElementById('btnAceitarSugestaoIA').addEventListener('click', () => {
-                    document.getElementById('descricao').value = sugestao;
-                    box.style.display = 'none';
-                    box.textContent = '';
-                });
-                document.getElementById('btnDescartarSugestaoIA').addEventListener('click', () => {
-                    box.style.display = 'none';
-                    box.textContent = '';
-                });
+                const textoPrompt = montarPromptIA(contexto, ajuste);
+                const sugestao = await chamarAssistenteIA(textoPrompt, contexto);
+                exibirSugestaoIA(sugestao, contexto);
             } catch (erro) {
                 mostrarMensagem(erro.message, 'error');
             } finally {
                 botao.disabled = false;
                 botao.textContent = '💡 Gerar objetivos com IA';
             }
+        }
+
+        function exibirSugestaoIA(sugestao, contexto) {
+            const box = document.getElementById('iaSugestaoBox');
+            box.innerHTML = '';
+            box.style.display = 'block';
+
+            const area = document.createElement('textarea');
+            area.id = 'iaSugestaoTexto';
+            area.rows = 5;
+            area.style.cssText = 'width:100%;font:inherit;border:1px solid var(--pf-gray-300);border-radius:var(--pf-radius-sm);padding:6px;background:var(--pf-white);';
+            area.value = sugestao;
+            box.appendChild(area);
+
+            const dica = document.createElement('small');
+            dica.style.cssText = 'display:block;color:var(--pf-gray-500);margin-top:4px;';
+            dica.textContent = 'Pode editar o texto acima antes de usar.';
+            box.appendChild(dica);
+
+            const acoes = document.createElement('div');
+            acoes.style.cssText = 'margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;';
+            acoes.innerHTML = `
+                <button type="button" class="pf-btn pf-btn--success" id="btnAceitarSugestaoIA" style="font-size:0.75rem;">✅ Usar este texto</button>
+                <button type="button" class="pf-btn pf-btn--info" id="btnReformularSugestaoIA" style="font-size:0.75rem;">🔄 Não gostei, reformular</button>
+                <button type="button" class="pf-btn pf-btn--secondary" id="btnDescartarSugestaoIA" style="font-size:0.75rem;">❌ Descartar</button>
+            `;
+            box.appendChild(acoes);
+
+            document.getElementById('btnAceitarSugestaoIA').addEventListener('click', () => {
+                document.getElementById('descricao').value = area.value;
+                fecharSugestaoIA();
+            });
+            document.getElementById('btnDescartarSugestaoIA').addEventListener('click', fecharSugestaoIA);
+            document.getElementById('btnReformularSugestaoIA').addEventListener('click', () => {
+                const ajuste = prompt('O que você gostaria de mudar nesse texto? (deixe em branco pra só pedir uma versão diferente)', '');
+                if (ajuste === null) return;
+                solicitarSugestaoIA(contexto, ajuste.trim() || 'Gere uma versão diferente da anterior.');
+            });
+        }
+
+        function fecharSugestaoIA() {
+            const box = document.getElementById('iaSugestaoBox');
+            box.style.display = 'none';
+            box.innerHTML = '';
         }
 
         async function salvarAula(evento) {
