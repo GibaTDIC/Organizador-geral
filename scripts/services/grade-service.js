@@ -23,6 +23,16 @@ export function salvarGradeParcial(escolaId, gradeHorarios) {
 export const COMPONENTE_CURRICULAR_PADRAO = 'Educação Física';
 export const SLOTS_ESPECIAIS = ['Folga', 'Planejamento', 'CEMFOR', '---'];
 
+// Catálogo completo — usado só na tela de "quais componentes eu leciono"
+// (Configurações). Os formulários do dia a dia (grade, aula do Planejamento)
+// usam o subconjunto marcado como ativo pela escola (escolas/{id}.componentesAtivos),
+// não este catálogo inteiro, pra não poluir o professor de uma área só com
+// opções de outras 8 disciplinas que ele não leciona.
+export const COMPONENTES_CURRICULARES = [
+    'Educação Física', 'Língua Portuguesa', 'Matemática', 'Ciências',
+    'História', 'Geografia', 'Arte', 'Língua Inglesa', 'Ensino Religioso'
+];
+
 // Uma célula da grade pode ser: vazia/'---' (sem compromisso), uma palavra
 // reservada de SLOTS_ESPECIAIS (compromisso não-letivo), ou uma turma. Dados
 // gravados antes desta função guardam turma como string crua ("6º A") —

@@ -279,6 +279,10 @@
         let turmaAtual = '6º Ano';
         let anoLetivoAtual = new Date().getFullYear();
         let termoBusca = '';
+        // Componentes que a escola leciona (definidos em Configurações) —
+        // restringe o seletor de componente do formulário de aula. Fallback
+        // cobre escolas criadas antes desse campo existir.
+        let componentesAtivos = [COMPONENTE_CURRICULAR_PADRAO];
 
         // { nivel: 'anual'|'bimestral'|'mensal'|'aula', id: string } — id pode
         // começar com "novo:" pra representar um nó ainda não criado no Firestore.
@@ -360,20 +364,68 @@
         }
 
         // ---------- Cascata BNCC (turma → unidade → especificação → habilidades) ----------
-        // Mesma lógica que já existia no Planejamento plano, só redirecionada
-        // pros elementos do formulário de aula dentro da área principal.
+        // Só existe conteúdo curado (data/bncc-curriculum.js) pra Educação
+        // Física — pra qualquer outro componente que a escola tenha marcado
+        // como ativo em Configurações, "Unidade Temática" e "Habilidades"
+        // viram campos de texto livre, sem cascata nenhuma. Trocar o
+        // <select id="unidadeTematica"> por um <input> (e vice-versa) mantendo
+        // o mesmo id evita qualquer mudança em salvarAula/gerarObjetivosComIA,
+        // que só leem ".value" desse elemento sem saber sua tag.
+        function garantirCampoUnidadeTematica(tipo) {
+            const atual = document.getElementById('unidadeTematica');
+            if (atual && atual.tagName.toLowerCase() === tipo) return atual;
+            const valorAnterior = atual ? atual.value : '';
+            const novoHtml = tipo === 'input'
+                ? '<input type="text" id="unidadeTematica" required placeholder="Ex: Frações e números decimais">'
+                : '<select id="unidadeTematica" required onchange="atualizarEspecificacoes()"></select>';
+            atual.outerHTML = novoHtml;
+            const novo = document.getElementById('unidadeTematica');
+            novo.value = valorAnterior;
+            return novo;
+        }
+
+        // habilidadesPreSelecionadas (mesma variável usada pela cascata de EF,
+        // ver exibirHabilidades) já chega populada pelo fluxo de edição antes
+        // de chamar atualizarUnidadesTematicas — reaproveitada aqui pra
+        // pré-preencher o textarea ao editar uma aula de outro componente.
+        function renderizarHabilidadesLivres() {
+            const preSelecionadas = habilidadesPreSelecionadas || [];
+            const texto = preSelecionadas.map(h => h.codigo || h).join('\n');
+            document.getElementById('habilidadesContainer').innerHTML =
+                `<textarea id="habilidadesTextoLivre" rows="4" placeholder="Uma habilidade por linha">${texto.replace(/</g, '&lt;')}</textarea>`;
+        }
+
         // manterUnidade força a inclusão desse valor na lista mesmo que ele não
         // esteja entre as unidades sugeridas do bimestre (edição de uma aula
         // antiga cujo bimestre configurado mudou desde então).
         window.atualizarUnidadesTematicas = function (manterUnidade) {
             const turmaSelect = document.getElementById('turma');
-            const bimestreSelect = document.getElementById('plAulaBimestre');
-            const unidadeTematicaSelect = document.getElementById('unidadeTematica');
+            if (!turmaSelect) return;
+
+            const componenteSelect = document.getElementById('plAulaComponente');
+            const componenteSelecionado = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
             const especificacaoGroup = document.getElementById('especificacaoGroup');
+            const hint = document.getElementById('unidadeTematicaHint');
+
+            if (componenteSelecionado !== COMPONENTE_CURRICULAR_PADRAO) {
+                const input = garantirCampoUnidadeTematica('input');
+                if (manterUnidade) input.value = manterUnidade;
+                input.placeholder = `Ex: unidade temática de ${componenteSelecionado}`;
+                especificacaoGroup.classList.add('hidden');
+                // Some select existe mas fica escondido — zera o valor pra
+                // não salvar uma especificação de EF que ficou selecionada
+                // de antes de trocar o componente.
+                const especificacaoSelectAntigo = document.getElementById('especificacao');
+                if (especificacaoSelectAntigo) especificacaoSelectAntigo.innerHTML = '<option value="">Selecione a especificação</option>';
+                if (hint) hint.textContent = `O app ainda não tem a BNCC de ${componenteSelecionado} cadastrada — digite livremente.`;
+                renderizarHabilidadesLivres();
+                return;
+            }
+
+            const bimestreSelect = document.getElementById('plAulaBimestre');
+            const unidadeTematicaSelect = garantirCampoUnidadeTematica('select');
             const especificacaoSelect = document.getElementById('especificacao');
             const habilidadesContainer = document.getElementById('habilidadesContainer');
-            const hint = document.getElementById('unidadeTematicaHint');
-            if (!turmaSelect) return;
 
             const valorAnterior = manterUnidade || unidadeTematicaSelect.value;
             const turmaSelecionada = turmaSelect.value;
@@ -454,6 +506,11 @@
         };
 
         window.atualizarEspecificacoes = function () {
+            const componenteSelect = document.getElementById('plAulaComponente');
+            // Cascata (especificação/habilidades) só existe pra Educação
+            // Física — no modo livre, quem cuida do habilidadesContainer é
+            // renderizarHabilidadesLivres, chamada só por atualizarUnidadesTematicas.
+            if (componenteSelect && componenteSelect.value !== COMPONENTE_CURRICULAR_PADRAO) return;
             const turmaSelect = document.getElementById('turma');
             const unidadeTematicaSelect = document.getElementById('unidadeTematica');
             const especificacaoGroup = document.getElementById('especificacaoGroup');
@@ -531,6 +588,8 @@
         };
 
         window.atualizarHabilidades = function () {
+            const componenteSelect = document.getElementById('plAulaComponente');
+            if (componenteSelect && componenteSelect.value !== COMPONENTE_CURRICULAR_PADRAO) return;
             const turmaSelect = document.getElementById('turma');
             const unidadeTematicaSelect = document.getElementById('unidadeTematica');
             const especificacaoSelect = document.getElementById('especificacao');
@@ -606,6 +665,15 @@
         }
 
         function getHabilidadesSelecionadas() {
+            // Componente sem BNCC curada (ver renderizarHabilidadesLivres):
+            // uma "habilidade" por linha não vazia do textarea, sem código
+            // oficial — mesmo formato {codigo, descricao} das de EF, só que
+            // os dois campos guardam o mesmo texto digitado.
+            const textoLivre = document.getElementById('habilidadesTextoLivre');
+            if (textoLivre) {
+                return textoLivre.value.split('\n').map(l => l.trim()).filter(Boolean)
+                    .map(l => ({ codigo: l, descricao: l }));
+            }
             const checkboxes = document.querySelectorAll('input[name="habilidades"]:checked');
             return Array.from(checkboxes).map(cb => ({ codigo: cb.value, descricao: cb.getAttribute('data-descricao') }));
         }
@@ -709,6 +777,10 @@
         document.addEventListener('pf-escola-ready', (evento) => {
             escolaAtualId = evento.detail.escolaId;
             selecionado = null;
+            const escolaAtiva = (evento.detail.escolas || []).find(e => e.id === escolaAtualId);
+            componentesAtivos = (escolaAtiva && escolaAtiva.componentesAtivos && escolaAtiva.componentesAtivos.length > 0)
+                ? escolaAtiva.componentesAtivos
+                : [COMPONENTE_CURRICULAR_PADRAO];
             if (unsubAulas) unsubAulas();
             if (unsubConfiguracoes) unsubConfiguracoes();
             if (unsubAnuais) unsubAnuais();
@@ -1190,6 +1262,13 @@
                         </select>
                     </div>
                     <div class="pf-field">
+                        <label for="plAulaComponente">Componente Curricular *</label>
+                        <select id="plAulaComponente" required onchange="atualizarUnidadesTematicas()">
+                            ${componentesAtivos.map(c => `<option value="${c}">${c}</option>`).join('')}
+                        </select>
+                        ${componentesAtivos.length === 1 ? '' : '<small style="display:block;color:var(--pf-gray-500);margin-top:4px;">Só Educação Física tem BNCC cadastrada no app — nos demais, unidade temática e habilidades ficam livres.</small>'}
+                    </div>
+                    <div class="pf-field">
                         <label for="plAulaBimestre">Bimestre</label>
                         <select id="plAulaBimestre" class="pf-filter-select" onchange="atualizarUnidadesTematicas()">
                             <option value="">Não definido</option>
@@ -1277,6 +1356,7 @@
             if (existente) {
                 habilidadesPreSelecionadas = existente.habilidades || [];
                 document.getElementById('turma').value = existente.turma || '';
+                document.getElementById('plAulaComponente').value = existente.componenteCurricular || componentesAtivos[0];
                 document.getElementById('plAulaBimestre').value = existente.bimestre || '';
                 atualizarUnidadesTematicas(existente.unidadeTematica || '');
                 document.getElementById('unidadeTematica').value = existente.unidadeTematica || '';
@@ -1289,6 +1369,7 @@
                 document.getElementById('plAulaMes').value = existente.planejamentoMensalId || '';
             } else {
                 document.getElementById('turma').value = turmaAtual;
+                document.getElementById('plAulaComponente').value = componentesAtivos[0];
                 document.getElementById('plAulaBimestre').value = bimestreContexto || '';
                 atualizarUnidadesTematicas();
                 document.getElementById('plAulaMes').value = mensalIdContexto || '';
@@ -1365,7 +1446,9 @@
                 bimestre: document.getElementById('plAulaBimestre').value ? parseInt(document.getElementById('plAulaBimestre').value, 10) : null,
                 planejamentoMensalId: document.getElementById('plAulaMes').value || null,
                 dataReferencia: document.getElementById('dataReferencia').value || null,
-                componenteCurricular: COMPONENTE_CURRICULAR_PADRAO,
+                componenteCurricular: document.getElementById('plAulaComponente')
+                    ? document.getElementById('plAulaComponente').value
+                    : COMPONENTE_CURRICULAR_PADRAO,
                 timestamp: new Date().toISOString()
             };
             if (!aulaData.turma || !aulaData.unidadeTematica) {

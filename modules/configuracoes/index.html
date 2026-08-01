@@ -1051,15 +1051,7 @@
                 <div class="add-turma-form">
                     <input type="text" id="novaTurma" placeholder="Ex: 7º A, 8º B, 1º EM...">
                     <select id="novoComponente" style="font-size:0.8rem;">
-                        <option value="Educação Física">Educação Física</option>
-                        <option value="Língua Portuguesa">Língua Portuguesa</option>
-                        <option value="Matemática">Matemática</option>
-                        <option value="Ciências">Ciências</option>
-                        <option value="História">História</option>
-                        <option value="Geografia">Geografia</option>
-                        <option value="Arte">Arte</option>
-                        <option value="Língua Inglesa">Língua Inglesa</option>
-                        <option value="Ensino Religioso">Ensino Religioso</option>
+                        <!-- Preenchido via JavaScript a partir de componentesAtivos -->
                     </select>
                     <button class="btn btn-success" onclick="adicionarTurma()">➕ Adicionar</button>
                     <button class="btn btn-info" onclick="recarregarTurmasFirebase()">🔄 Recarregar</button>
@@ -1075,6 +1067,27 @@
                     <div class="itens-especiais-grid" id="itensEspeciaisLista">
                         <!-- Preenchido via JavaScript -->
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meus Componentes Curriculares: quais disciplinas o professor
+             leciona nesta escola — restringe os seletores de componente na
+             grade (novoComponente acima) e no formulário de aula do
+             Planejamento, em vez de sempre oferecer o catálogo inteiro. -->
+        <div class="turmas-management" id="componentesManagement">
+            <div class="turmas-header" id="componentesHeader" onclick="toggleComponentesLista()">
+                <h3>
+                    <span>📚 Meus Componentes Curriculares</span>
+                    <span class="toggle-icon" id="toggleIconComponentes">▼</span>
+                </h3>
+            </div>
+            <div class="turmas-content" id="componentesContent">
+                <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">
+                    Marque as disciplinas que você leciona nesta escola — só elas aparecem depois nos formulários de turma e de aula.
+                </p>
+                <div class="turmas-grid" id="componentesCheckboxGrid">
+                    <!-- Preenchido via JavaScript -->
                 </div>
             </div>
         </div>
@@ -1121,9 +1134,10 @@
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
-        import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO, COMPONENTES_CURRICULARES } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes, salvarConfiguracoes as salvarConfiguracoesService } from "../../scripts/services/configuracoes-service.js";
         import { ouvirTurmas, salvarTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
+        import { definirComponentesAtivos } from "../../scripts/services/escola-service.js";
 
         // Estado da aplicação
         let escolaAtualId = null;
@@ -1135,6 +1149,10 @@
         let itemArrastando = null;
         let gradeHorarios = null;
         let turmas = [];
+        // Componentes que a escola leciona — restringe os seletores de
+        // componente (aqui e no Planejamento) em vez do catálogo inteiro.
+        // Fallback [Educação Física] cobre escolas criadas antes desse campo.
+        let componentesAtivos = [COMPONENTE_CURRICULAR_PADRAO];
 
         // Itens especiais fixos (não podem ser removidos)
         const itensEspeciaisFixos = [
@@ -1226,6 +1244,62 @@
             } else {
                 icon.textContent = '▼';
             }
+        };
+
+        // Consultas por ID (não por classe, como toggleTurmasLista acima) —
+        // esse bloco tem seu próprio cabeçalho/conteúdo colapsável e não pode
+        // depender de document.querySelector('.turmas-header') pegando o
+        // elemento errado quando há mais de um na página.
+        window.toggleComponentesLista = function() {
+            const content = document.getElementById('componentesContent');
+            const header = document.getElementById('componentesHeader');
+            const icon = document.getElementById('toggleIconComponentes');
+
+            content.classList.toggle('collapsed');
+            header.classList.toggle('collapsed');
+            icon.textContent = content.classList.contains('collapsed') ? '►' : '▼';
+        };
+
+        // Re-renderiza o card de checkboxes E o <select> de "Adicionar Turma"
+        // (que só deve oferecer os componentes marcados como ativos).
+        function renderizarComponentesAtivos() {
+            const grid = document.getElementById('componentesCheckboxGrid');
+            if (grid) {
+                grid.innerHTML = COMPONENTES_CURRICULARES.map(c => {
+                    const ativo = componentesAtivos.includes(c);
+                    return `
+                        <label class="turma-item${ativo ? '' : ' especial'}" style="cursor:pointer;">
+                            <input type="checkbox" ${ativo ? 'checked' : ''} onchange="toggleComponenteAtivo('${c.replace(/'/g, "\\'")}')" style="margin:0;">
+                            ${c}
+                        </label>
+                    `;
+                }).join('');
+            }
+
+            const select = document.getElementById('novoComponente');
+            if (select) {
+                const valorAnterior = select.value;
+                select.innerHTML = componentesAtivos.map(c => `<option value="${c}">${c}</option>`).join('');
+                if (componentesAtivos.includes(valorAnterior)) select.value = valorAnterior;
+            }
+        }
+
+        window.toggleComponenteAtivo = function(componente) {
+            componentesAtivos = componentesAtivos.includes(componente)
+                ? componentesAtivos.filter(c => c !== componente)
+                : [...componentesAtivos, componente];
+            // Nunca fica vazio — sem isso o select de turma e o de aula do
+            // Planejamento ficariam sem nenhuma opção pro professor escolher.
+            if (componentesAtivos.length === 0) {
+                componentesAtivos = [COMPONENTE_CURRICULAR_PADRAO];
+                showToast('Pelo menos um componente precisa ficar ativo.', 'info');
+            }
+            renderizarComponentesAtivos();
+            definirComponentesAtivos(escolaAtualId, componentesAtivos)
+                .catch(erro => {
+                    console.error('Erro ao salvar componentes ativos:', erro);
+                    showToast('Não foi possível salvar. Tente novamente.', 'error');
+                });
         };
 
         // Função para converter string de data
@@ -1724,9 +1798,19 @@
                     <div>
                         <label><strong>Selecionar Unidade Temática:</strong></label>
                         <select class="unidade-select-config" onchange="adicionarUnidadeBimestre(${index}, this.value)">
-                            <option value="">Selecione uma unidade...</option>
+                            <option value="">Selecione uma unidade de Educação Física...</option>
                             ${unidadesTematicasBNCC.map(u => `<option value="${u}">${u}</option>`).join('')}
                         </select>
+
+                        <!-- A lista acima só cobre a BNCC de Educação Física
+                             (único componente com conteúdo curado no app até
+                             agora) — esse campo permite registrar unidades de
+                             qualquer outro componente ativo (ver "Meus
+                             Componentes Curriculares" acima). -->
+                        <div style="display:flex;gap:6px;margin-top:6px;">
+                            <input type="text" id="unidadeLivre-${index}" placeholder="Ou digite a unidade de outra disciplina..." style="flex:1;">
+                            <button type="button" class="btn btn-secondary" onclick="adicionarUnidadeBimestreLivre(${index})">➕</button>
+                        </div>
 
                         <div class="unidades-selecionadas-config" id="unidades-bimestre-${index}">
                             ${b.unidades.map(u => `
@@ -1785,6 +1869,14 @@
             } else {
                 mostrarMensagem('Esta unidade já foi adicionada!', 'info');
             }
+        };
+
+        window.adicionarUnidadeBimestreLivre = function(index) {
+            const input = document.getElementById(`unidadeLivre-${index}`);
+            const unidade = input.value.trim();
+            if (!unidade) return;
+            input.value = '';
+            window.adicionarUnidadeBimestre(index, unidade);
         };
 
         window.removerUnidadeBimestre = function(index, unidade) {
@@ -1899,12 +1991,19 @@
         // esperar login nem escola ativa — hoje esperam 'pf-escola-ready'.
         renderizarBimestresCompact();
 
-        // Iniciar com a lista de turmas recolhida
+        // Iniciar com a lista de turmas e a de componentes recolhidas
         setTimeout(() => {
             const content = document.getElementById('turmasContent');
             const icon = document.getElementById('toggleIcon');
             content.classList.add('collapsed');
             icon.textContent = '►';
+
+            const componentesContent = document.getElementById('componentesContent');
+            const componentesHeader = document.getElementById('componentesHeader');
+            const componentesIcon = document.getElementById('toggleIconComponentes');
+            componentesContent.classList.add('collapsed');
+            componentesHeader.classList.add('collapsed');
+            componentesIcon.textContent = '►';
         }, 100);
 
         requireAuth({ loginPath: '../../login.html' });
@@ -1919,6 +2018,15 @@
             unsubConfiguracoes = carregarConfiguracoesFirebase();
             unsubGrade = carregarGradeFirebase();
             unsubTurmas = carregarTurmasFirebase();
+
+            // evento.detail.escolas já traz o doc completo de cada escola
+            // (ver escola-context.js) — não precisa de uma leitura extra ao
+            // Firestore só pra pegar componentesAtivos.
+            const escolaAtiva = (evento.detail.escolas || []).find(e => e.id === escolaAtualId);
+            componentesAtivos = (escolaAtiva && escolaAtiva.componentesAtivos && escolaAtiva.componentesAtivos.length > 0)
+                ? escolaAtiva.componentesAtivos
+                : [COMPONENTE_CURRICULAR_PADRAO];
+            renderizarComponentesAtivos();
         });
     </script>
 </body>

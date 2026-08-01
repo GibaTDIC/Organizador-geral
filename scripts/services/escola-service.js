@@ -51,3 +51,13 @@ export function adicionarEscolaAoProfessor(uid, escolaId) {
 export async function listarEscolasPorIds(escolaIds) {
     return Promise.all(escolaIds.map(id => getDoc(doc(db, 'escolas', id))));
 }
+
+// componentesAtivos: quais componentes curriculares (ver COMPONENTES_CURRICULARES
+// em grade-service.js) essa escola leciona — restringe os seletores de
+// componente na grade e no formulário de aula do Planejamento, em vez de
+// sempre oferecer o catálogo completo. Escolas sem esse campo ainda (criadas
+// antes dessa feature) caem no fallback [COMPONENTE_CURRICULAR_PADRAO] em
+// quem lê, não aqui.
+export function definirComponentesAtivos(escolaId, componentes) {
+    return updateDoc(doc(db, 'escolas', escolaId), { componentesAtivos: componentes });
+}
