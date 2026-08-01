@@ -243,6 +243,7 @@
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
         import * as bnccArte from "../../data/bncc-curriculum-arte.js";
         import * as bnccEnsinoReligioso from "../../data/bncc-curriculum-ensino-religioso.js";
+        import * as bnccCiencias from "../../data/bncc-curriculum-ciencias.js";
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
         import { salvarComHistorico, ouvirHistorico, restaurarVersao } from "../../scripts/services/historico-service.js";
@@ -271,7 +272,8 @@
         const BNCC_POR_COMPONENTE = {
             [COMPONENTE_CURRICULAR_PADRAO]: bnccEducacaoFisica,
             "Arte": bnccArte,
-            "Ensino Religioso": bnccEnsinoReligioso
+            "Ensino Religioso": bnccEnsinoReligioso,
+            "Ciências": bnccCiencias
         };
 
         // ---------- Estado ----------
