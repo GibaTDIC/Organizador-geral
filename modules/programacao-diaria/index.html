@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="../../styles/components/filter.css">
     <link rel="stylesheet" href="../../styles/components/form.css">
     <link rel="stylesheet" href="../../styles/components/modal.css">
+    <link rel="stylesheet" href="../../styles/components/progress-bar.css">
     <style>
         body {
             background: var(--pf-gray-100);
@@ -197,6 +198,23 @@
 
         .pd-painel-secao p {
             font-size: 0.85rem;
+            color: var(--pf-gray-700);
+            margin-bottom: var(--pf-space-1);
+        }
+
+        /* Progresso da aula — quantas sessões desse conteúdo já foram
+           registradas via "Concluir Aula", antes dos botões de ação. Sem
+           isso, cada clique em Concluir era uma decisão "às cegas": o
+           professor só descobria quantas faltavam pelo toast, que some em
+           poucos segundos. */
+        .pd-progresso-aula {
+            margin-bottom: var(--pf-space-3);
+        }
+
+        .pd-progresso-aula__cabecalho {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
             color: var(--pf-gray-700);
             margin-bottom: var(--pf-space-1);
         }
@@ -891,6 +909,9 @@
             const habilidadesTexto = Array.isArray(entrada.habilidades) && entrada.habilidades.length > 0
                 ? entrada.habilidades.map(h => h.codigo || h).join(', ')
                 : 'Não definidas';
+            const totalAulas = entrada.numAulas || 2;
+            const aulasExecutadas = entrada.aulasExecutadas || 0;
+            const percentualAulas = Math.min(100, Math.round((aulasExecutadas / totalAulas) * 100));
 
             html += `
                 <div class="pd-painel-secao">
@@ -909,6 +930,15 @@
 
                 <div class="pd-painel-secao">
                     <h4>⚡ Ações Rápidas</h4>
+                    <div class="pd-progresso-aula">
+                        <div class="pd-progresso-aula__cabecalho">
+                            <span>Aulas registradas</span>
+                            <span>${aulasExecutadas} de ${totalAulas}</span>
+                        </div>
+                        <div class="pf-progress-track">
+                            <div class="pf-progress-fill" style="width:${percentualAulas}%"></div>
+                        </div>
+                    </div>
                     <div class="pd-acoes-rapidas">
                         <button class="pf-btn pf-btn--success" onclick="iniciarAula()" ${somenteLeitura ? 'disabled' : ''}>▶️ Iniciar Aula</button>
                         <button class="pf-btn pf-btn--primary" onclick="concluirAula()" ${somenteLeitura ? 'disabled' : ''}>✅ Concluir Aula</button>
