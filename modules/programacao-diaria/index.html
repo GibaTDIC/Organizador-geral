@@ -801,11 +801,14 @@
             document.getElementById('pdDataAtual').textContent = formatarDataCompleta(dataSelecionada) + sufixo;
 
             const select = document.getElementById('pdFiltroTurma');
-            // Duas turmas físicas podem compartilhar o mesmo nome quando o
-            // professor leciona mais de um componente pra elas (ex.: "6º A"
-            // de Artes e "6º A" de Educação Física) — nesse caso o valor da
-            // opção vira composto (ver interpretarFiltroTurma) pra dar pra
-            // escolher qual das duas, com o componente aparecendo no rótulo.
+            // O rótulo sempre mostra o componente curricular (mesmo quando
+            // só existe uma turma com aquele nome) — o professor precisa
+            // saber de cara pra qual disciplina é aquela aula na hora de se
+            // programar, não só nos casos em que o nome se repete. O VALOR
+            // da opção só precisa virar composto (ver interpretarFiltroTurma)
+            // quando o nome é ambíguo — sem isso, filtroTurma continuaria
+            // batendo direto com celula.turma pelo nome, sem necessidade de
+            // carregar o componente junto.
             const contagemPorNome = {};
             turmasAtuais.forEach(t => { contagemPorNome[t.nome] = (contagemPorNome[t.nome] || 0) + 1; });
             const opcoes = [...turmasAtuais]
@@ -814,7 +817,7 @@
                     const ambiguo = contagemPorNome[t.nome] > 1;
                     return {
                         valor: ambiguo ? `${t.nome}${SEPARADOR_FILTRO_TURMA}${t.componenteCurricular}` : t.nome,
-                        rotulo: ambiguo ? `${t.nome} — ${t.componenteCurricular}` : t.nome
+                        rotulo: `${t.nome} — ${t.componenteCurricular}`
                     };
                 });
             select.innerHTML = '<option value="">Todas as turmas</option>' +
@@ -890,7 +893,13 @@
             // resolve atrasadas manualmente, sem que isso mude o que o
             // Dashboard mostra como aula de hoje (ver derivarStatusTurma).
             const pendentes = filtroTurma ? pendentesDaTurma(filtroTurma) : [];
-            const { nome: nomeFiltroExibido, componente: componenteFiltroExibido } = interpretarFiltroTurma(filtroTurma);
+            // Sempre mostra o componente curricular junto do nome — mesmo
+            // quando o nome não é ambíguo, o professor precisa saber de cara
+            // pra qual disciplina é o backlog que está resolvendo. Cai pra
+            // turmasAtuais quando o filtro não veio composto (turma única).
+            const { nome: nomeFiltroExibido, componente: componenteFiltroDoValor } = interpretarFiltroTurma(filtroTurma);
+            const turmaFiltroObj = turmasAtuais.find(t => t.nome === nomeFiltroExibido);
+            const componenteFiltroExibido = componenteFiltroDoValor || (turmaFiltroObj && turmaFiltroObj.componenteCurricular);
             const rotuloFiltro = componenteFiltroExibido ? `${nomeFiltroExibido} — ${componenteFiltroExibido}` : nomeFiltroExibido;
             const pendentesHtml = pendentes.length === 0 ? '' : `
                 <div class="pd-periodo-titulo">⏳ Aulas pendentes de ${rotuloFiltro}</div>
@@ -903,6 +912,7 @@
                                 <span class="pd-badge ${classeBadge(p.status)}">${p.status}</span>
                             </div>
                             <div class="pd-card-turma">${p.turma}</div>
+                            <div class="pd-card-meta">${p.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO}</div>
                             <div class="pd-card-conteudo">${p.titulo}</div>
                         </div>
                     `;
