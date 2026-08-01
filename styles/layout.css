@@ -203,6 +203,23 @@ pf-sidebar {
     font-size: 16px;
 }
 
+.pf-sidebar__divisor {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: var(--pf-space-2) var(--pf-space-3);
+}
+
+/* .pf-sidebar__fechar reseta os estilos padrão de <button> por cima de
+   .pf-sidebar__link (mesmo layout dos links de navegação, sem parecer
+   um <a>). */
+.pf-sidebar__fechar {
+    background: none;
+    border: none;
+    width: 100%;
+    font-family: var(--pf-font-family);
+    cursor: pointer;
+}
+
 /* Responsivo: menu lateral vira gaveta em telas estreitas */
 @media (max-width: 900px) {
     .pf-app-shell {
