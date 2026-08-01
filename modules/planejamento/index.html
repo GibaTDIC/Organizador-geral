@@ -240,7 +240,8 @@
         import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { ouvirGrade, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
-        import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
+        import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
+        import * as bnccArte from "../../data/bncc-curriculum-arte.js";
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
         import { salvarComHistorico, ouvirHistorico, restaurarVersao } from "../../scripts/services/historico-service.js";
@@ -260,6 +261,16 @@
             ouvirPlanejamentosMensais, criarPlanejamentoMensal, atualizarPlanejamentoMensal,
             excluirPlanejamentoMensal, duplicarPlanejamentoMensal
         } from "../../scripts/services/planejamento-mensal-service.js";
+
+        // Cada componente com BNCC curada tem seu próprio arquivo em data/,
+        // com o mesmo formato (unidadesPorAno/especificacoesPorUnidade/
+        // habilidadesBNCC) — ver bncc-curriculum.js e bncc-curriculum-arte.js.
+        // Componentes fora deste mapa (ainda sem conteúdo curado) caem no
+        // modo de texto livre em atualizarUnidadesTematicas.
+        const BNCC_POR_COMPONENTE = {
+            [COMPONENTE_CURRICULAR_PADRAO]: bnccEducacaoFisica,
+            "Arte": bnccArte
+        };
 
         // ---------- Estado ----------
         let escolaAtualId = null;
@@ -351,7 +362,7 @@
         // Comparação normalizada (minúsculo/trim) porque as strings salvas em
         // Configurações não têm exatamente a mesma capitalização do dataset
         // canônico em data/bncc-curriculum.js.
-        function especificacoesSugeridasBimestre(turma, unidade) {
+        function especificacoesSugeridasBimestre(turma, unidade, componente) {
             const bimestreSelect = document.getElementById('plAulaBimestre');
             const numeroBimestre = bimestreSelect ? parseInt(bimestreSelect.value, 10) : null;
             if (!numeroBimestre) return [];
@@ -359,7 +370,8 @@
             const configuradas = (cfg && cfg.unidades) || [];
             if (configuradas.length === 0) return [];
             const configuradasNorm = configuradas.map(normalizarTexto);
-            const especificacoes = (especificacoesPorUnidade[turma] || {})[unidade] || [];
+            const bncc = BNCC_POR_COMPONENTE[componente || COMPONENTE_CURRICULAR_PADRAO];
+            const especificacoes = bncc ? ((bncc.especificacoesPorUnidade[turma] || {})[unidade] || []) : [];
             return especificacoes.filter(e => configuradasNorm.includes(normalizarTexto(e)));
         }
 
@@ -404,10 +416,11 @@
 
             const componenteSelect = document.getElementById('plAulaComponente');
             const componenteSelecionado = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
+            const bncc = BNCC_POR_COMPONENTE[componenteSelecionado];
             const especificacaoGroup = document.getElementById('especificacaoGroup');
             const hint = document.getElementById('unidadeTematicaHint');
 
-            if (componenteSelecionado !== COMPONENTE_CURRICULAR_PADRAO) {
+            if (!bncc) {
                 const input = garantirCampoUnidadeTematica('input');
                 if (manterUnidade) input.value = manterUnidade;
                 input.placeholder = `Ex: unidade temática de ${componenteSelecionado}`;
@@ -440,7 +453,7 @@
                 return;
             }
 
-            const unidadesDoAno = unidadesPorAno[turmaSelecionada] || [];
+            const unidadesDoAno = bncc.unidadesPorAno[turmaSelecionada] || [];
             if (unidadesDoAno.length === 0) {
                 unidadeTematicaSelect.innerHTML = '<option value="">Nenhuma unidade encontrada</option>';
                 return;
@@ -456,7 +469,7 @@
             // configuradas pra este bimestre pertence a ela.
             const numeroBimestre = bimestreSelect ? parseInt(bimestreSelect.value, 10) : null;
             const sugeridas = numeroBimestre
-                ? unidadesDoAno.filter(u => especificacoesSugeridasBimestre(turmaSelecionada, u).length > 0)
+                ? unidadesDoAno.filter(u => especificacoesSugeridasBimestre(turmaSelecionada, u, componenteSelecionado).length > 0)
                 : [];
             const restantes = unidadesDoAno.filter(u => !sugeridas.includes(u));
 
@@ -507,10 +520,13 @@
 
         window.atualizarEspecificacoes = function () {
             const componenteSelect = document.getElementById('plAulaComponente');
-            // Cascata (especificação/habilidades) só existe pra Educação
-            // Física — no modo livre, quem cuida do habilidadesContainer é
-            // renderizarHabilidadesLivres, chamada só por atualizarUnidadesTematicas.
-            if (componenteSelect && componenteSelect.value !== COMPONENTE_CURRICULAR_PADRAO) return;
+            const componenteAtual = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
+            const bncc = BNCC_POR_COMPONENTE[componenteAtual];
+            // Cascata (especificação/habilidades) só existe pra componentes
+            // com BNCC curada (ver BNCC_POR_COMPONENTE) — no modo livre, quem
+            // cuida do habilidadesContainer é renderizarHabilidadesLivres,
+            // chamada só por atualizarUnidadesTematicas.
+            if (!bncc) return;
             const turmaSelect = document.getElementById('turma');
             const unidadeTematicaSelect = document.getElementById('unidadeTematica');
             const especificacaoGroup = document.getElementById('especificacaoGroup');
@@ -529,11 +545,11 @@
                 return;
             }
 
-            const especificacoes = (especificacoesPorUnidade[turmaSelect.value] || {})[unidadeSelecionada] || [];
+            const especificacoes = (bncc.especificacoesPorUnidade[turmaSelect.value] || {})[unidadeSelecionada] || [];
             if (especificacoes.length > 0) {
                 especificacaoGroup.classList.remove('hidden');
 
-                const sugeridas = especificacoesSugeridasBimestre(turmaSelect.value, unidadeSelecionada);
+                const sugeridas = especificacoesSugeridasBimestre(turmaSelect.value, unidadeSelecionada, componenteAtual);
                 const restantes = especificacoes.filter(e => !sugeridas.includes(e));
 
                 function adicionarOpcao(destino, espec) {
@@ -576,7 +592,7 @@
             } else {
                 especificacaoGroup.classList.add('hidden');
                 const turmaSelecionada = turmaSelect.value;
-                const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
+                const habilidadesTurma = bncc.habilidadesBNCC[turmaSelecionada];
                 if (habilidadesTurma && habilidadesTurma[unidadeSelecionada]) {
                     const habilidades = [];
                     Object.values(habilidadesTurma[unidadeSelecionada]).forEach(especHabilidades => {
@@ -589,7 +605,8 @@
 
         window.atualizarHabilidades = function () {
             const componenteSelect = document.getElementById('plAulaComponente');
-            if (componenteSelect && componenteSelect.value !== COMPONENTE_CURRICULAR_PADRAO) return;
+            const bncc = BNCC_POR_COMPONENTE[componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO];
+            if (!bncc) return;
             const turmaSelect = document.getElementById('turma');
             const unidadeTematicaSelect = document.getElementById('unidadeTematica');
             const especificacaoSelect = document.getElementById('especificacao');
@@ -609,7 +626,7 @@
                 return;
             }
 
-            const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
+            const habilidadesTurma = bncc.habilidadesBNCC[turmaSelecionada];
             if (!habilidadesTurma) {
                 habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade encontrada para esta turma</p>';
                 return;
@@ -1000,7 +1017,10 @@
             const totalMeses = cfg ? mesesDoIntervalo(cfg.inicio, cfg.fim).length : 0;
             const mesesComPlano = cfg ? mesesDoIntervalo(cfg.inicio, cfg.fim).filter(({ mes }) => encontrarMensal(numero, mes)).length : 0;
 
-            const unidadesDisponiveis = unidadesPorAno[turmaAtual] || [];
+            // Planejamento Bimestral ainda é só de Educação Física — essa
+            // camada (Anual/Bimestral/Mensal) não tem seletor de componente
+            // como o formulário de Aula, escopo de uma extensão futura.
+            const unidadesDisponiveis = bnccEducacaoFisica.unidadesPorAno[turmaAtual] || [];
             const unidadesSelecionadas = new Set(dados.unidadesTematicas || []);
 
             container.innerHTML = `
@@ -1266,7 +1286,12 @@
                         <select id="plAulaComponente" required onchange="atualizarUnidadesTematicas()">
                             ${componentesAtivos.map(c => `<option value="${c}">${c}</option>`).join('')}
                         </select>
-                        ${componentesAtivos.length === 1 ? '' : '<small style="display:block;color:var(--pf-gray-500);margin-top:4px;">Só Educação Física tem BNCC cadastrada no app — nos demais, unidade temática e habilidades ficam livres.</small>'}
+                        ${(() => {
+                            if (componentesAtivos.length === 1) return '';
+                            const semBncc = componentesAtivos.filter(c => !BNCC_POR_COMPONENTE[c]);
+                            if (semBncc.length === 0) return '';
+                            return `<small style="display:block;color:var(--pf-gray-500);margin-top:4px;">Sem BNCC cadastrada no app pra ${semBncc.join(', ')} ainda — unidade temática e habilidades ficam livres pra ${semBncc.length === 1 ? 'esse componente' : 'esses componentes'}.</small>`;
+                        })()}
                     </div>
                     <div class="pf-field">
                         <label for="plAulaBimestre">Bimestre</label>
