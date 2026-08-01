@@ -244,6 +244,7 @@
         import * as bnccArte from "../../data/bncc-curriculum-arte.js";
         import * as bnccEnsinoReligioso from "../../data/bncc-curriculum-ensino-religioso.js";
         import * as bnccCiencias from "../../data/bncc-curriculum-ciencias.js";
+        import * as bnccGeografia from "../../data/bncc-curriculum-geografia.js";
         import { db } from "../../scripts/firebase-config.js";
         import { doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
         import { salvarComHistorico, ouvirHistorico, restaurarVersao } from "../../scripts/services/historico-service.js";
@@ -273,7 +274,8 @@
             [COMPONENTE_CURRICULAR_PADRAO]: bnccEducacaoFisica,
             "Arte": bnccArte,
             "Ensino Religioso": bnccEnsinoReligioso,
-            "Ciências": bnccCiencias
+            "Ciências": bnccCiencias,
+            "Geografia": bnccGeografia
         };
 
         // ---------- Estado ----------
