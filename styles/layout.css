@@ -10,7 +10,11 @@
     grid-template-areas:
         "sidebar header"
         "sidebar main";
-    min-height: 100vh;
+    /* height (não min-height): trava a altura do shell na tela toda, senão
+       .pf-app-main (mesmo com overflow-y:auto) simplesmente CRESCE pra
+       caber o conteúdo em vez de rolar internamente — a página inteira
+       cresce e rola junto, levando o cabeçalho embora com ela. */
+    height: 100vh;
 }
 
 .pf-app-main {
@@ -22,6 +26,11 @@
        dentro (uma linha de texto comprida, por exemplo), o que empurra
        a página inteira a precisar de rolagem lateral no celular. */
     min-width: 0;
+    /* Mesmo raciocínio na vertical: sem min-height:0, o item de grid não
+       aceita ficar mais baixo que o conteúdo, e overflow-y:auto nunca
+       chega a entrar em ação — é isso que faz o cabeçalho "rolar junto"
+       com a página em vez de ficar fixo. */
+    min-height: 0;
     padding: var(--pf-space-4);
 }
 
@@ -153,6 +162,7 @@ pf-sidebar {
     grid-area: sidebar;
     background: var(--pf-slate-800);
     overflow-y: auto;
+    min-height: 0;
 }
 
 .pf-sidebar__nav {
