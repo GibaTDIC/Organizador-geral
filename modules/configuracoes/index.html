@@ -2139,7 +2139,17 @@
                     `Use "outro" só quando nenhuma das demais categorias descrever bem a data. Datas sempre no formato DD/MM/AAAA.`;
 
                 const resposta = await chamarAssistenteIA(prompt, null, { mimeType: file.type || 'application/pdf', dadosBase64 });
-                const extraido = JSON.parse(resposta);
+                let extraido;
+                try {
+                    extraido = JSON.parse(resposta);
+                } catch {
+                    // Gemini respondeu texto solto em vez de JSON — normalmente
+                    // sinal de que o arquivo não chegou nele (ex: Worker em
+                    // produção ainda sem o `wrangler deploy` desta função).
+                    // Mostrar a resposta real ajuda a diagnosticar isso, em vez
+                    // de um erro de sintaxe JSON sem contexto nenhum.
+                    throw new Error('o assistente respondeu: "' + resposta.slice(0, 200) + '"');
+                }
 
                 if (Array.isArray(extraido.bimestres)) {
                     extraido.bimestres.forEach(b => {
