@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prof GB · PEI</title>
+    <meta name="description" content="Prof GB — assistente inteligente para planejamento e organização do trabalho docente.">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <link rel="stylesheet" href="../../styles/tokens.css">
+    <link rel="stylesheet" href="../../styles/reset.css">
+    <link rel="stylesheet" href="../../styles/base.css">
+    <link rel="stylesheet" href="../../styles/layout.css">
+    <link rel="stylesheet" href="../../styles/components/modal.css">
+    <link rel="stylesheet" href="../../styles/components/alert.css">
+    <link rel="stylesheet" href="../../styles/components/card.css">
+    <link rel="stylesheet" href="../../styles/components/button.css">
+    <link rel="stylesheet" href="../../styles/components/filter.css">
+    <link rel="stylesheet" href="../../styles/components/table.css">
+    <style>
+        body { background: var(--pf-gray-100); }
+
+        .pei-header { margin-bottom: var(--pf-space-4); }
+        .pei-header h1 { font-size: 1.5rem; color: var(--pf-gray-900); }
+        .pei-header p { color: var(--pf-gray-500); font-size: 0.9rem; }
+
+        .pei-layout { display: grid; grid-template-columns: 260px 1fr; gap: var(--pf-space-4); align-items: start; }
+        @media (max-width: 900px) { .pei-layout { grid-template-columns: 1fr; } }
+
+        .pei-lista-alunos { display: flex; flex-direction: column; gap: var(--pf-space-2); }
+        .pei-aluno-item {
+            display: block; width: 100%; text-align: left; cursor: pointer;
+            padding: var(--pf-space-2) var(--pf-space-3); border-radius: var(--pf-radius-md);
+            border: 2px solid var(--pf-gray-200); background: var(--pf-white); font: inherit;
+        }
+        .pei-aluno-item:hover { background: var(--pf-gray-100); }
+        .pei-aluno-item--ativo { border-color: var(--pf-blue-700); background: #eaf2fd; }
+        .pei-aluno-nome { font-weight: 700; color: var(--pf-gray-900); font-size: 0.9rem; }
+        .pei-aluno-turma { font-size: 0.78rem; color: var(--pf-gray-500); }
+        .pei-estado-vazio { color: var(--pf-gray-500); font-size: 0.85rem; padding: var(--pf-space-3); text-align: center; }
+
+        .pei-acoes { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); margin-bottom: var(--pf-space-4); }
+
+        .pei-aluno-resumo { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--pf-space-3); margin-bottom: var(--pf-space-4); }
+        .pei-aluno-resumo-info p { font-size: 0.85rem; color: var(--pf-gray-700); margin: 2px 0; }
+        .pei-aluno-resumo-botoes { display: flex; gap: var(--pf-space-2); align-self: flex-start; }
+
+        .pei-bimestres { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); margin-bottom: var(--pf-space-4); }
+        .pei-bimestre-tab {
+            padding: var(--pf-space-2) var(--pf-space-3); border-radius: var(--pf-radius-lg);
+            background: var(--pf-white); border: 2px solid var(--pf-gray-200); color: var(--pf-gray-700);
+            font-weight: 600; font-size: 0.82rem; cursor: pointer;
+        }
+        .pei-bimestre-tab--ativa { background: var(--pf-blue-700); border-color: var(--pf-blue-700); color: var(--pf-white); }
+
+        .pei-form-grupo { margin-bottom: var(--pf-space-4); }
+        .pei-form-grupo label { display: block; font-weight: 600; font-size: 0.82rem; color: var(--pf-gray-700); margin-bottom: 4px; }
+        .pei-form-grupo textarea, .pei-form-grupo input[type="text"] { width: 100%; font: inherit; }
+        .pei-form-grupo textarea { min-height: 90px; resize: vertical; }
+        .pei-form-linha { display: flex; flex-wrap: wrap; gap: var(--pf-space-3); margin-bottom: var(--pf-space-4); }
+        .pei-form-linha .pei-form-grupo { flex: 1; min-width: 160px; margin-bottom: 0; }
+        .pei-somente-leitura { font-size: 0.82rem; color: var(--pf-gray-700); background: var(--pf-gray-100); border-radius: var(--pf-radius-md); padding: var(--pf-space-2) var(--pf-space-3); }
+        .pei-secao-titulo { font-size: 0.95rem; color: var(--pf-gray-900); margin: var(--pf-space-4) 0 var(--pf-space-2); }
+
+        .pei-atividade-linha { display: flex; gap: var(--pf-space-2); margin-bottom: var(--pf-space-2); align-items: center; }
+        .pei-atividade-linha input[type="text"] { flex: 1; }
+        .pei-atividade-linha input[type="date"] { width: 150px; }
+
+        .pei-versao-item { display: flex; justify-content: space-between; align-items: center; gap: var(--pf-space-2); padding: var(--pf-space-2) 0; border-bottom: 1px solid var(--pf-gray-200); font-size: 0.85rem; }
+
+        @media print {
+            pf-header, pf-sidebar, .pei-header, .pei-lista-alunos-card, .pei-acoes,
+            .pei-aluno-resumo-botoes, .pei-bimestres { display: none !important; }
+            .pei-layout { grid-template-columns: 1fr !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="pf-app-shell">
+        <pf-header></pf-header>
+        <pf-sidebar active="pei"></pf-sidebar>
+        <div class="pf-app-main">
+            <div class="container">
+
+                <div class="pei-header">
+                    <h1>🧩 PEI — Plano Educacional Individualizado</h1>
+                    <p>Cadastro do estudante, geração do conteúdo pedagógico com IA (a partir do que já está no Planejamento/Controlador) e exportação fiel ao modelo institucional.</p>
+                </div>
+
+                <div class="pei-layout">
+                    <div class="pf-card pei-lista-alunos-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: var(--pf-space-3);">
+                            <strong style="font-size:0.85rem;">Estudantes</strong>
+                            <button class="pf-btn pf-btn--primary" style="padding:4px 10px; font-size:0.8rem;" onclick="abrirModalAluno(null)">+ Novo</button>
+                        </div>
+                        <div class="pei-lista-alunos" id="peiListaAlunos"></div>
+                    </div>
+
+                    <div id="peiPainelCentral"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <pf-modal id="peiModalAluno">
+        <div class="pf-modal-body">
+            <h3 id="peiModalAlunoTitulo" style="margin-bottom: var(--pf-space-3);">Novo Aluno</h3>
+            <div class="pei-form-grupo">
+                <label>Nome do(a) estudante</label>
+                <input type="text" id="peiCampoNome">
+            </div>
+            <div class="pei-form-linha">
+                <div class="pei-form-grupo">
+                    <label>Turma / Componente</label>
+                    <select id="peiCampoTurma" class="pf-filter-select" style="width:100%;"></select>
+                </div>
+                <div class="pei-form-grupo">
+                    <label>Ano/Turma (como aparece no documento)</label>
+                    <input type="text" id="peiCampoAnoTurma" placeholder="Ex: 6º ANO B">
+                </div>
+            </div>
+            <div class="pei-form-linha">
+                <div class="pei-form-grupo">
+                    <label>Deficiência</label>
+                    <input type="text" id="peiCampoDeficiencia">
+                </div>
+                <div class="pei-form-grupo">
+                    <label>CID</label>
+                    <input type="text" id="peiCampoCid">
+                </div>
+                <div class="pei-form-grupo">
+                    <label>Período</label>
+                    <select id="peiCampoPeriodo" class="pf-filter-select">
+                        <option value="matutino">Matutino</option>
+                        <option value="vespertino">Vespertino</option>
+                        <option value="integral">Integral</option>
+                    </select>
+                </div>
+            </div>
+            <div class="pei-form-grupo">
+                <label>Professor(a) Regente</label>
+                <input type="text" id="peiCampoProfessorRegente">
+            </div>
+            <div class="pei-form-linha">
+                <div class="pei-form-grupo">
+                    <label><input type="checkbox" id="peiCampoMediadorTem" style="width:auto;"> Professor(a) Mediador(a)</label>
+                    <input type="text" id="peiCampoMediadorQuem" placeholder="Quem?">
+                </div>
+                <div class="pei-form-grupo">
+                    <label><input type="checkbox" id="peiCampoEstagiarioTem" style="width:auto;"> Estagiário(a)</label>
+                    <input type="text" id="peiCampoEstagiarioQuem" placeholder="Quem?">
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap: var(--pf-space-2);">
+                <button class="pf-btn pf-btn--secondary" onclick="document.getElementById('peiModalAluno').close()">Cancelar</button>
+                <button class="pf-btn pf-btn--primary" onclick="salvarAlunoForm()">Salvar</button>
+            </div>
+        </div>
+    </pf-modal>
+
+    <pf-modal id="peiModalDocumento">
+        <div class="pf-modal-body">
+            <h3 style="margin-bottom: var(--pf-space-3);">Novo PEI do Bimestre</h3>
+            <div class="pei-form-linha">
+                <div class="pei-form-grupo">
+                    <label>Bimestre</label>
+                    <select id="peiNovoBimestre" class="pf-filter-select">
+                        <option value="1">1º Bimestre</option>
+                        <option value="2">2º Bimestre</option>
+                        <option value="3">3º Bimestre</option>
+                        <option value="4">4º Bimestre</option>
+                    </select>
+                </div>
+                <div class="pei-form-grupo">
+                    <label>Ano Letivo</label>
+                    <input type="text" id="peiNovoAnoLetivo">
+                </div>
+            </div>
+            <div class="pei-form-linha">
+                <div class="pei-form-grupo">
+                    <label>Data de Início</label>
+                    <input type="date" id="peiNovoDataInicio">
+                </div>
+                <div class="pei-form-grupo">
+                    <label>Data de Término</label>
+                    <input type="date" id="peiNovoDataTermino">
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap: var(--pf-space-2);">
+                <button class="pf-btn pf-btn--secondary" onclick="document.getElementById('peiModalDocumento').close()">Cancelar</button>
+                <button class="pf-btn pf-btn--primary" onclick="criarNovoDocumento()">Criar</button>
+            </div>
+        </div>
+    </pf-modal>
+
+    <pf-modal id="peiModalVersoes">
+        <div class="pf-modal-body">
+            <h3 style="margin-bottom: var(--pf-space-3);">Histórico de Versões</h3>
+            <div id="peiListaVersoes"></div>
+            <div style="display:flex; justify-content:flex-end; margin-top: var(--pf-space-3);">
+                <button class="pf-btn pf-btn--secondary" onclick="document.getElementById('peiModalVersoes').close()">Fechar</button>
+            </div>
+        </div>
+    </pf-modal>
+
+    <script type="module">
+        import "../../scripts/layout/page-shell.js";
+        import "../../scripts/components/pf-modal.js";
+        import "../../scripts/services/escola-context.js";
+        import { requireAuth } from "../../scripts/services/auth-guard.js";
+        import { auth } from "../../scripts/firebase-config.js";
+        import { showToast } from "../../scripts/components/pf-alert.js";
+        import { ouvirControlador } from "../../scripts/services/controlador-service.js";
+        import { ouvirTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
+        import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
+        import {
+            ouvirPeiAlunos, salvarPeiAluno, removerPeiAluno,
+            ouvirPeiDocumentos, salvarPeiDocumento,
+            ouvirVersoesPeiDocumento, restaurarVersaoPeiDocumento
+        } from "../../scripts/services/pei-service.js";
+        import { montarContextoIA } from "../../scripts/services/pei-contexto.js";
+        import { exportarPeiDocx } from "../../scripts/services/pei-docx-export.js";
+
+        // ---------- Estado ----------
+        let escolaAtualId = null;
+        let escolasCarregadas = [];
+        let unsubControlador = null, unsubTurmas = null, unsubPeiAlunos = null, unsubPeiDocumentos = null, unsubVersoes = null;
+
+        let aulasControlador = [];
+        let turmasAtuais = [];
+        let peiAlunos = [];
+        let peiDocumentos = [];
+        let versoesAtuais = [];
+
+        let alunoSelecionadoId = null;
+        let documentoSelecionadoId = null;
+        let documentoRascunho = null; // cópia de trabalho do documento selecionado (ou novo)
+
+        function documentoVazio(alunoId, bimestre, anoLetivo, dataInicio, dataTermino) {
+            return {
+                alunoId, bimestre, anoLetivo, dataInicio, dataTermino,
+                dataRevisao1: '', dataRevisao2: '',
+                conteudoPedagogico: { objetosConhecimento: [], habilidades: [], metodologiaRecursos: '', avaliacaoPeriodo: '' },
+                adaptacoesFuncionais: '',
+                planilhaAcompanhamento: [],
+                avaliacaoResultados: '',
+                status: 'rascunho'
+            };
+        }
+
+        // ---------- Renderização: lista de alunos ----------
+        function renderizarListaAlunos() {
+            const container = document.getElementById('peiListaAlunos');
+            if (peiAlunos.length === 0) {
+                container.innerHTML = '<p class="pei-estado-vazio">Nenhum estudante cadastrado ainda.</p>';
+                return;
+            }
+            container.innerHTML = peiAlunos
+                .slice()
+                .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''))
+                .map(a => `
+                    <button type="button" class="pei-aluno-item${a.id === alunoSelecionadoId ? ' pei-aluno-item--ativo' : ''}" onclick="selecionarAluno('${a.id}')">
+                        <div class="pei-aluno-nome">${a.nome || '(sem nome)'}</div>
+                        <div class="pei-aluno-turma">${a.anoTurma || '-'} · ${a.componenteCurricular || '-'}</div>
+                    </button>
+                `).join('');
+        }
+
+        // ---------- Renderização: painel central ----------
+        function renderizarPainelCentral() {
+            const container = document.getElementById('peiPainelCentral');
+            const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
+            if (!aluno) {
+                container.innerHTML = '<div class="pf-card"><p class="pei-estado-vazio">Selecione um estudante à esquerda ou cadastre um novo pra começar.</p></div>';
+                return;
+            }
+
+            const documentosDoAluno = peiDocumentos
+                .filter(d => d.alunoId === alunoSelecionadoId)
+                .sort((a, b) => (a.bimestre || 0) - (b.bimestre || 0));
+
+            let html = `
+                <div class="pf-card">
+                    <div class="pei-aluno-resumo">
+                        <div class="pei-aluno-resumo-info">
+                            <p><strong>${aluno.nome}</strong></p>
+                            <p>${aluno.anoTurma || '-'} · ${aluno.componenteCurricular || '-'} · ${rotuloPeriodo(aluno.periodo)}</p>
+                            <p>Deficiência: ${aluno.deficiencia || '-'} ${aluno.cid ? '(' + aluno.cid + ')' : ''}</p>
+                            <p>Regente: ${aluno.professorRegente || '-'}</p>
+                        </div>
+                        <div class="pei-aluno-resumo-botoes">
+                            <button class="pf-btn pf-btn--secondary" onclick="abrirModalAluno('${aluno.id}')">✏️ Editar</button>
+                            <button class="pf-btn pf-btn--danger" onclick="confirmarRemoverAluno('${aluno.id}')">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="pei-bimestres">
+                        ${documentosDoAluno.map(d => `
+                            <button type="button" class="pei-bimestre-tab${d.id === documentoSelecionadoId ? ' pei-bimestre-tab--ativa' : ''}" onclick="selecionarDocumento('${d.id}')">${d.bimestre}º Bim. ${d.anoLetivo || ''}</button>
+                        `).join('')}
+                        <button type="button" class="pei-bimestre-tab" onclick="abrirModalDocumento()">+ Novo PEI</button>
+                    </div>
+            `;
+
+            if (documentoRascunho) {
+                html += renderizarFormularioDocumento();
+            } else {
+                html += '<p class="pei-estado-vazio">Selecione um bimestre acima ou crie um novo PEI.</p>';
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function rotuloPeriodo(periodo) {
+            return { matutino: 'Matutino', vespertino: 'Vespertino', integral: 'Integral' }[periodo] || '-';
+        }
+
+        function renderizarFormularioDocumento() {
+            const d = documentoRascunho;
+            const conteudo = d.conteudoPedagogico || { objetosConhecimento: [], habilidades: [] };
+            return `
+                <div class="pei-acoes">
+                    <button class="pf-btn pf-btn--info" id="peiBtnGerarIA" onclick="gerarComIA()">🤖 Gerar com IA</button>
+                    <button class="pf-btn pf-btn--success" onclick="salvarDocumentoAtual()">💾 Salvar</button>
+                    <button class="pf-btn pf-btn--secondary" onclick="window.print()">🖨️ Imprimir</button>
+                    <button class="pf-btn pf-btn--secondary" onclick="exportarDocx()">⬇️ Exportar .docx</button>
+                    <button class="pf-btn pf-btn--secondary" onclick="abrirHistorico()">🕓 Histórico de Versões</button>
+                </div>
+
+                <div class="pei-form-linha">
+                    <div class="pei-form-grupo">
+                        <label>Data de Início</label>
+                        <input type="date" value="${d.dataInicio || ''}" oninput="atualizarCampoDocumento('dataInicio', this.value)">
+                    </div>
+                    <div class="pei-form-grupo">
+                        <label>Data de Término</label>
+                        <input type="date" value="${d.dataTermino || ''}" oninput="atualizarCampoDocumento('dataTermino', this.value)">
+                    </div>
+                    <div class="pei-form-grupo">
+                        <label>1ª Revisão</label>
+                        <input type="date" value="${d.dataRevisao1 || ''}" oninput="atualizarCampoDocumento('dataRevisao1', this.value)">
+                    </div>
+                    <div class="pei-form-grupo">
+                        <label>2ª Revisão</label>
+                        <input type="date" value="${d.dataRevisao2 || ''}" oninput="atualizarCampoDocumento('dataRevisao2', this.value)">
+                    </div>
+                </div>
+
+                <h4 class="pei-secao-titulo">Conteúdo Pedagógico</h4>
+                <div class="pei-form-grupo">
+                    <label>Objetos do Conhecimento (do Planejamento/Controlador desta turma+componente)</label>
+                    <div class="pei-somente-leitura">${(conteudo.objetosConhecimento || []).join(', ') || 'Nenhum ainda — clique em "Gerar com IA" depois de ter aulas planejadas para esta turma.'}</div>
+                </div>
+                <div class="pei-form-grupo">
+                    <label>Habilidades BNCC (do Planejamento/Controlador)</label>
+                    <div class="pei-somente-leitura">${(conteudo.habilidades || []).map(h => h.codigo).join(', ') || '-'}</div>
+                </div>
+                <div class="pei-form-grupo">
+                    <label>Metodologia / Recursos (adaptado ao estudante)</label>
+                    <textarea oninput="atualizarCampoConteudo('metodologiaRecursos', this.value)">${conteudo.metodologiaRecursos || ''}</textarea>
+                </div>
+                <div class="pei-form-grupo">
+                    <label>Avaliação do Período (como)</label>
+                    <textarea oninput="atualizarCampoConteudo('avaliacaoPeriodo', this.value)">${conteudo.avaliacaoPeriodo || ''}</textarea>
+                </div>
+
+                <h4 class="pei-secao-titulo">Adaptações Funcionais</h4>
+                <div class="pei-form-grupo">
+                    <textarea oninput="atualizarCampoDocumento('adaptacoesFuncionais', this.value)">${d.adaptacoesFuncionais || ''}</textarea>
+                </div>
+
+                <h4 class="pei-secao-titulo">Planilha de Acompanhamento</h4>
+                <div id="peiAtividades">${renderizarAtividades()}</div>
+                <button class="pf-btn pf-btn--secondary" style="margin-bottom: var(--pf-space-4);" onclick="adicionarAtividade()">+ Adicionar registro</button>
+
+                <h4 class="pei-secao-titulo">Avaliação (Resultados Obtidos)</h4>
+                <div class="pei-form-grupo">
+                    <textarea oninput="atualizarCampoDocumento('avaliacaoResultados', this.value)">${d.avaliacaoResultados || ''}</textarea>
+                </div>
+            `;
+        }
+
+        function renderizarAtividades() {
+            const atividades = documentoRascunho.planilhaAcompanhamento || [];
+            if (atividades.length === 0) return '<p class="pei-estado-vazio">Nenhum registro ainda.</p>';
+            return atividades.map((a, i) => `
+                <div class="pei-atividade-linha">
+                    <input type="date" value="${a.data || ''}" oninput="atualizarAtividade(${i}, 'data', this.value)">
+                    <input type="text" placeholder="Atividade / observação" value="${(a.atividade || '').replace(/"/g, '&quot;')}" oninput="atualizarAtividade(${i}, 'atividade', this.value)">
+                    <button class="pf-btn pf-btn--danger" style="padding:4px 10px;" onclick="removerAtividade(${i})">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // ---------- Ações: aluno ----------
+        function preencherSelectTurmas(valorAtual) {
+            const select = document.getElementById('peiCampoTurma');
+            select.innerHTML = turmasAtuais.map(t =>
+                `<option value="${t.nome}::${t.componenteCurricular}">${t.nome} (${t.componenteCurricular})</option>`
+            ).join('');
+            if (valorAtual) select.value = valorAtual;
+        }
+
+        window.abrirModalAluno = function (id) {
+            const aluno = id ? peiAlunos.find(a => a.id === id) : null;
+            document.getElementById('peiModalAlunoTitulo').textContent = aluno ? 'Editar Aluno' : 'Novo Aluno';
+            document.getElementById('peiModalAluno').dataset.editandoId = id || '';
+            preencherSelectTurmas(aluno ? `${aluno.turmaSistema}::${aluno.componenteCurricular}` : '');
+            document.getElementById('peiCampoNome').value = aluno ? aluno.nome || '' : '';
+            document.getElementById('peiCampoAnoTurma').value = aluno ? aluno.anoTurma || '' : '';
+            document.getElementById('peiCampoDeficiencia').value = aluno ? aluno.deficiencia || '' : '';
+            document.getElementById('peiCampoCid').value = aluno ? aluno.cid || '' : '';
+            document.getElementById('peiCampoPeriodo').value = aluno ? aluno.periodo || 'matutino' : 'matutino';
+            document.getElementById('peiCampoProfessorRegente').value = aluno ? aluno.professorRegente || '' : (auth.currentUser && (auth.currentUser.displayName || auth.currentUser.email)) || '';
+            document.getElementById('peiCampoMediadorTem').checked = !!(aluno && aluno.professorMediador && aluno.professorMediador.tem);
+            document.getElementById('peiCampoMediadorQuem').value = (aluno && aluno.professorMediador && aluno.professorMediador.quem) || '';
+            document.getElementById('peiCampoEstagiarioTem').checked = !!(aluno && aluno.estagiario && aluno.estagiario.tem);
+            document.getElementById('peiCampoEstagiarioQuem').value = (aluno && aluno.estagiario && aluno.estagiario.quem) || '';
+            document.getElementById('peiModalAluno').open();
+        };
+
+        window.salvarAlunoForm = async function () {
+            const nome = document.getElementById('peiCampoNome').value.trim();
+            if (!nome) { showToast('Informe o nome do estudante.', 'error'); return; }
+            const [turmaSistema, componenteCurricular] = (document.getElementById('peiCampoTurma').value || '').split('::');
+            if (!turmaSistema) { showToast('Selecione a turma do estudante.', 'error'); return; }
+            const editandoId = document.getElementById('peiModalAluno').dataset.editandoId || null;
+            const dados = {
+                nome,
+                turmaSistema,
+                componenteCurricular,
+                anoTurma: document.getElementById('peiCampoAnoTurma').value.trim(),
+                deficiencia: document.getElementById('peiCampoDeficiencia').value.trim(),
+                cid: document.getElementById('peiCampoCid').value.trim(),
+                periodo: document.getElementById('peiCampoPeriodo').value,
+                professorRegente: document.getElementById('peiCampoProfessorRegente').value.trim(),
+                professorMediador: {
+                    tem: document.getElementById('peiCampoMediadorTem').checked,
+                    quem: document.getElementById('peiCampoMediadorQuem').value.trim()
+                },
+                estagiario: {
+                    tem: document.getElementById('peiCampoEstagiarioTem').checked,
+                    quem: document.getElementById('peiCampoEstagiarioQuem').value.trim()
+                }
+            };
+            try {
+                const id = await salvarPeiAluno(escolaAtualId, editandoId, dados);
+                if (!editandoId) alunoSelecionadoId = id;
+                document.getElementById('peiModalAluno').close();
+                showToast('Estudante salvo.', 'success');
+            } catch (erro) {
+                showToast('Não foi possível salvar: ' + erro.message, 'error');
+            }
+        };
+
+        window.confirmarRemoverAluno = async function (id) {
+            if (!confirm('Remover este estudante e todo o histórico de PEI cadastrado pra ele? Essa ação não pode ser desfeita.')) return;
+            try {
+                await removerPeiAluno(escolaAtualId, id);
+                if (alunoSelecionadoId === id) { alunoSelecionadoId = null; documentoSelecionadoId = null; documentoRascunho = null; }
+                showToast('Estudante removido.', 'success');
+            } catch (erro) {
+                showToast('Não foi possível remover: ' + erro.message, 'error');
+            }
+        };
+
+        window.selecionarAluno = function (id) {
+            alunoSelecionadoId = id;
+            documentoSelecionadoId = null;
+            documentoRascunho = null;
+            renderizarTudo();
+        };
+
+        // ---------- Ações: documento (PEI do bimestre) ----------
+        window.selecionarDocumento = function (id) {
+            const doc = peiDocumentos.find(d => d.id === id);
+            if (!doc) return;
+            documentoSelecionadoId = id;
+            documentoRascunho = JSON.parse(JSON.stringify(doc));
+            renderizarTudo();
+        };
+
+        window.abrirModalDocumento = function () {
+            document.getElementById('peiNovoAnoLetivo').value = new Date().getFullYear();
+            document.getElementById('peiModalDocumento').open();
+        };
+
+        window.criarNovoDocumento = async function () {
+            const bimestre = Number(document.getElementById('peiNovoBimestre').value);
+            const anoLetivo = document.getElementById('peiNovoAnoLetivo').value.trim();
+            const dataInicio = document.getElementById('peiNovoDataInicio').value;
+            const dataTermino = document.getElementById('peiNovoDataTermino').value;
+            const dados = documentoVazio(alunoSelecionadoId, bimestre, anoLetivo, dataInicio, dataTermino);
+            try {
+                const id = await salvarPeiDocumento(escolaAtualId, null, dados);
+                documentoSelecionadoId = id;
+                documentoRascunho = { ...dados };
+                document.getElementById('peiModalDocumento').close();
+                renderizarTudo();
+            } catch (erro) {
+                showToast('Não foi possível criar o PEI: ' + erro.message, 'error');
+            }
+        };
+
+        window.atualizarCampoDocumento = function (campo, valor) {
+            if (!documentoRascunho) return;
+            documentoRascunho[campo] = valor;
+        };
+
+        window.atualizarCampoConteudo = function (campo, valor) {
+            if (!documentoRascunho) return;
+            documentoRascunho.conteudoPedagogico = documentoRascunho.conteudoPedagogico || {};
+            documentoRascunho.conteudoPedagogico[campo] = valor;
+        };
+
+        window.adicionarAtividade = function () {
+            documentoRascunho.planilhaAcompanhamento = documentoRascunho.planilhaAcompanhamento || [];
+            documentoRascunho.planilhaAcompanhamento.push({ data: '', atividade: '' });
+            document.getElementById('peiAtividades').innerHTML = renderizarAtividades();
+        };
+
+        window.removerAtividade = function (indice) {
+            documentoRascunho.planilhaAcompanhamento.splice(indice, 1);
+            document.getElementById('peiAtividades').innerHTML = renderizarAtividades();
+        };
+
+        window.atualizarAtividade = function (indice, campo, valor) {
+            documentoRascunho.planilhaAcompanhamento[indice][campo] = valor;
+        };
+
+        window.salvarDocumentoAtual = async function () {
+            if (!documentoRascunho) return;
+            try {
+                const { id: _id, ...dados } = documentoRascunho;
+                const id = await salvarPeiDocumento(escolaAtualId, documentoSelecionadoId, dados);
+                documentoSelecionadoId = id;
+                showToast('PEI salvo com sucesso.', 'success');
+            } catch (erro) {
+                showToast('Não foi possível salvar: ' + erro.message, 'error');
+            }
+        };
+
+        // ---------- Geração com IA ----------
+        function montarPromptPEI() {
+            return 'Você é um assistente pedagógico ajudando um professor a redigir a parte pedagógica do PEI ' +
+                '(Plano Educacional Individualizado) de um estudante com deficiência, seguindo o modelo oficial ' +
+                'da rede municipal. Com base nos objetos do conhecimento e habilidades BNCC do bimestre (no contexto) ' +
+                'e na deficiência/CID do estudante, escreva: "metodologiaRecursos" (texto corrido com estratégias, ' +
+                'recursos e adaptações metodológicas específicas pra ensinar esse conteúdo a esse estudante), ' +
+                '"avaliacaoPeriodo" (texto corrido descrevendo como a avaliação será conduzida com esse estudante ' +
+                'nesse período) e "adaptacoesFuncionais" (texto corrido com adaptações funcionais concretas pras ' +
+                'atividades desse conteúdo, considerando a deficiência informada). ' +
+                'Responda SOMENTE um JSON no formato {"metodologiaRecursos":"...","avaliacaoPeriodo":"...","adaptacoesFuncionais":"..."}, ' +
+                'sem markdown, sem comentários, em português do Brasil, tom profissional e objetivo.';
+        }
+
+        window.gerarComIA = async function () {
+            const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
+            if (!aluno || !documentoRascunho) return;
+            const contexto = montarContextoIA(aluno, aulasControlador);
+            if (contexto.objetosConhecimento.length === 0) {
+                showToast('Nenhuma aula encontrada no Controlador para a turma/componente deste estudante ainda — cadastre o Planejamento primeiro.', 'info');
+            }
+            const botao = document.getElementById('peiBtnGerarIA');
+            botao.disabled = true;
+            botao.textContent = '⏳ Gerando...';
+            try {
+                const resposta = await chamarAssistenteIA(montarPromptPEI(), contexto, null, 'json');
+                let extraido;
+                try {
+                    extraido = JSON.parse(resposta);
+                } catch {
+                    throw new Error('o assistente respondeu: "' + resposta.slice(0, 200) + '"');
+                }
+                documentoRascunho.conteudoPedagogico = {
+                    objetosConhecimento: contexto.objetosConhecimento,
+                    habilidades: contexto.habilidades,
+                    metodologiaRecursos: extraido.metodologiaRecursos || '',
+                    avaliacaoPeriodo: extraido.avaliacaoPeriodo || ''
+                };
+                documentoRascunho.adaptacoesFuncionais = extraido.adaptacoesFuncionais || '';
+                documentoRascunho.status = 'gerado';
+                showToast('Conteúdo gerado! Revise antes de salvar.', 'success');
+                renderizarTudo();
+            } catch (erro) {
+                showToast(erro.message, 'error');
+            } finally {
+                botao.disabled = false;
+                botao.textContent = '🤖 Gerar com IA';
+            }
+        };
+
+        // ---------- Exportação .docx ----------
+        window.exportarDocx = async function () {
+            const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
+            if (!aluno || !documentoRascunho) return;
+            const nomeEscola = (escolasCarregadas.find(e => e.id === escolaAtualId) || {}).nome || '';
+            try {
+                await exportarPeiDocx(aluno, documentoRascunho, nomeEscola);
+            } catch (erro) {
+                showToast('Não foi possível exportar o .docx: ' + erro.message, 'error');
+            }
+        };
+
+        // ---------- Histórico de versões ----------
+        window.abrirHistorico = function () {
+            if (!documentoSelecionadoId) return;
+            if (unsubVersoes) unsubVersoes();
+            unsubVersoes = ouvirVersoesPeiDocumento(escolaAtualId, documentoSelecionadoId, (snap) => {
+                versoesAtuais = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderizarVersoes();
+            });
+            document.getElementById('peiModalVersoes').open();
+        };
+
+        function renderizarVersoes() {
+            const container = document.getElementById('peiListaVersoes');
+            if (versoesAtuais.length === 0) {
+                container.innerHTML = '<p class="pei-estado-vazio">Nenhuma versão anterior salva ainda.</p>';
+                return;
+            }
+            container.innerHTML = versoesAtuais.map(v => `
+                <div class="pei-versao-item">
+                    <span>${new Date(v._versionadoEm).toLocaleString('pt-BR')}</span>
+                    <button class="pf-btn pf-btn--secondary" style="padding:4px 10px;" onclick="restaurarVersaoSelecionada('${v.id}')">Restaurar</button>
+                </div>
+            `).join('');
+        }
+
+        window.restaurarVersaoSelecionada = async function (versaoId) {
+            const versao = versoesAtuais.find(v => v.id === versaoId);
+            if (!versao || !documentoSelecionadoId) return;
+            try {
+                await restaurarVersaoPeiDocumento(escolaAtualId, documentoSelecionadoId, versao);
+                const { _versionadoEm, id, ...dadosLimpos } = versao;
+                documentoRascunho = dadosLimpos;
+                document.getElementById('peiModalVersoes').close();
+                showToast('Versão restaurada.', 'success');
+                renderizarTudo();
+            } catch (erro) {
+                showToast('Não foi possível restaurar: ' + erro.message, 'error');
+            }
+        };
+
+        // ---------- Carregamento Firestore ----------
+        function carregarControlador() {
+            return ouvirControlador(escolaAtualId, (docSnap) => {
+                const data = docSnap.exists() ? docSnap.data() : null;
+                aulasControlador = (data && Array.isArray(data.aulas)) ? data.aulas : [];
+            });
+        }
+
+        function carregarTurmas() {
+            return ouvirTurmas(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                turmasAtuais = normalizarTurmas(data && data.lista);
+            });
+        }
+
+        function carregarPeiAlunos() {
+            return ouvirPeiAlunos(escolaAtualId, (snap) => {
+                peiAlunos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderizarTudo();
+            });
+        }
+
+        function carregarPeiDocumentos() {
+            return ouvirPeiDocumentos(escolaAtualId, (snap) => {
+                peiDocumentos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderizarTudo();
+            });
+        }
+
+        function renderizarTudo() {
+            renderizarListaAlunos();
+            renderizarPainelCentral();
+        }
+
+        // ---------- Inicialização ----------
+        requireAuth({ loginPath: '../../login.html' });
+
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+            escolasCarregadas = evento.detail.escolas || [];
+            if (unsubControlador) unsubControlador();
+            if (unsubTurmas) unsubTurmas();
+            if (unsubPeiAlunos) unsubPeiAlunos();
+            if (unsubPeiDocumentos) unsubPeiDocumentos();
+            unsubControlador = carregarControlador();
+            unsubTurmas = carregarTurmas();
+            unsubPeiAlunos = carregarPeiAlunos();
+            unsubPeiDocumentos = carregarPeiDocumentos();
+        });
+    </script>
+</body>
+</html>

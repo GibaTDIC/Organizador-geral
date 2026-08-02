@@ -49,7 +49,9 @@ export function adicionarMensagemConversaIA(escolaId, id, mensagens) {
 // dentro pra não acoplar o serviço a uma decisão de UI específica.
 // `arquivo` é opcional: { mimeType, dadosBase64 } — usado pra anexar um
 // documento (ex: PDF do calendário anual) que o Gemini lê diretamente.
-export async function chamarAssistenteIA(prompt, contexto, arquivo) {
+// `formatoResposta: 'json'` pede JSON mesmo sem arquivo (ex: geração do
+// PEI a partir de texto puro) — sem isso o Worker devolve prosa por padrão.
+export async function chamarAssistenteIA(prompt, contexto, arquivo, formatoResposta) {
     const idToken = await obterIdToken();
     if (!idToken) {
         throw new Error('Sessão expirada. Recarregue a página e faça login novamente.');
@@ -63,7 +65,12 @@ export async function chamarAssistenteIA(prompt, contexto, arquivo) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${idToken}`
             },
-            body: JSON.stringify(arquivo ? { prompt, contexto, arquivo } : { prompt, contexto })
+            body: JSON.stringify({
+                prompt,
+                contexto,
+                ...(arquivo ? { arquivo } : {}),
+                ...(formatoResposta ? { formatoResposta } : {})
+            })
         });
     } catch {
         throw new Error('Não foi possível conectar ao assistente. Verifique sua internet.');

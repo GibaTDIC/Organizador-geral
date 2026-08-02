@@ -45,13 +45,13 @@ export default {
             return jsonError("Corpo da requisição inválido.", 400);
         }
 
-        const { prompt, contexto, arquivo } = body || {};
+        const { prompt, contexto, arquivo, formatoResposta } = body || {};
         if (!prompt || typeof prompt !== "string") {
             return jsonError("Campo 'prompt' é obrigatório.", 400);
         }
 
         try {
-            const texto = await chamarGemini(env, prompt, contexto, arquivo);
+            const texto = await chamarGemini(env, prompt, contexto, arquivo, formatoResposta);
             return new Response(JSON.stringify({ resposta: texto }), {
                 headers: { "Content-Type": "application/json", ...CORS_HEADERS },
             });
@@ -79,7 +79,7 @@ async function verificarIdToken(idToken) {
     return data?.users?.[0]?.localId || null;
 }
 
-async function chamarGemini(env, prompt, contexto, arquivo) {
+async function chamarGemini(env, prompt, contexto, arquivo, formatoResposta) {
     if (!env.GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY não configurada no Worker (rode: wrangler secret put GEMINI_API_KEY).");
     }
@@ -94,8 +94,12 @@ async function chamarGemini(env, prompt, contexto, arquivo) {
     // este é o único endpoint de IA do projeto (ver comentário no topo).
     if (arquivo && arquivo.dadosBase64 && arquivo.mimeType) {
         parts.push({ inline_data: { mime_type: arquivo.mimeType, data: arquivo.dadosBase64 } });
-        // Só força JSON quando há arquivo: os usos de texto puro (ex: "Gerar
-        // objetivos com IA") esperam prosa em português, não JSON.
+    }
+    // JSON só quando pedido explicitamente (arquivo anexado) ou quando o
+    // chamador pede via formatoResposta:'json' (ex: geração do PEI, prompt
+    // de texto puro sem arquivo). Por padrão continua prosa em português —
+    // não quebra os usos existentes (ex: "Gerar objetivos com IA").
+    if ((arquivo && arquivo.dadosBase64 && arquivo.mimeType) || formatoResposta === "json") {
         corpo.generationConfig = { responseMimeType: "application/json" };
     }
 
