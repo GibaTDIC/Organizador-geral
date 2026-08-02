@@ -30,6 +30,19 @@
             width: 100%;
         }
 
+        /* Agrupamento visual das 4 categorias reais de Configurações —
+           Escola / Turmas / Grade Semanal / Calendário Escolar — puramente
+           organizacional, não muda onde nada é lido/gravado. */
+        .pf-config-secao {
+            margin-bottom: 25px;
+        }
+        .pf-config-secao-titulo {
+            color: #333;
+            font-size: clamp(1.1rem, 4vw, 1.4rem);
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+
         /* Header Principal */
         .main-header {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
@@ -986,125 +999,143 @@
         <!-- Header Principal -->
         <div class="main-header">
             <h1>⚙️ Configurações</h1>
-            <p>Grade semanal, turmas e bimestres</p>
+            <p>Escola, turmas, grade semanal e calendário</p>
         </div>
 
-        <!-- Header da Programação -->
-        <div class="programacao-header">
-            <div class="semana-info">
-                <h2>📆 Grade Semanal</h2>
-                <div class="data-range" id="semanaAtual">1ª semana de Fevereiro</div>
-            </div>
-            <div class="navegacao-semanas">
-                <button class="btn-nav" onclick="semanaAnterior()">← Anterior</button>
-                <button class="btn-nav" onclick="semanaAtualHoje()">Hoje</button>
-                <button class="btn-nav" onclick="proximaSemana()">Próxima →</button>
-            </div>
-        </div>
+        <!-- ===== 1. Escola ===== -->
+        <section class="pf-config-secao">
+            <h2 class="pf-config-secao-titulo">🏫 Escola</h2>
 
-        <!-- Tabela de Programação -->
-        <div class="tabela-container">
-            <div class="grid-container" id="programacaoGrid">
-                <!-- O grid será preenchido via JavaScript -->
-            </div>
-        </div>
-
-        <!-- Legenda -->
-        <div class="legenda">
-            <div class="legenda-item">
-                <div class="legenda-cor cor-aula"></div>
-                <span>Aula Regular</span>
-            </div>
-            <div class="legenda-item">
-                <div class="legenda-cor cor-folga"></div>
-                <span>Folga</span>
-            </div>
-            <div class="legenda-item">
-                <div class="legenda-cor cor-planejamento"></div>
-                <span>Planejamento</span>
-            </div>
-            <div class="legenda-item">
-                <div class="legenda-cor cor-cemfor"></div>
-                <span>CEMFOR</span>
-            </div>
-        </div>
-
-        <!-- Modo de Edição -->
-        <div class="modo-edicao-bar">
-            <span class="modo-edicao-title">✋ Modo de Edição:</span>
-            <div class="modo-edicao-buttons">
-                <button class="btn btn-primary" onclick="habilitarArrastar()" id="btnArrastar">Ativar Arrastar</button>
-                <button class="btn btn-success" onclick="salvarGrade()">💾 Salvar Grade</button>
-                <button class="btn btn-danger" onclick="resetarGrade()">↺ Resetar</button>
-            </div>
-        </div>
-
-        <!-- Gerenciamento de Turmas - Lista Suspensa -->
-        <div class="turmas-management" id="turmasManagement">
-            <div class="turmas-header" onclick="toggleTurmasLista()">
-                <h3>
-                    <span>📋 Gerenciar Turmas</span>
-                    <span class="toggle-icon" id="toggleIcon">▼</span>
-                </h3>
-            </div>
-            <div class="turmas-content" id="turmasContent">
-                <div class="add-turma-form">
-                    <input type="text" id="novaTurma" placeholder="Ex: 7º A, 8º B, 1º EM...">
-                    <select id="novoComponente" style="font-size:0.8rem;">
-                        <!-- Preenchido via JavaScript a partir de componentesAtivos -->
-                    </select>
-                    <button class="btn btn-success" onclick="adicionarTurma()">➕ Adicionar</button>
-                    <button class="btn btn-info" onclick="recarregarTurmasFirebase()">🔄 Recarregar</button>
+            <!-- Meus Componentes Curriculares: quais disciplinas o professor
+                 leciona nesta escola — restringe os seletores de componente na
+                 grade (novoComponente abaixo) e no formulário de aula do
+                 Planejamento, em vez de sempre oferecer o catálogo inteiro. -->
+            <div class="turmas-management" id="componentesManagement">
+                <div class="turmas-header" id="componentesHeader" onclick="toggleComponentesLista()">
+                    <h3>
+                        <span>📚 Meus Componentes Curriculares</span>
+                        <span class="toggle-icon" id="toggleIconComponentes">▼</span>
+                    </h3>
                 </div>
-
-                <div class="turmas-grid" id="turmasLista">
-                    <!-- Preenchido via JavaScript -->
-                </div>
-
-                <!-- Itens Especiais Fixos -->
-                <div class="itens-especiais">
-                    <h4>📌 Itens Especiais (Fixos)</h4>
-                    <div class="itens-especiais-grid" id="itensEspeciaisLista">
+                <div class="turmas-content" id="componentesContent">
+                    <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">
+                        Marque as disciplinas que você leciona nesta escola — só elas aparecem depois nos formulários de turma e de aula.
+                    </p>
+                    <div class="turmas-grid" id="componentesCheckboxGrid">
                         <!-- Preenchido via JavaScript -->
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Meus Componentes Curriculares: quais disciplinas o professor
-             leciona nesta escola — restringe os seletores de componente na
-             grade (novoComponente acima) e no formulário de aula do
-             Planejamento, em vez de sempre oferecer o catálogo inteiro. -->
-        <div class="turmas-management" id="componentesManagement">
-            <div class="turmas-header" id="componentesHeader" onclick="toggleComponentesLista()">
-                <h3>
-                    <span>📚 Meus Componentes Curriculares</span>
-                    <span class="toggle-icon" id="toggleIconComponentes">▼</span>
-                </h3>
-            </div>
-            <div class="turmas-content" id="componentesContent">
-                <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">
-                    Marque as disciplinas que você leciona nesta escola — só elas aparecem depois nos formulários de turma e de aula.
-                </p>
-                <div class="turmas-grid" id="componentesCheckboxGrid">
-                    <!-- Preenchido via JavaScript -->
+        <!-- ===== 2. Turmas ===== -->
+        <section class="pf-config-secao">
+            <h2 class="pf-config-secao-titulo">👥 Turmas</h2>
+
+            <div class="turmas-management" id="turmasManagement">
+                <div class="turmas-header" onclick="toggleTurmasLista()">
+                    <h3>
+                        <span>📋 Gerenciar Turmas</span>
+                        <span class="toggle-icon" id="toggleIcon">▼</span>
+                    </h3>
+                </div>
+                <div class="turmas-content" id="turmasContent">
+                    <div class="add-turma-form">
+                        <input type="text" id="novaTurma" placeholder="Ex: 7º A, 8º B, 1º EM...">
+                        <select id="novoComponente" style="font-size:0.8rem;">
+                            <!-- Preenchido via JavaScript a partir de componentesAtivos -->
+                        </select>
+                        <button class="btn btn-success" onclick="adicionarTurma()">➕ Adicionar</button>
+                        <button class="btn btn-info" onclick="recarregarTurmasFirebase()">🔄 Recarregar</button>
+                    </div>
+
+                    <div class="turmas-grid" id="turmasLista">
+                        <!-- Preenchido via JavaScript -->
+                    </div>
+
+                    <!-- Itens Especiais Fixos -->
+                    <div class="itens-especiais">
+                        <h4>📌 Itens Especiais (Fixos)</h4>
+                        <div class="itens-especiais-grid" id="itensEspeciaisLista">
+                            <!-- Preenchido via JavaScript -->
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Informações Compactas dos Bimestres -->
-        <div class="info-compact">
-            <div class="info-compact-header">
-                <h3>📌 Bimestres e Unidades Temáticas</h3>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="btn btn-secondary" onclick="document.getElementById('inputCalendarioPdf').click();">📄 Importar Calendário (PDF)</button>
-                    <button class="btn btn-primary" onclick="abrirConfigModal()">⚙️ Configurar</button>
+        <!-- ===== 3. Grade Semanal ===== -->
+        <section class="pf-config-secao">
+            <h2 class="pf-config-secao-titulo">🗓️ Grade Semanal</h2>
+
+            <!-- Header da Programação -->
+            <div class="programacao-header">
+                <div class="semana-info">
+                    <h2>📆 Semana</h2>
+                    <div class="data-range" id="semanaAtual">1ª semana de Fevereiro</div>
+                </div>
+                <div class="navegacao-semanas">
+                    <button class="btn-nav" onclick="semanaAnterior()">← Anterior</button>
+                    <button class="btn-nav" onclick="semanaAtualHoje()">Hoje</button>
+                    <button class="btn-nav" onclick="proximaSemana()">Próxima →</button>
                 </div>
             </div>
-            <div class="bimestres-compact" id="bimestresCompact">
-                <!-- Renderizado via JavaScript -->
+
+            <!-- Tabela de Programação -->
+            <div class="tabela-container">
+                <div class="grid-container" id="programacaoGrid">
+                    <!-- O grid será preenchido via JavaScript -->
+                </div>
             </div>
-        </div>
+
+            <!-- Legenda -->
+            <div class="legenda">
+                <div class="legenda-item">
+                    <div class="legenda-cor cor-aula"></div>
+                    <span>Aula Regular</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-cor cor-folga"></div>
+                    <span>Folga</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-cor cor-planejamento"></div>
+                    <span>Planejamento</span>
+                </div>
+                <div class="legenda-item">
+                    <div class="legenda-cor cor-cemfor"></div>
+                    <span>CEMFOR</span>
+                </div>
+            </div>
+
+            <!-- Modo de Edição -->
+            <div class="modo-edicao-bar">
+                <span class="modo-edicao-title">✋ Modo de Edição:</span>
+                <div class="modo-edicao-buttons">
+                    <button class="btn btn-primary" onclick="habilitarArrastar()" id="btnArrastar">Ativar Arrastar</button>
+                    <button class="btn btn-success" onclick="salvarGrade()">💾 Salvar Grade</button>
+                    <button class="btn btn-danger" onclick="resetarGrade()">↺ Resetar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 4. Calendário Escolar ===== -->
+        <section class="pf-config-secao">
+            <h2 class="pf-config-secao-titulo">📅 Calendário Escolar</h2>
+
+            <div class="info-compact">
+                <div class="info-compact-header">
+                    <h3>📌 Bimestres e Unidades Temáticas</h3>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('inputCalendarioPdf').click();">📄 Importar Calendário (PDF)</button>
+                        <button class="btn btn-primary" onclick="abrirConfigModal()">⚙️ Configurar</button>
+                    </div>
+                </div>
+                <div class="bimestres-compact" id="bimestresCompact">
+                    <!-- Renderizado via JavaScript -->
+                </div>
+            </div>
+        </section>
     </div>
         </div>
     </div>
@@ -1150,6 +1181,7 @@
         import { ouvirTurmas, salvarTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
         import { definirComponentesAtivos } from "../../scripts/services/escola-service.js";
         import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
+        import { CATEGORIAS_DIA_ESPECIAL } from "../../scripts/utils/dias-especiais.js";
 
         // Estado da aplicação
         let escolaAtualId = null;
@@ -1208,18 +1240,6 @@
             '#E9C46A', // Amarelo dourado
             '#9C89B8'  // Roxo lavanda
         ];
-
-        // Categorias de "dia especial" (feriado, recesso etc.) extraídas do
-        // calendário anual em PDF ou cadastradas manualmente. Enum fechado —
-        // "outro" é a válvula de escape pra qualquer data que não caiba nas
-        // demais categorias.
-        const CATEGORIAS_DIA_ESPECIAL = {
-            'feriado': { label: 'Feriado', cor: '#E63946' },
-            'recesso': { label: 'Recesso Escolar', cor: '#457B9D' },
-            'sabado-letivo': { label: 'Sábado Letivo', cor: '#2A9D8F' },
-            'conselho-classe': { label: 'Conselho de Classe', cor: '#9C89B8' },
-            'outro': { label: 'Outro', cor: '#6C757D' }
-        };
 
         // Grade padrão de horários
         const gradePadrao = {

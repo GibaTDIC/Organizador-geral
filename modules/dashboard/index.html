@@ -593,6 +593,7 @@
         import { serieDaTurma } from "../../scripts/services/controlador-sync.js";
         import { habilidadesBNCC } from "../../data/bncc-curriculum.js";
         import { MODULES } from "../../scripts/utils/constants.js";
+        import { CATEGORIAS_DIA_ESPECIAL } from "../../scripts/utils/dias-especiais.js";
 
         // ---------- Estado ----------
         let escolaAtualId = null;
@@ -609,16 +610,6 @@
         // — independente do card fixo da página, que sempre mostra o mês atual.
         let mesCalendarioAnoBase = new Date();
 
-        // Duplicado de propósito de configuracoes/index.html (mesma
-        // convenção de pequenas tabelas de lookup — ver comentário de
-        // stringParaData acima).
-        const CATEGORIAS_DIA_ESPECIAL = {
-            'feriado': { label: 'Feriado', cor: '#E63946' },
-            'recesso': { label: 'Recesso Escolar', cor: '#457B9D' },
-            'sabado-letivo': { label: 'Sábado Letivo', cor: '#2A9D8F' },
-            'conselho-classe': { label: 'Conselho de Classe', cor: '#9C89B8' },
-            'outro': { label: 'Outro', cor: '#6C757D' }
-        };
         let controladorAtual = { aulas: [], aulaAtualId: null };
         let planejamentosBimestrais = [];
 

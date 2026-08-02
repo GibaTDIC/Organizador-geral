@@ -343,6 +343,7 @@
         import { ouvirGrade, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import { ouvirTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
+        import { CATEGORIAS_DIA_ESPECIAL } from "../../scripts/utils/dias-especiais.js";
         import { ouvirAulas } from "../../scripts/services/aulas-service.js";
         import { ouvirControlador, salvarControlador } from "../../scripts/services/controlador-service.js";
         import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
@@ -358,16 +359,6 @@
         let atividadesCarregadas = [];
         let controladorAtual = { aulas: [], aulaAtualId: null };
         let diasEspeciais = []; // feriados, recesso, sábado letivo etc. (ver Configurações)
-
-        // Duplicado de propósito de configuracoes/index.html e dashboard/index.html
-        // (mesma convenção de pequenas tabelas de lookup já usada no repo).
-        const CATEGORIAS_DIA_ESPECIAL = {
-            'feriado': { label: 'Feriado', cor: '#E63946' },
-            'recesso': { label: 'Recesso Escolar', cor: '#457B9D' },
-            'sabado-letivo': { label: 'Sábado Letivo', cor: '#2A9D8F' },
-            'conselho-classe': { label: 'Conselho de Classe', cor: '#9C89B8' },
-            'outro': { label: 'Outro', cor: '#6C757D' }
-        };
 
         let gradeCarregada = false;
         let turmasCarregada = false;
