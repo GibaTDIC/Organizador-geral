@@ -441,12 +441,12 @@
             }) || null;
         }
 
-        // "Sábado letivo" é o oposto de um dia sem aula — é justamente um
-        // sábado normalmente sem aula que passou a TER aula pra repor o
-        // calendário. Todas as outras categorias (feriado, recesso, conselho
-        // de classe, outro) significam que não há aula nesse dia.
+        // Todo dia especial cadastrado significa "sem aula pros alunos" —
+        // inclusive "sábado letivo": nessa escola isso é dia de trabalho
+        // interno do professor (pedagógico/administrativo) fora do horário
+        // regular, não uma aula de verdade com turma.
         function diaBloqueiaAula(especial) {
-            return !!especial && especial.categoria !== 'sabado-letivo';
+            return !!especial;
         }
 
         function rotuloDiaEspecial(especial) {

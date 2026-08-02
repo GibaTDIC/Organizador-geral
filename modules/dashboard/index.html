@@ -665,11 +665,11 @@
             return diasEspeciaisAtual.find(d => stringParaData(d.data).toDateString() === data.toDateString()) || null;
         }
 
-        // "Sábado letivo" é o oposto de dia sem aula (ver mesmo comentário em
-        // programacao-diaria/index.html) — todas as outras categorias
-        // significam que não há aula nesse dia.
+        // Todo dia especial cadastrado significa "sem aula" (ver mesmo
+        // comentário em programacao-diaria/index.html) — inclusive "sábado
+        // letivo", que aqui é trabalho interno do professor, não aula.
         function diaBloqueiaAula(especial) {
-            return !!especial && especial.categoria !== 'sabado-letivo';
+            return !!especial;
         }
 
         function rotuloDiaEspecial(especial) {
