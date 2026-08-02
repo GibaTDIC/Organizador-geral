@@ -658,6 +658,25 @@
             return DIA_CHAVES[idx - 1] || null; // sábado/domingo => null
         }
 
+        // ---------- Dias especiais (feriado, recesso, sábado letivo...) ----------
+        // Mesma lógica de configuracoes/index.html e programacao-diaria/index.html.
+        function diaEspecialDoDia(data) {
+            if (!data) return null;
+            return diasEspeciaisAtual.find(d => stringParaData(d.data).toDateString() === data.toDateString()) || null;
+        }
+
+        // "Sábado letivo" é o oposto de dia sem aula (ver mesmo comentário em
+        // programacao-diaria/index.html) — todas as outras categorias
+        // significam que não há aula nesse dia.
+        function diaBloqueiaAula(especial) {
+            return !!especial && especial.categoria !== 'sabado-letivo';
+        }
+
+        function rotuloDiaEspecial(especial) {
+            const info = CATEGORIAS_DIA_ESPECIAL[especial.categoria] || CATEGORIAS_DIA_ESPECIAL['outro'];
+            return especial.rotulo ? `${info.label}: ${especial.rotulo}` : info.label;
+        }
+
         function formatarDataCompleta(data) {
             return `${DIAS_SEMANA_EXTENSO[data.getDay()]}, ${data.getDate()} de ${MESES_EXTENSO[data.getMonth()]} de ${data.getFullYear()}`;
         }
@@ -729,6 +748,7 @@
 
         function montarRotinaHoje() {
             const diaChave = obterChaveDiaHoje();
+            if (diaBloqueiaAula(diaEspecialDoDia(new Date()))) return [];
             return montarSlotsDoDia(diaChave)
                 .filter(slot => slot.celula.tipo === 'turma')
                 .map(slot => ({
@@ -905,7 +925,10 @@
 
             const rotina = montarRotinaHoje();
             if (rotina.length === 0) {
-                container.innerHTML = '<p class="dash-estado-vazio">Nenhuma aula prevista para hoje (folga/planejamento).</p>';
+                const especialHoje = diaEspecialDoDia(new Date());
+                container.innerHTML = diaBloqueiaAula(especialHoje)
+                    ? `<p class="dash-estado-vazio">🎌 Sem aula hoje — ${rotuloDiaEspecial(especialHoje)}.</p>`
+                    : '<p class="dash-estado-vazio">Nenhuma aula prevista para hoje (folga/planejamento).</p>';
                 return;
             }
 
@@ -941,6 +964,11 @@
 
             const proxima = calcularProximaAula();
             if (!proxima) {
+                const especialHoje = diaEspecialDoDia(new Date());
+                if (diaBloqueiaAula(especialHoje)) {
+                    container.innerHTML = `<p class="dash-estado-vazio">🎌 Sem aula hoje — ${rotuloDiaEspecial(especialHoje)}.</p>`;
+                    return;
+                }
                 // Duas razões distintas pra não sobrar "próxima aula": ou
                 // terminou tudo (bom sinal), ou só passou do horário de
                 // todos os períodos de hoje sem registro (vira pendência,

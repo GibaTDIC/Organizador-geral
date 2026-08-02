@@ -342,6 +342,7 @@
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirGrade, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import { ouvirTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
+        import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { ouvirAulas } from "../../scripts/services/aulas-service.js";
         import { ouvirControlador, salvarControlador } from "../../scripts/services/controlador-service.js";
         import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
@@ -349,13 +350,24 @@
 
         // ---------- Estado ----------
         let escolaAtualId = null;
-        let unsubGrade = null, unsubTurmas = null, unsubAulas = null, unsubControlador = null, unsubAtividades = null;
+        let unsubGrade = null, unsubTurmas = null, unsubAulas = null, unsubControlador = null, unsubAtividades = null, unsubConfiguracoes = null;
 
         let gradeAtual = { matutino: [], vespertino: [] };
         let turmasAtuais = [];
         let aulasFirebaseRaw = [];
         let atividadesCarregadas = [];
         let controladorAtual = { aulas: [], aulaAtualId: null };
+        let diasEspeciais = []; // feriados, recesso, sábado letivo etc. (ver Configurações)
+
+        // Duplicado de propósito de configuracoes/index.html e dashboard/index.html
+        // (mesma convenção de pequenas tabelas de lookup já usada no repo).
+        const CATEGORIAS_DIA_ESPECIAL = {
+            'feriado': { label: 'Feriado', cor: '#E63946' },
+            'recesso': { label: 'Recesso Escolar', cor: '#457B9D' },
+            'sabado-letivo': { label: 'Sábado Letivo', cor: '#2A9D8F' },
+            'conselho-classe': { label: 'Conselho de Classe', cor: '#9C89B8' },
+            'outro': { label: 'Outro', cor: '#6C757D' }
+        };
 
         let gradeCarregada = false;
         let turmasCarregada = false;
@@ -417,6 +429,29 @@
         function obterChaveDiaSemana(data) {
             const idx = data.getDay(); // 0=domingo..6=sábado
             return DIA_CHAVES[idx - 1] || null;
+        }
+
+        // ---------- Dias especiais (feriado, recesso, sábado letivo...) ----------
+        function diaEspecialDoDia(data) {
+            if (!data) return null;
+            return diasEspeciais.find(d => {
+                const [dia, mes, ano] = (d.data || '').split('/').map(Number);
+                if (!dia || !mes || !ano) return false;
+                return new Date(ano, mes - 1, dia).toDateString() === data.toDateString();
+            }) || null;
+        }
+
+        // "Sábado letivo" é o oposto de um dia sem aula — é justamente um
+        // sábado normalmente sem aula que passou a TER aula pra repor o
+        // calendário. Todas as outras categorias (feriado, recesso, conselho
+        // de classe, outro) significam que não há aula nesse dia.
+        function diaBloqueiaAula(especial) {
+            return !!especial && especial.categoria !== 'sabado-letivo';
+        }
+
+        function rotuloDiaEspecial(especial) {
+            const info = CATEGORIAS_DIA_ESPECIAL[especial.categoria] || CATEGORIAS_DIA_ESPECIAL['outro'];
+            return especial.rotulo ? `${info.label}: ${especial.rotulo}` : info.label;
         }
 
         // ---------- Regra de junção grade × controlador ----------
@@ -504,6 +539,7 @@
         function montarAulasDoDia() {
             const diaChave = obterChaveDiaSemana(dataSelecionada);
             if (!diaChave) return [];
+            if (diaBloqueiaAula(diaEspecialDoDia(dataSelecionada))) return [];
             const { nome: nomeFiltro, componente: componenteFiltro } = interpretarFiltroTurma(filtroTurma);
             const itens = [];
             ['matutino', 'vespertino'].forEach(periodo => {
@@ -798,7 +834,9 @@
         // ---------- Renderização ----------
         function renderizarBarraSuperior() {
             const sufixo = ehHoje(dataSelecionada) ? ' (hoje)' : '';
-            document.getElementById('pdDataAtual').textContent = formatarDataCompleta(dataSelecionada) + sufixo;
+            const especialSelecionado = diaEspecialDoDia(dataSelecionada);
+            const sufixoEspecial = diaBloqueiaAula(especialSelecionado) ? ` · 🎌 ${rotuloDiaEspecial(especialSelecionado)}` : '';
+            document.getElementById('pdDataAtual').textContent = formatarDataCompleta(dataSelecionada) + sufixo + sufixoEspecial;
 
             const select = document.getElementById('pdFiltroTurma');
             // O rótulo sempre mostra o componente curricular (mesmo quando
@@ -842,18 +880,24 @@
             }
 
             const itens = montarAulasDoDia();
+            const especialSelecionado = diaEspecialDoDia(dataSelecionada);
+            const semAulaHoje = diaBloqueiaAula(especialSelecionado);
             // Turma filtrada sem aula na grade do dia selecionado: sem cards
             // de "hoje", mas a lista de pendentes (abaixo) continua valendo —
             // é exatamente o caso de regularizar backlog de uma turma que
             // não cai na grade de hoje.
             if (itens.length === 0 && !filtroTurma) {
-                container.innerHTML = '<p class="pd-estado-vazio">Nenhuma aula encontrada neste dia.</p>';
+                container.innerHTML = semAulaHoje
+                    ? `<p class="pd-estado-vazio">🎌 Sem aula neste dia — ${rotuloDiaEspecial(especialSelecionado)}.</p>`
+                    : '<p class="pd-estado-vazio">Nenhuma aula encontrada neste dia.</p>';
                 return;
             }
 
             let periodoAtual = null;
             const cardsHtmlBase = itens.length === 0
-                ? `<p class="pd-estado-vazio">Nenhuma aula encontrada para esta turma neste dia.</p>`
+                ? (semAulaHoje
+                    ? `<p class="pd-estado-vazio">🎌 Sem aula neste dia — ${rotuloDiaEspecial(especialSelecionado)}.</p>`
+                    : `<p class="pd-estado-vazio">Nenhuma aula encontrada para esta turma neste dia.</p>`)
                 : '';
             const cardsHtml = cardsHtmlBase || itens.map(item => {
                 let cabecalho = '';
@@ -1145,6 +1189,14 @@
             });
         }
 
+        function carregarConfiguracoes() {
+            return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                diasEspeciais = (data && data.diasEspeciais) ? data.diasEspeciais : [];
+                renderizarTudo();
+            });
+        }
+
         // ---------- Inicialização ----------
         requireAuth({
             loginPath: '../../login.html',
@@ -1163,11 +1215,13 @@
             if (unsubAulas) unsubAulas();
             if (unsubControlador) unsubControlador();
             if (unsubAtividades) unsubAtividades();
+            if (unsubConfiguracoes) unsubConfiguracoes();
             unsubGrade = carregarGrade();
             unsubTurmas = carregarTurmas();
             unsubAulas = carregarAulas();
             unsubControlador = carregarControlador();
             unsubAtividades = carregarAtividadesPD();
+            unsubConfiguracoes = carregarConfiguracoes();
         });
     </script>
 </body>
