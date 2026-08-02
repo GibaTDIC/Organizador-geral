@@ -152,11 +152,12 @@
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirControlador } from "../../scripts/services/controlador-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
+        import { ouvirGrade, normalizarCelula } from "../../scripts/services/grade-service.js";
         import { serieDaTurma } from "../../scripts/services/controlador-sync.js";
         import {
             filtrarAulas, turmasDistintas, componentesDistintos, calcularIndicadores,
             montarRelatorioExecucao, montarRelatorioPlanejamentoPorTurma, montarRelatorioBNCC,
-            montarDiarioDeClasse, resolverPeriodoPreset
+            montarDiarioDeClasse, resolverDataRealAula, resolverPeriodoPreset
         } from "../../scripts/services/relatorios-service.js";
 
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -190,10 +191,11 @@
         // ---------- Estado ----------
         let escolaAtualId = null;
         let escolasCarregadas = [];
-        let unsubControlador = null, unsubConfiguracoes = null;
+        let unsubControlador = null, unsubConfiguracoes = null, unsubGrade = null;
 
         let aulasControlador = [];
         let bimestresConfig = [];
+        let gradeAtual = { matutino: [], vespertino: [] }; // só usado pela aba Diário de Classe, pra corrigir a data por turma
 
         let filtroTurma = '', filtroComponente = '', filtroBimestre = '';
         let filtroPeriodoPreset = 'bimestre';
@@ -405,25 +407,39 @@
             return `${dia}/${mes}/${ano}`;
         }
 
+        // Texto final pra colar no sistema externo: código(s) de habilidade
+        // ministrada + a descrição registrada — pedido explícito, não é só
+        // a descrição sozinha.
+        function textoParaColar(linha) {
+            const partes = [];
+            if (linha.codigosHabilidades.length > 0) partes.push(`Habilidades: ${linha.codigosHabilidades.join(', ')}`);
+            if (linha.conteudo) partes.push(linha.conteudo);
+            return partes.join('\n');
+        }
+
         function renderizarDiario(aulasFiltradas) {
-            diarioAtual = montarDiarioDeClasse(aulasFiltradas);
+            diarioAtual = montarDiarioDeClasse(aulasFiltradas).map(d => ({
+                ...d,
+                data: resolverDataRealAula(gradeAtual, d.turma, d.componenteCurricular, d.data, normalizarCelula)
+            }));
             if (diarioAtual.length === 0) return '<p class="rel-estado-vazio">Nenhum conteúdo ministrado registrado pra esses filtros ainda.</p>';
             return `
                 <p style="font-size:0.85rem;color:var(--pf-gray-500);margin-bottom:var(--pf-space-3);">
-                    Conteúdo já registrado no Controlador, em ordem cronológica — pronto pra copiar e colar no diário de classe de sistemas externos (ex: Omega/SGE). Se um conteúdo ocupou mais de uma aula (ver coluna "Aulas"), repita o mesmo texto nas datas seguintes de lá — o Controlador guarda uma data de início por conteúdo, não uma por sessão.
+                    Conteúdo já registrado no Controlador, em ordem cronológica — a data já é corrigida pro dia da semana real de cada turma na grade. Pronto pra copiar e colar no diário de classe de sistemas externos (ex: Omega/SGE). Se um conteúdo ocupou mais de uma aula (ver coluna "Aulas"), repita o mesmo texto nas datas seguintes de lá — o Controlador guarda uma data de início por conteúdo, não uma por sessão.
                 </p>
                 <div style="margin-bottom:var(--pf-space-3);">
                     <button class="pf-btn pf-btn--info" onclick="copiarDiarioCompleto()">📋 Copiar tudo</button>
                 </div>
                 <div class="rel-table-wrap">
                     <table class="pf-table">
-                        <thead><tr><th>Data</th><th>Turma</th><th>Aulas</th><th>Conteúdo</th><th></th></tr></thead>
+                        <thead><tr><th>Data</th><th>Turma</th><th>Aulas</th><th>Habilidades</th><th>Conteúdo</th><th></th></tr></thead>
                         <tbody>
                             ${diarioAtual.map((d, i) => `
                                 <tr>
                                     <td>${formatarDataISO(d.data)}</td>
                                     <td>${d.turma}</td>
                                     <td>${d.numAulas}</td>
+                                    <td>${d.codigosHabilidades.join(', ') || '-'}</td>
                                     <td>${d.conteudo}</td>
                                     <td><button class="pf-btn pf-btn--secondary" onclick="copiarLinhaDiario(${i})">📋 Copiar</button></td>
                                 </tr>
@@ -446,11 +462,11 @@
         window.copiarLinhaDiario = function (indice) {
             const linha = diarioAtual[indice];
             if (!linha) return;
-            copiarTexto(linha.conteudo);
+            copiarTexto(textoParaColar(linha));
         };
 
         window.copiarDiarioCompleto = function () {
-            const texto = diarioAtual.map(d => `${formatarDataISO(d.data)}: ${d.conteudo}`).join('\n\n');
+            const texto = diarioAtual.map(d => `${formatarDataISO(d.data)} (${d.turma}):\n${textoParaColar(d)}`).join('\n\n');
             copiarTexto(texto);
         };
 
@@ -533,10 +549,13 @@
                     'relatorio-bncc'
                 );
             } else if (abaAtiva === 'diario') {
-                const linhas = montarDiarioDeClasse(aulasFiltradas);
+                const linhas = montarDiarioDeClasse(aulasFiltradas).map(d => ({
+                    ...d,
+                    data: resolverDataRealAula(gradeAtual, d.turma, d.componenteCurricular, d.data, normalizarCelula)
+                }));
                 exportarCsv(
-                    ['Data', 'Turma', 'Componente', 'Aulas', 'Conteúdo'],
-                    linhas.map(d => [formatarDataISO(d.data), d.turma, d.componenteCurricular, d.numAulas, d.conteudo]),
+                    ['Data', 'Turma', 'Componente', 'Aulas', 'Habilidades', 'Conteúdo'],
+                    linhas.map(d => [formatarDataISO(d.data), d.turma, d.componenteCurricular, d.numAulas, d.codigosHabilidades.join(', '), d.conteudo]),
                     'relatorio-diario-de-classe'
                 );
             }
@@ -559,6 +578,14 @@
             });
         }
 
+        function carregarGrade() {
+            return ouvirGrade(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                gradeAtual = (data && data.matutino && data.vespertino) ? data : { matutino: [], vespertino: [] };
+                renderizarTudo();
+            });
+        }
+
         // ---------- Inicialização ----------
         requireAuth({ loginPath: '../../login.html' });
 
@@ -567,8 +594,10 @@
             escolasCarregadas = evento.detail.escolas || [];
             if (unsubControlador) unsubControlador();
             if (unsubConfiguracoes) unsubConfiguracoes();
+            if (unsubGrade) unsubGrade();
             unsubControlador = carregarControlador();
             unsubConfiguracoes = carregarConfiguracoes();
+            unsubGrade = carregarGrade();
         });
     </script>
 </body>

@@ -109,6 +109,11 @@ export function montarRelatorioPlanejamentoPorTurma(aulasFiltradas) {
 // ver numAulas) — não uma data por sessão individual — então uma aula que
 // ocupou 2+ sessões aparece como 1 linha aqui; o professor repete o texto
 // nas datas seguintes do sistema externo.
+//
+// `codigosHabilidades` traz só os códigos (ex: "EF67EF01") das habilidades
+// MINISTRADAS (habilidadesTrabalhadas — marcadas pelo professor no Registro
+// da Aula), não as planejadas — pedido explícito: o diário externo precisa
+// do que foi de fato trabalhado, não do que só estava previsto.
 export function montarDiarioDeClasse(aulasFiltradas) {
     return (aulasFiltradas || [])
         .filter(a => a.dataInicio)
@@ -120,8 +125,47 @@ export function montarDiarioDeClasse(aulasFiltradas) {
             turma: a.turma,
             componenteCurricular: a.componenteCurricular,
             numAulas: a.numAulas || 0,
+            codigosHabilidades: (a.habilidadesTrabalhadas || []).slice(),
             conteudo: (a.conteudoMinistrado && a.conteudoMinistrado.trim()) || a.titulo || a.objetoConhecimento || ''
         }));
+}
+
+const DIA_CHAVES_SEMANA = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+
+function segundaFeiraDaSemana(data) {
+    const diaSemana = data.getDay(); // 0=domingo..6=sábado
+    const offset = diaSemana === 0 ? -6 : 1 - diaSemana;
+    return new Date(data.getFullYear(), data.getMonth(), data.getDate() + offset);
+}
+
+// O Controlador grava uma única dataInicio por conteúdo, herdada da
+// "Data de referência" escolhida uma vez no Planejamento — a MESMA data pra
+// TODAS as turmas físicas daquela série, mesmo que cada turma tenha esse
+// componente num dia da semana diferente na grade (ex: 6º A na terça, 6º B
+// na quinta). Esta função corrige isso: acha, dentro da semana que contém
+// dataReferenciaISO, o primeiro dia (segunda a sexta, checando os 2
+// períodos) em que turma+componenteCurricular realmente aparece na grade, e
+// devolve a data real desse dia. Sem correspondência na grade (turma
+// removida dela, por exemplo) devolve a data original, sem quebrar.
+export function resolverDataRealAula(gradeAtual, turma, componenteCurricular, dataReferenciaISO, normalizarCelulaFn) {
+    if (!dataReferenciaISO || !gradeAtual) return dataReferenciaISO;
+    const [ano, mes, dia] = dataReferenciaISO.split('-').map(Number);
+    const segunda = segundaFeiraDaSemana(new Date(ano, mes - 1, dia));
+
+    for (let i = 0; i < DIA_CHAVES_SEMANA.length; i++) {
+        const diaChave = DIA_CHAVES_SEMANA[i];
+        const encontrado = ['matutino', 'vespertino'].some(periodo =>
+            (gradeAtual[periodo] || []).some(linha => {
+                const celula = normalizarCelulaFn(linha[diaChave]);
+                return celula.tipo === 'turma' && celula.turma === turma && celula.componenteCurricular === componenteCurricular;
+            })
+        );
+        if (encontrado) {
+            const dataOcorrencia = new Date(segunda.getFullYear(), segunda.getMonth(), segunda.getDate() + i);
+            return paraISO(dataOcorrencia);
+        }
+    }
+    return dataReferenciaISO;
 }
 
 // ---------- Relatório: BNCC (previstas x trabalhadas x pendentes) ----------
