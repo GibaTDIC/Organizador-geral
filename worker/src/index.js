@@ -45,13 +45,13 @@ export default {
             return jsonError("Corpo da requisição inválido.", 400);
         }
 
-        const { prompt, contexto } = body || {};
+        const { prompt, contexto, arquivo } = body || {};
         if (!prompt || typeof prompt !== "string") {
             return jsonError("Campo 'prompt' é obrigatório.", 400);
         }
 
         try {
-            const texto = await chamarGemini(env, prompt, contexto);
+            const texto = await chamarGemini(env, prompt, contexto, arquivo);
             return new Response(JSON.stringify({ resposta: texto }), {
                 headers: { "Content-Type": "application/json", ...CORS_HEADERS },
             });
@@ -79,19 +79,30 @@ async function verificarIdToken(idToken) {
     return data?.users?.[0]?.localId || null;
 }
 
-async function chamarGemini(env, prompt, contexto) {
+async function chamarGemini(env, prompt, contexto, arquivo) {
     if (!env.GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY não configurada no Worker (rode: wrangler secret put GEMINI_API_KEY).");
     }
     const promptCompleto = montarPrompt(prompt, contexto);
     const modelo = env.GEMINI_MODEL || GEMINI_MODEL_PADRAO;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${env.GEMINI_API_KEY}`;
+
+    const parts = [{ text: promptCompleto }];
+    const corpo = { contents: [{ parts }] };
+    // Arquivo (ex: PDF) anexado como documento multimodal — usado hoje só
+    // pela importação do calendário anual, mas mantido genérico aqui porque
+    // este é o único endpoint de IA do projeto (ver comentário no topo).
+    if (arquivo && arquivo.dadosBase64 && arquivo.mimeType) {
+        parts.push({ inline_data: { mime_type: arquivo.mimeType, data: arquivo.dadosBase64 } });
+        // Só força JSON quando há arquivo: os usos de texto puro (ex: "Gerar
+        // objetivos com IA") esperam prosa em português, não JSON.
+        corpo.generationConfig = { responseMimeType: "application/json" };
+    }
+
     const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: promptCompleto }] }],
-        }),
+        body: JSON.stringify(corpo),
     });
     if (!resp.ok) {
         const erroTexto = await resp.text();

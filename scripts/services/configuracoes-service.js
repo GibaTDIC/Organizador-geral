@@ -12,6 +12,6 @@ export function ouvirConfiguracoes(escolaId, callback) {
     return onSnapshot(configuracoesRef(escolaId), callback);
 }
 
-export function salvarConfiguracoes(escolaId, bimestres) {
-    return setDoc(configuracoesRef(escolaId), { bimestres });
+export function salvarConfiguracoes(escolaId, bimestres, diasEspeciais) {
+    return setDoc(configuracoesRef(escolaId), { bimestres, diasEspeciais: diasEspeciais || [] });
 }

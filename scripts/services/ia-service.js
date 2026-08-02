@@ -47,7 +47,9 @@ export function adicionarMensagemConversaIA(escolaId, id, mensagens) {
 // Chama o Worker. Lança erro com mensagem amigável em pt-BR pra quem
 // chamar decidir como exibir (toast, inline etc) — não mostra toast aqui
 // dentro pra não acoplar o serviço a uma decisão de UI específica.
-export async function chamarAssistenteIA(prompt, contexto) {
+// `arquivo` é opcional: { mimeType, dadosBase64 } — usado pra anexar um
+// documento (ex: PDF do calendário anual) que o Gemini lê diretamente.
+export async function chamarAssistenteIA(prompt, contexto, arquivo) {
     const idToken = await obterIdToken();
     if (!idToken) {
         throw new Error('Sessão expirada. Recarregue a página e faça login novamente.');
@@ -61,7 +63,7 @@ export async function chamarAssistenteIA(prompt, contexto) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${idToken}`
             },
-            body: JSON.stringify({ prompt, contexto })
+            body: JSON.stringify(arquivo ? { prompt, contexto, arquivo } : { prompt, contexto })
         });
     } catch {
         throw new Error('Não foi possível conectar ao assistente. Verifique sua internet.');

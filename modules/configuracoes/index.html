@@ -1096,7 +1096,10 @@
         <div class="info-compact">
             <div class="info-compact-header">
                 <h3>📌 Bimestres e Unidades Temáticas</h3>
-                <button class="btn btn-primary" onclick="abrirConfigModal()">⚙️ Configurar</button>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn btn-secondary" onclick="document.getElementById('inputCalendarioPdf').click();">📄 Importar Calendário (PDF)</button>
+                    <button class="btn btn-primary" onclick="abrirConfigModal()">⚙️ Configurar</button>
+                </div>
             </div>
             <div class="bimestres-compact" id="bimestresCompact">
                 <!-- Renderizado via JavaScript -->
@@ -1105,6 +1108,8 @@
     </div>
         </div>
     </div>
+
+    <input type="file" id="inputCalendarioPdf" accept=".pdf" style="display:none;">
 
     <!-- Modal de Configuração -->
     <pf-modal id="configModal">
@@ -1116,6 +1121,12 @@
         <div class="config-section">
             <h3>📅 Datas e Unidades Temáticas</h3>
             <div id="bimestresConfig"></div>
+        </div>
+
+        <div class="config-section">
+            <h3>🎌 Dias Especiais (feriados, recesso, sábados letivos...)</h3>
+            <p class="pl-indicador" style="margin-top:-6px;">Preenchido automaticamente ao importar o PDF do calendário anual — confira e ajuste antes de salvar.</p>
+            <div id="diasEspeciaisConfig"></div>
         </div>
 
         <div class="config-actions">
@@ -1138,6 +1149,7 @@
         import { ouvirConfiguracoes, salvarConfiguracoes as salvarConfiguracoesService } from "../../scripts/services/configuracoes-service.js";
         import { ouvirTurmas, salvarTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
         import { definirComponentesAtivos } from "../../scripts/services/escola-service.js";
+        import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
 
         // Estado da aplicação
         let escolaAtualId = null;
@@ -1197,6 +1209,18 @@
             '#9C89B8'  // Roxo lavanda
         ];
 
+        // Categorias de "dia especial" (feriado, recesso etc.) extraídas do
+        // calendário anual em PDF ou cadastradas manualmente. Enum fechado —
+        // "outro" é a válvula de escape pra qualquer data que não caiba nas
+        // demais categorias.
+        const CATEGORIAS_DIA_ESPECIAL = {
+            'feriado': { label: 'Feriado', cor: '#E63946' },
+            'recesso': { label: 'Recesso Escolar', cor: '#457B9D' },
+            'sabado-letivo': { label: 'Sábado Letivo', cor: '#2A9D8F' },
+            'conselho-classe': { label: 'Conselho de Classe', cor: '#9C89B8' },
+            'outro': { label: 'Outro', cor: '#6C757D' }
+        };
+
         // Grade padrão de horários
         const gradePadrao = {
             matutino: [
@@ -1229,6 +1253,10 @@
             { numero: 3, inicio: "22/07/2026", fim: "29/09/2026", unidades: [] },
             { numero: 4, inicio: "01/10/2026", fim: "10/12/2026", unidades: [] }
         ];
+
+        // Feriados, recesso, sábados letivos etc. — vem do calendário anual
+        // (importado em PDF ou cadastrado manualmente). Ver CATEGORIAS_DIA_ESPECIAL.
+        let diasEspeciais = [];
 
         // Função para toggle da lista de turmas
         window.toggleTurmasLista = function() {
@@ -1325,6 +1353,15 @@
             return 0;
         }
 
+        // Dia especial (feriado, recesso...) que cai numa data, se houver.
+        function diaEspecialNaData(data) {
+            if (!data) return null;
+            return diasEspeciais.find(d => {
+                const dataDia = stringParaData(d.data);
+                return dataDia.toDateString() === data.toDateString();
+            }) || null;
+        }
+
         // Função para obter número da semana
         function obterNumeroSemana(data) {
             const primeiroDiaMes = new Date(data.getFullYear(), data.getMonth(), 1);
@@ -1403,6 +1440,9 @@
 
         if (data && data.bimestres) {
             bimestres = data.bimestres;
+        }
+        if (data && data.diasEspeciais) {
+            diasEspeciais = data.diasEspeciais;
         }
 
         renderizarBimestresCompact();
@@ -1686,10 +1726,11 @@
 
             diasSemana.forEach(dia => {
                 const indiceBimestre = determinarBimestre(dia.dataObj);
+                const especial = diaEspecialNaData(dia.dataObj);
                 const cell = document.createElement('div');
                 cell.className = `grid-cell header-cell-bimestre-${indiceBimestre + 1}`;
                 cell.innerHTML = `
-                    <div class="dia-semana">${dia.nome}</div>
+                    <div class="dia-semana">${dia.nome}${especial ? ` <span title="${(especial.rotulo || CATEGORIAS_DIA_ESPECIAL[especial.categoria].label).replace(/"/g, '&quot;')}" style="cursor:help;">🎌</span>` : ''}</div>
                     <div class="dia-mes">${dia.data}/${dia.mes+1}</div>
                 `;
                 row.appendChild(cell);
@@ -1832,6 +1873,36 @@
             `).join('');
         }
 
+        // Renderizar dias especiais (feriados, recesso, sábado letivo...) —
+        // mesmo padrão de renderizarConfiguracoesBimestres: lista editável,
+        // nada é gravado até "💾 Salvar".
+        function renderizarDiasEspeciaisConfig() {
+            const container = document.getElementById('diasEspeciaisConfig');
+            if (!container) return;
+            container.innerHTML = `
+                <div class="dias-especiais-lista">
+                    ${diasEspeciais.length === 0 ? '<p class="pl-estado-vazio">Nenhum dia especial cadastrado ainda.</p>' : diasEspeciais.map((d, index) => `
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;background:${(CATEGORIAS_DIA_ESPECIAL[d.categoria] || CATEGORIAS_DIA_ESPECIAL['outro']).cor};padding:6px 8px;border-radius:6px;color:#fff;">
+                            <input type="text" value="${d.data}" onchange="atualizarDiaEspecial(${index}, 'data', this.value)" placeholder="DD/MM/AAAA" style="width:95px;">
+                            <input type="text" value="${(d.rotulo || '').replace(/"/g, '&quot;')}" onchange="atualizarDiaEspecial(${index}, 'rotulo', this.value)" placeholder="Rótulo" style="flex:1;min-width:120px;">
+                            <select onchange="atualizarDiaEspecial(${index}, 'categoria', this.value)">
+                                ${Object.entries(CATEGORIAS_DIA_ESPECIAL).map(([chave, info]) => `<option value="${chave}" ${d.categoria === chave ? 'selected' : ''}>${info.label}</option>`).join('')}
+                            </select>
+                            <button type="button" class="btn-remover-unidade" onclick="removerDiaEspecial(${index})">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+                    <input type="text" id="novoDiaEspecialData" placeholder="DD/MM/AAAA" style="width:95px;">
+                    <input type="text" id="novoDiaEspecialRotulo" placeholder="Rótulo (ex: Independência do Brasil)" style="flex:1;min-width:160px;">
+                    <select id="novoDiaEspecialCategoria">
+                        ${Object.entries(CATEGORIAS_DIA_ESPECIAL).map(([chave, info]) => `<option value="${chave}">${info.label}</option>`).join('')}
+                    </select>
+                    <button type="button" class="btn btn-secondary" onclick="adicionarDiaEspecial()">➕ Adicionar</button>
+                </div>
+            `;
+        }
+
         // Funções de navegação
         window.semanaAnterior = function() {
             dataBase.setDate(dataBase.getDate() - 7);
@@ -1851,6 +1922,7 @@
         // Funções de configuração
         window.abrirConfigModal = function() {
             renderizarConfiguracoesBimestres();
+            renderizarDiasEspeciaisConfig();
             document.getElementById('configModal').open();
         };
 
@@ -1891,8 +1963,28 @@
             renderizarConfiguracoesBimestres();
         };
 
+        window.atualizarDiaEspecial = function(index, campo, valor) {
+            diasEspeciais[index][campo] = valor;
+            renderizarDiasEspeciaisConfig();
+        };
+
+        window.adicionarDiaEspecial = function() {
+            const dataInput = document.getElementById('novoDiaEspecialData');
+            const rotuloInput = document.getElementById('novoDiaEspecialRotulo');
+            const categoriaInput = document.getElementById('novoDiaEspecialCategoria');
+            const data = dataInput.value.trim();
+            if (!data) return;
+            diasEspeciais.push({ data, rotulo: rotuloInput.value.trim(), categoria: categoriaInput.value });
+            renderizarDiasEspeciaisConfig();
+        };
+
+        window.removerDiaEspecial = function(index) {
+            diasEspeciais.splice(index, 1);
+            renderizarDiasEspeciaisConfig();
+        };
+
         window.salvarConfiguracoes = function() {
-    salvarConfiguracoesService(escolaAtualId, bimestres)
+    salvarConfiguracoesService(escolaAtualId, bimestres, diasEspeciais)
         .then(() => {
             renderizarBimestresCompact();
             renderizarProgramacao();
@@ -1911,7 +2003,9 @@
                 { numero: 3, inicio: "22/07/2026", fim: "29/09/2026", unidades: [] },
                 { numero: 4, inicio: "01/10/2026", fim: "10/12/2026", unidades: [] }
             ];
+            diasEspeciais = [];
             renderizarConfiguracoesBimestres();
+            renderizarDiasEspeciaisConfig();
             mostrarMensagem('Configurações resetadas!', 'info');
         };
 
@@ -2012,6 +2106,77 @@
             componentesHeader.classList.add('collapsed');
             componentesIcon.textContent = '►';
         }, 100);
+
+        // Tamanho máximo aceito pro PDF do calendário — margem conservadora,
+        // sem forma de testar aqui o limite real de corpo de requisição do
+        // Worker (Cloudflare), pra não devolver um erro confuso do Gemini.
+        const TAMANHO_MAXIMO_PDF_CALENDARIO = 8 * 1024 * 1024;
+
+        function arquivoParaBase64(file) {
+            return new Promise((resolve, reject) => {
+                const leitor = new FileReader();
+                leitor.onload = () => resolve(leitor.result.split(',')[1] || '');
+                leitor.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+                leitor.readAsDataURL(file);
+            });
+        }
+
+        // Extrai bimestres e dias especiais do PDF do calendário anual via
+        // IA (Gemini lê o PDF como documento multimodal — não há camada de
+        // texto nesses calendários escaneados pela secretaria de educação).
+        // Sempre abre o modal ao final, com ou sem sucesso: o professor
+        // revisa e só grava ao clicar "Salvar" — nunca escreve direto.
+        async function extrairCalendarioPDF(file) {
+            mostrarMensagem('Lendo o calendário com IA...', 'info');
+            try {
+                const dadosBase64 = await arquivoParaBase64(file);
+                const prompt = `Este arquivo é o calendário escolar anual oficial de uma escola brasileira. ` +
+                    `Extraia e devolva SOMENTE um JSON (sem markdown, sem comentários) no formato:\n` +
+                    `{"bimestres":[{"numero":1,"inicio":"DD/MM/AAAA","fim":"DD/MM/AAAA"}],` +
+                    `"diasEspeciais":[{"data":"DD/MM/AAAA","rotulo":"texto curto","categoria":"feriado|recesso|sabado-letivo|conselho-classe|outro"}]}\n` +
+                    `"bimestres" deve ter os períodos de início/fim de cada um dos 4 bimestres. ` +
+                    `"diasEspeciais" deve listar feriados, recessos escolares, sábados letivos e datas de conselho de classe encontrados no calendário. ` +
+                    `Use "outro" só quando nenhuma das demais categorias descrever bem a data. Datas sempre no formato DD/MM/AAAA.`;
+
+                const resposta = await chamarAssistenteIA(prompt, null, { mimeType: file.type || 'application/pdf', dadosBase64 });
+                const extraido = JSON.parse(resposta);
+
+                if (Array.isArray(extraido.bimestres)) {
+                    extraido.bimestres.forEach(b => {
+                        const alvo = bimestres.find(x => x.numero === b.numero);
+                        if (alvo && /^\d{2}\/\d{2}\/\d{4}$/.test(b.inicio) && /^\d{2}\/\d{2}\/\d{4}$/.test(b.fim)) {
+                            alvo.inicio = b.inicio;
+                            alvo.fim = b.fim;
+                        }
+                    });
+                }
+                if (Array.isArray(extraido.diasEspeciais)) {
+                    diasEspeciais = extraido.diasEspeciais
+                        .filter(d => d && /^\d{2}\/\d{2}\/\d{4}$/.test(d.data))
+                        .map(d => ({
+                            data: d.data,
+                            rotulo: d.rotulo || '',
+                            categoria: CATEGORIAS_DIA_ESPECIAL[d.categoria] ? d.categoria : 'outro'
+                        }));
+                }
+                mostrarMensagem('Calendário lido! Confira os campos antes de salvar.', 'success');
+            } catch (erro) {
+                console.error(erro);
+                mostrarMensagem('Não foi possível ler o calendário automaticamente (' + erro.message + '). Preencha os campos manualmente abaixo.', 'error');
+            }
+            window.abrirConfigModal();
+        }
+
+        document.getElementById('inputCalendarioPdf').addEventListener('change', async (evento) => {
+            const file = evento.target.files[0];
+            evento.target.value = '';
+            if (!file) return;
+            if (file.size > TAMANHO_MAXIMO_PDF_CALENDARIO) {
+                mostrarMensagem('Arquivo muito grande (máx. 8MB). Tente um PDF menor ou preencha manualmente.', 'error');
+                return;
+            }
+            extrairCalendarioPDF(file);
+        });
 
         requireAuth({ loginPath: '../../login.html' });
 

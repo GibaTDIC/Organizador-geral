@@ -562,6 +562,18 @@
 
         let gradeAtual = { matutino: [], vespertino: [] };
         let bimestresAtual = null; // null = ainda não configurado
+        let diasEspeciaisAtual = []; // feriados, recesso, sábado letivo etc.
+
+        // Duplicado de propósito de configuracoes/index.html (mesma
+        // convenção de pequenas tabelas de lookup — ver comentário de
+        // stringParaData acima).
+        const CATEGORIAS_DIA_ESPECIAL = {
+            'feriado': { label: 'Feriado', cor: '#E63946' },
+            'recesso': { label: 'Recesso Escolar', cor: '#457B9D' },
+            'sabado-letivo': { label: 'Sábado Letivo', cor: '#2A9D8F' },
+            'conselho-classe': { label: 'Conselho de Classe', cor: '#9C89B8' },
+            'outro': { label: 'Outro', cor: '#6C757D' }
+        };
         let controladorAtual = { aulas: [], aulaAtualId: null };
         let planejamentosBimestrais = [];
 
@@ -1136,15 +1148,21 @@
             document.getElementById('dashCalendarioGrid').innerHTML = dias.map(data => {
                 if (!data) return '<div class="dash-cal-dia dash-cal-dia--vazio"></div>';
                 const idxBimestre = determinarBimestre(bimestresAtual, data);
+                const especial = diasEspeciaisAtual.find(d => stringParaData(d.data).toDateString() === data.toDateString());
                 const classes = ['dash-cal-dia'];
                 if (idxBimestre !== null) classes.push(`dash-cal-dia--bimestre-${idxBimestre + 1}`);
                 if (data.toDateString() === hoje.toDateString()) classes.push('dash-cal-dia--hoje');
-                return `<div class="${classes.join(' ')}">${data.getDate()}</div>`;
+                const estiloEspecial = especial ? ` style="box-shadow: inset 0 0 0 2px ${(CATEGORIAS_DIA_ESPECIAL[especial.categoria] || CATEGORIAS_DIA_ESPECIAL['outro']).cor};"` : '';
+                const tituloEspecial = especial ? ` title="${(especial.rotulo || CATEGORIAS_DIA_ESPECIAL[especial.categoria].label).replace(/"/g, '&quot;')}"` : '';
+                return `<div class="${classes.join(' ')}"${estiloEspecial}${tituloEspecial}>${data.getDate()}</div>`;
             }).join('');
 
-            document.getElementById('dashCalendarioLegenda').innerHTML = (bimestresAtual && bimestresAtual.length > 0)
+            const categoriasPresentes = [...new Set(diasEspeciaisAtual.map(d => CATEGORIAS_DIA_ESPECIAL[d.categoria] ? d.categoria : 'outro'))];
+            const legendaBimestres = (bimestresAtual && bimestresAtual.length > 0)
                 ? bimestresAtual.map((b, i) => `<span><i class="dash-cal-dia--bimestre-${i + 1}"></i>${b.numero}º Bimestre</span>`).join('')
                 : '<span>Configure os bimestres na Programação Diária para colorir o calendário.</span>';
+            const legendaEspeciais = categoriasPresentes.map(cat => `<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;box-shadow: inset 0 0 0 2px ${CATEGORIAS_DIA_ESPECIAL[cat].cor};"></i>${CATEGORIAS_DIA_ESPECIAL[cat].label}</span>`).join('');
+            document.getElementById('dashCalendarioLegenda').innerHTML = legendaBimestres + legendaEspeciais;
         }
 
         function renderizarCabecalho() {
@@ -1177,6 +1195,7 @@
             return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
                 const data = docSnap.data();
                 bimestresAtual = (data && data.bimestres) ? data.bimestres : null;
+                diasEspeciaisAtual = (data && data.diasEspeciais) ? data.diasEspeciais : [];
                 configCarregada = true;
                 renderizarDashboard();
             });
