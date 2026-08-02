@@ -9,48 +9,497 @@
     <link rel="stylesheet" href="../../styles/tokens.css">
     <link rel="stylesheet" href="../../styles/reset.css">
     <link rel="stylesheet" href="../../styles/base.css">
+    <link rel="stylesheet" href="../../styles/layout.css">
+    <link rel="stylesheet" href="../../styles/components/alert.css">
+    <link rel="stylesheet" href="../../styles/components/card.css">
+    <link rel="stylesheet" href="../../styles/components/button.css">
+    <link rel="stylesheet" href="../../styles/components/filter.css">
+    <link rel="stylesheet" href="../../styles/components/table.css">
     <style>
-        body {
-            min-height: 100vh;
+        body { background: var(--pf-gray-100); }
+
+        .rel-header { margin-bottom: var(--pf-space-4); }
+        .rel-header h1 { font-size: 1.5rem; color: var(--pf-gray-900); }
+        .rel-header p { color: var(--pf-gray-500); font-size: 0.9rem; }
+
+        .rel-filtros {
             display: flex;
+            flex-wrap: wrap;
+            gap: var(--pf-space-3);
             align-items: center;
-            justify-content: center;
-            background: var(--pf-slate-900);
-            padding: var(--pf-space-4);
-        }
-        .em-breve {
-            text-align: center;
-            color: var(--pf-ice-50);
-            max-width: 420px;
-        }
-        .em-breve .icone {
-            font-size: 48px;
+            justify-content: space-between;
             margin-bottom: var(--pf-space-4);
         }
-        .em-breve h1 {
-            font-size: 1.5rem;
-            margin-bottom: var(--pf-space-2);
+        .rel-filtros-campos { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); }
+        .rel-filtros-acoes { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); }
+
+        .rel-indicadores {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--pf-space-3);
+            margin-bottom: var(--pf-space-4);
         }
-        .em-breve p {
-            color: var(--pf-gray-300);
-            margin-bottom: var(--pf-space-6);
+        .rel-indicador {
+            text-align: center;
+            cursor: pointer;
+            border-radius: var(--pf-radius-md);
+            padding: var(--pf-space-2);
+            transition: background 0.15s;
         }
-        .em-breve a {
-            color: var(--pf-orange-500);
-            text-decoration: none;
+        .rel-indicador:hover { background: var(--pf-gray-100); }
+        .rel-indicador-valor { font-size: 1.6rem; font-weight: 800; color: var(--pf-blue-700); }
+        .rel-indicador-label { font-size: 0.72rem; color: var(--pf-gray-500); text-transform: uppercase; letter-spacing: 0.4px; }
+
+        .rel-tabs { display: flex; flex-wrap: wrap; gap: var(--pf-space-2); margin-bottom: var(--pf-space-3); }
+        .rel-tab {
+            padding: var(--pf-space-2) var(--pf-space-4);
+            border-radius: var(--pf-radius-lg);
+            background: var(--pf-white);
+            border: 2px solid var(--pf-gray-200);
+            color: var(--pf-gray-700);
             font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
         }
-        .em-breve a:hover {
-            text-decoration: underline;
+        .rel-tab--ativa { background: var(--pf-blue-700); border-color: var(--pf-blue-700); color: var(--pf-white); }
+
+        .rel-secao h2 { font-size: 1rem; color: var(--pf-gray-900); margin-bottom: var(--pf-space-3); }
+        .rel-table-wrap { overflow-x: auto; }
+
+        .rel-badge { padding: 3px 8px; border-radius: var(--pf-radius-lg); font-size: 0.78rem; font-weight: 600; display: inline-block; white-space: nowrap; }
+        .rel-badge--concluida { background: #d4edda; color: #155724; }
+        .rel-badge--andamento { background: #fff3cd; color: #856404; }
+        .rel-badge--nao-iniciada { background: #f8d7da; color: #721c24; }
+        .rel-badge--cancelada { background: var(--pf-gray-200); color: var(--pf-gray-500); }
+        .rel-badge--trabalhada { background: #d4edda; color: #155724; }
+        .rel-badge--prevista-nao-trabalhada { background: #fff3cd; color: #856404; }
+        .rel-badge--pendente { background: #f8d7da; color: #721c24; }
+
+        .rel-nota { font-size: 0.78rem; color: var(--pf-gray-500); margin-top: var(--pf-space-3); }
+        .rel-emissao { font-size: 0.78rem; color: var(--pf-gray-500); margin-top: var(--pf-space-4); text-align: center; }
+        .rel-estado-vazio { color: var(--pf-gray-500); font-size: 0.85rem; padding: var(--pf-space-4); text-align: center; }
+        tfoot td { font-weight: 700; }
+
+        @media print {
+            pf-header, pf-sidebar, .rel-filtros, .rel-tabs { display: none !important; }
+        }
+
+        @media (max-width: 700px) {
+            .rel-table-wrap table { min-width: 700px; }
         }
     </style>
 </head>
 <body>
-    <div class="em-breve">
-        <div class="icone">📊</div>
-        <h1>Relatórios</h1>
-        <p>Este módulo do Prof GB ainda está em desenvolvimento.</p>
-        <a href="../programacao-diaria/index.html">← Voltar para a Programação Diária</a>
+    <div class="pf-app-shell">
+        <pf-header></pf-header>
+        <pf-sidebar active="relatorios"></pf-sidebar>
+        <div class="pf-app-main">
+            <div class="container">
+
+                <div class="rel-header">
+                    <h1>📊 Relatórios</h1>
+                    <p>Acompanhamento pedagógico consolidado a partir dos dados já registrados no Controlador — nada é digitado de novo aqui.</p>
+                </div>
+
+                <div class="pf-card rel-filtros">
+                    <div class="rel-filtros-campos">
+                        <select class="pf-filter-select" id="relFiltroTurma" onchange="aplicarFiltros()">
+                            <option value="">Todas as turmas</option>
+                        </select>
+                        <select class="pf-filter-select" id="relFiltroComponente" onchange="aplicarFiltros()">
+                            <option value="">Todos os componentes</option>
+                        </select>
+                        <select class="pf-filter-select" id="relFiltroBimestre" onchange="aplicarFiltros()">
+                            <option value="">Todos os bimestres</option>
+                            <option value="1">1º Bimestre</option>
+                            <option value="2">2º Bimestre</option>
+                            <option value="3">3º Bimestre</option>
+                            <option value="4">4º Bimestre</option>
+                        </select>
+                        <select class="pf-filter-select" id="relFiltroPeriodo" onchange="aplicarFiltros()">
+                            <option value="bimestre">Este bimestre</option>
+                            <option value="mes">Este mês</option>
+                            <option value="semana">Esta semana</option>
+                            <option value="todos">Todo o período</option>
+                            <option value="personalizado">Personalizado…</option>
+                        </select>
+                        <input type="date" class="pf-filter-select" id="relPeriodoInicio" style="display:none;" onchange="aplicarFiltros()">
+                        <input type="date" class="pf-filter-select" id="relPeriodoFim" style="display:none;" onchange="aplicarFiltros()">
+                    </div>
+                    <div class="rel-filtros-acoes">
+                        <button class="pf-btn pf-btn--info" onclick="exportarCsvAtivo()">⬇️ Exportar CSV</button>
+                        <button class="pf-btn pf-btn--secondary" onclick="window.print()">🖨️ Imprimir</button>
+                    </div>
+                </div>
+
+                <div class="pf-card rel-indicadores" id="relIndicadores"></div>
+
+                <div class="rel-tabs" id="relTabs"></div>
+
+                <div class="pf-card rel-secao" id="relConteudo"></div>
+
+                <p class="rel-emissao" id="relEmissao"></p>
+
+            </div>
+        </div>
     </div>
+
+    <script type="module">
+        import "../../scripts/layout/page-shell.js";
+        import "../../scripts/services/escola-context.js";
+        import { requireAuth } from "../../scripts/services/auth-guard.js";
+        import { auth } from "../../scripts/firebase-config.js";
+        import { ouvirControlador } from "../../scripts/services/controlador-service.js";
+        import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
+        import { serieDaTurma } from "../../scripts/services/controlador-sync.js";
+        import {
+            filtrarAulas, turmasDistintas, componentesDistintos, calcularIndicadores,
+            montarRelatorioExecucao, montarRelatorioPlanejamentoPorTurma, montarRelatorioBNCC,
+            resolverPeriodoPreset
+        } from "../../scripts/services/relatorios-service.js";
+
+        import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
+        import * as bnccArte from "../../data/bncc-curriculum-arte.js";
+        import * as bnccEnsinoReligioso from "../../data/bncc-curriculum-ensino-religioso.js";
+        import * as bnccCiencias from "../../data/bncc-curriculum-ciencias.js";
+        import * as bnccGeografia from "../../data/bncc-curriculum-geografia.js";
+        import * as bnccHistoria from "../../data/bncc-curriculum-historia.js";
+        import * as bnccMatematica from "../../data/bncc-curriculum-matematica.js";
+        import * as bnccLinguaInglesa from "../../data/bncc-curriculum-lingua-inglesa.js";
+        import * as bnccLinguaPortuguesa from "../../data/bncc-curriculum-lingua-portuguesa.js";
+        import * as bnccComputacao from "../../data/bncc-curriculum-computacao.js";
+
+        // Mesmo mapa de modules/planejamento/index.html — NÃO usar o atalho
+        // "só Educação Física" que Controlador/Dashboard usam pra outras
+        // contas, senão o relatório BNCC erra o catálogo de todo componente
+        // que não for Educação Física.
+        const BNCC_POR_COMPONENTE = {
+            "Educação Física": bnccEducacaoFisica,
+            "Arte": bnccArte,
+            "Ensino Religioso": bnccEnsinoReligioso,
+            "Ciências": bnccCiencias,
+            "Geografia": bnccGeografia,
+            "História": bnccHistoria,
+            "Matemática": bnccMatematica,
+            "Língua Inglesa": bnccLinguaInglesa,
+            "Língua Portuguesa": bnccLinguaPortuguesa,
+            "Computação": bnccComputacao
+        };
+
+        // ---------- Estado ----------
+        let escolaAtualId = null;
+        let escolasCarregadas = [];
+        let unsubControlador = null, unsubConfiguracoes = null;
+
+        let aulasControlador = [];
+        let bimestresConfig = [];
+
+        let filtroTurma = '', filtroComponente = '', filtroBimestre = '';
+        let filtroPeriodoPreset = 'bimestre';
+        let abaAtiva = 'execucao'; // 'execucao' | 'planejamento' | 'bncc'
+
+        const ABAS = [
+            { id: 'execucao', label: '✅ Execução das Aulas' },
+            { id: 'planejamento', label: '📚 Planejamento por Turma' },
+            { id: 'bncc', label: '🧭 BNCC' }
+        ];
+
+        // ---------- Helpers ----------
+        function habilidadesTexto(habilidades) {
+            return (habilidades || []).map(h => h.codigo || h).join(', ');
+        }
+
+        function resolverPeriodoAtual() {
+            const preset = filtroPeriodoPreset;
+            if (preset === 'todos') return null;
+            if (preset === 'personalizado') {
+                const inicio = document.getElementById('relPeriodoInicio').value;
+                const fim = document.getElementById('relPeriodoFim').value;
+                return (inicio && fim) ? { inicio, fim } : null;
+            }
+            return resolverPeriodoPreset(preset, { bimestresConfig, bimestreSelecionado: filtroBimestre || null });
+        }
+
+        function aulasFiltradasAtuais() {
+            return filtrarAulas(aulasControlador, {
+                turma: filtroTurma || null,
+                componenteCurricular: filtroComponente || null,
+                bimestre: filtroBimestre || null,
+                periodo: resolverPeriodoAtual()
+            });
+        }
+
+        // ---------- Renderização ----------
+        function renderizarFiltros() {
+            const selTurma = document.getElementById('relFiltroTurma');
+            const valorTurma = filtroTurma;
+            selTurma.innerHTML = '<option value="">Todas as turmas</option>' +
+                turmasDistintas(aulasControlador).map(t => `<option value="${t}">${t}</option>`).join('');
+            selTurma.value = valorTurma;
+
+            const selComponente = document.getElementById('relFiltroComponente');
+            const valorComponente = filtroComponente;
+            selComponente.innerHTML = '<option value="">Todos os componentes</option>' +
+                componentesDistintos(aulasControlador).map(c => `<option value="${c}">${c}</option>`).join('');
+            selComponente.value = valorComponente;
+
+            document.getElementById('relPeriodoInicio').style.display = filtroPeriodoPreset === 'personalizado' ? '' : 'none';
+            document.getElementById('relPeriodoFim').style.display = filtroPeriodoPreset === 'personalizado' ? '' : 'none';
+        }
+
+        function renderizarIndicadores() {
+            const ind = calcularIndicadores(aulasFiltradasAtuais());
+            const cards = [
+                { valor: ind.totalPrevistas, label: 'Aulas Previstas', aba: 'execucao' },
+                { valor: ind.totalRealizadas, label: 'Aulas Realizadas', aba: 'execucao' },
+                { valor: `${ind.percentualExecutado}%`, label: '% Executado', aba: 'execucao' },
+                { valor: ind.turmasAtendidas, label: 'Turmas Atendidas', aba: 'planejamento' },
+                { valor: ind.habilidadesDesenvolvidas, label: 'Habilidades Desenvolvidas', aba: 'bncc' },
+                { valor: ind.aulasPendentes, label: 'Aulas Pendentes', aba: 'execucao' },
+                { valor: ind.proximasAulas.length, label: 'Próximas Aulas', aba: 'execucao' }
+            ];
+            document.getElementById('relIndicadores').innerHTML = cards.map((c, i) => `
+                <div class="rel-indicador" onclick="irParaAba('${c.aba}')">
+                    <div class="rel-indicador-valor">${c.valor}</div>
+                    <div class="rel-indicador-label">${c.label}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderizarTabs() {
+            document.getElementById('relTabs').innerHTML = ABAS.map(a => `
+                <button type="button" class="rel-tab${a.id === abaAtiva ? ' rel-tab--ativa' : ''}" onclick="irParaAba('${a.id}')">${a.label}</button>
+            `).join('');
+        }
+
+        function renderizarExecucao(aulasFiltradas) {
+            const { linhas, totais } = montarRelatorioExecucao(aulasFiltradas);
+            if (linhas.length === 0) return '<p class="rel-estado-vazio">Nenhuma aula encontrada para esses filtros.</p>';
+            return `
+                <div class="rel-table-wrap">
+                    <table class="pf-table">
+                        <thead>
+                            <tr>
+                                <th>Turma</th><th>Componente</th><th>Bimestre</th><th>Conteúdo</th>
+                                <th>Previstas</th><th>Realizadas</th><th>Não Realizadas</th><th>Situação</th>
+                                <th>Observações</th><th>Justificativa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhas.map(l => `
+                                <tr>
+                                    <td>${l.turma}</td>
+                                    <td>${l.componenteCurricular}</td>
+                                    <td>${l.bimestre ?? '-'}</td>
+                                    <td>${l.titulo}</td>
+                                    <td>${l.previstas}</td>
+                                    <td>${l.realizadas}</td>
+                                    <td>${l.naoRealizadas}</td>
+                                    <td>
+                                        <span class="rel-badge ${classeBadgeStatus(l.status)}">${l.status}</span>
+                                        ${l.foiRemarcada ? ' <span title="Remarcada">🔁</span>' : ''}
+                                        ${l.foiCancelada ? ' <span title="Cancelada">🚫</span>' : ''}
+                                    </td>
+                                    <td>${l.observacoes || '-'}</td>
+                                    <td>${l.justificativaAlteracao || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4">Totais</td>
+                                <td>${totais.previstas}</td>
+                                <td>${totais.realizadas}</td>
+                                <td>${totais.naoRealizadas}</td>
+                                <td colspan="3">${totais.percentualExecucao}% executado</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+        }
+
+        function classeBadgeStatus(status) {
+            switch (status) {
+                case 'Concluída': return 'rel-badge--concluida';
+                case 'Em Andamento':
+                case 'Reposição': return 'rel-badge--andamento';
+                case 'Cancelada': return 'rel-badge--cancelada';
+                default: return 'rel-badge--nao-iniciada';
+            }
+        }
+
+        function renderizarPlanejamento(aulasFiltradas) {
+            const linhas = montarRelatorioPlanejamentoPorTurma(aulasFiltradas);
+            if (linhas.length === 0) return '<p class="rel-estado-vazio">Nenhuma aula encontrada para esses filtros.</p>';
+            return `
+                <div class="rel-table-wrap">
+                    <table class="pf-table">
+                        <thead>
+                            <tr>
+                                <th>Turma</th><th>Componente</th><th>Bimestre</th><th>Unidade Temática</th>
+                                <th>Especificação</th><th>Aula</th><th>Habilidades</th><th>Qtd. Aulas Planejadas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhas.map(l => `
+                                <tr>
+                                    <td>${l.turma}</td>
+                                    <td>${l.componenteCurricular}</td>
+                                    <td>${l.bimestre ?? '-'}</td>
+                                    <td>${l.unidadeTematica || '-'}</td>
+                                    <td>${l.especificacao || l.objetoConhecimento || '-'}</td>
+                                    <td>${l.titulo}</td>
+                                    <td>${habilidadesTexto(l.habilidades)}</td>
+                                    <td>${l.numAulas}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="rel-nota">Objetivos do bimestre disponíveis apenas para Educação Física — consulte o módulo Planejamento.</p>
+            `;
+        }
+
+        function renderizarBNCC(aulasFiltradas) {
+            const linhas = montarRelatorioBNCC(aulasFiltradas, { bnccCatalogoPorComponente: BNCC_POR_COMPONENTE, serieDaTurmaFn: serieDaTurma });
+            if (linhas.length === 0) return '<p class="rel-estado-vazio">Nenhuma habilidade encontrada — confira se a turma/componente selecionados têm BNCC cadastrada.</p>';
+            const rotuloStatus = { 'trabalhada': 'Trabalhada', 'prevista-nao-trabalhada': 'Prevista, não trabalhada', 'pendente': 'Pendente' };
+            return `
+                <div class="rel-table-wrap">
+                    <table class="pf-table">
+                        <thead>
+                            <tr>
+                                <th>Turma</th><th>Componente</th><th>Unidade Temática</th><th>Especificação</th>
+                                <th>Código</th><th>Habilidade</th><th>Situação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhas.map(l => `
+                                <tr>
+                                    <td>${l.turma}</td>
+                                    <td>${l.componenteCurricular}</td>
+                                    <td>${l.unidadeTematica}</td>
+                                    <td>${l.especificacao}</td>
+                                    <td>${l.codigo}</td>
+                                    <td>${l.descricao}</td>
+                                    <td><span class="rel-badge rel-badge--${l.status}">${rotuloStatus[l.status]}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderizarConteudo() {
+            const aulasFiltradas = aulasFiltradasAtuais();
+            const container = document.getElementById('relConteudo');
+            if (abaAtiva === 'execucao') container.innerHTML = renderizarExecucao(aulasFiltradas);
+            else if (abaAtiva === 'planejamento') container.innerHTML = renderizarPlanejamento(aulasFiltradas);
+            else if (abaAtiva === 'bncc') container.innerHTML = renderizarBNCC(aulasFiltradas);
+        }
+
+        function renderizarEmissao() {
+            const nomeEscola = (escolasCarregadas.find(e => e.id === escolaAtualId) || {}).nome || '-';
+            const nomeProfessor = (auth.currentUser && (auth.currentUser.displayName || auth.currentUser.email)) || 'Professor(a)';
+            const agora = new Date();
+            const dataFormatada = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('relEmissao').textContent = `Escola: ${nomeEscola} · Professor(a): ${nomeProfessor} · Emitido em ${dataFormatada}`;
+        }
+
+        function renderizarTudo() {
+            renderizarFiltros();
+            renderizarIndicadores();
+            renderizarTabs();
+            renderizarConteudo();
+            renderizarEmissao();
+        }
+
+        // ---------- Ações ----------
+        window.irParaAba = function (aba) {
+            abaAtiva = aba;
+            renderizarTabs();
+            renderizarConteudo();
+        };
+
+        window.aplicarFiltros = function () {
+            filtroTurma = document.getElementById('relFiltroTurma').value;
+            filtroComponente = document.getElementById('relFiltroComponente').value;
+            filtroBimestre = document.getElementById('relFiltroBimestre').value;
+            filtroPeriodoPreset = document.getElementById('relFiltroPeriodo').value;
+            renderizarTudo();
+        };
+
+        function exportarCsv(cabecalhos, linhas, nomeArquivo) {
+            const corpo = [cabecalhos, ...linhas]
+                .map(linha => linha.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';'))
+                .join('\n');
+            const blob = new Blob(['﻿' + corpo], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nomeArquivo}-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        window.exportarCsvAtivo = function () {
+            const aulasFiltradas = aulasFiltradasAtuais();
+            if (abaAtiva === 'execucao') {
+                const { linhas } = montarRelatorioExecucao(aulasFiltradas);
+                exportarCsv(
+                    ['Turma', 'Componente', 'Bimestre', 'Conteúdo', 'Previstas', 'Realizadas', 'Não Realizadas', 'Situação', 'Observações', 'Justificativa'],
+                    linhas.map(l => [l.turma, l.componenteCurricular, l.bimestre, l.titulo, l.previstas, l.realizadas, l.naoRealizadas, l.status, l.observacoes, l.justificativaAlteracao]),
+                    'relatorio-execucao'
+                );
+            } else if (abaAtiva === 'planejamento') {
+                const linhas = montarRelatorioPlanejamentoPorTurma(aulasFiltradas);
+                exportarCsv(
+                    ['Turma', 'Componente', 'Bimestre', 'Unidade Temática', 'Especificação', 'Aula', 'Habilidades', 'Qtd. Aulas Planejadas'],
+                    linhas.map(l => [l.turma, l.componenteCurricular, l.bimestre, l.unidadeTematica, l.especificacao || l.objetoConhecimento, l.titulo, habilidadesTexto(l.habilidades), l.numAulas]),
+                    'relatorio-planejamento-por-turma'
+                );
+            } else if (abaAtiva === 'bncc') {
+                const linhas = montarRelatorioBNCC(aulasFiltradas, { bnccCatalogoPorComponente: BNCC_POR_COMPONENTE, serieDaTurmaFn: serieDaTurma });
+                exportarCsv(
+                    ['Turma', 'Componente', 'Unidade Temática', 'Especificação', 'Código', 'Habilidade', 'Situação'],
+                    linhas.map(l => [l.turma, l.componenteCurricular, l.unidadeTematica, l.especificacao, l.codigo, l.descricao, l.status]),
+                    'relatorio-bncc'
+                );
+            }
+        };
+
+        // ---------- Carregamento Firestore ----------
+        function carregarControlador() {
+            return ouvirControlador(escolaAtualId, (docSnap) => {
+                const data = docSnap.exists() ? docSnap.data() : null;
+                aulasControlador = (data && Array.isArray(data.aulas)) ? data.aulas : [];
+                renderizarTudo();
+            });
+        }
+
+        function carregarConfiguracoes() {
+            return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                bimestresConfig = (data && data.bimestres) ? data.bimestres : [];
+                renderizarTudo();
+            });
+        }
+
+        // ---------- Inicialização ----------
+        requireAuth({ loginPath: '../../login.html' });
+
+        document.addEventListener('pf-escola-ready', (evento) => {
+            escolaAtualId = evento.detail.escolaId;
+            escolasCarregadas = evento.detail.escolas || [];
+            if (unsubControlador) unsubControlador();
+            if (unsubConfiguracoes) unsubConfiguracoes();
+            unsubControlador = carregarControlador();
+            unsubConfiguracoes = carregarConfiguracoes();
+        });
+    </script>
 </body>
 </html>

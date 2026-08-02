@@ -9,6 +9,6 @@ export const MODULES = [
   { id: 'controlador', label: 'Controlador', icon: '✅', path: '../controlador/index.html', status: 'active' },
   { id: 'banco-atividades', label: 'Banco de Atividades', icon: '🗂️', path: '../banco-atividades/index.html', status: 'active' },
   { id: 'ia', label: 'Inteligência Artificial', icon: '🤖', path: '../inteligencia-artificial/index.html', status: 'active' },
-  { id: 'relatorios', label: 'Relatórios', icon: '📊', path: '../relatorios/index.html', status: 'planned' },
+  { id: 'relatorios', label: 'Relatórios', icon: '📊', path: '../relatorios/index.html', status: 'active' },
   { id: 'configuracoes', label: 'Configurações', icon: '⚙️', path: '../configuracoes/index.html', status: 'active' },
 ];
