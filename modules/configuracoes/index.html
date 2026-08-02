@@ -690,25 +690,6 @@
             opacity: 0.9;
         }
 
-        .unidades-compact {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            margin-top: 5px;
-            overflow-y: auto;
-            max-height: 150px;
-        }
-
-        .unidade-tag-compact {
-            background: rgba(255,255,255,0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: clamp(0.7rem, 2.2vw, 0.8rem);
-            white-space: normal;
-            word-break: break-word;
-            line-height: 1.3;
-        }
-
         /* Modal de Configuração — chrome de abrir/fechar vem do <pf-modal> (styles/components/modal.css);
            aqui só o dimensionamento específico desta página. */
         .pf-modal {
@@ -778,47 +759,6 @@
             width: clamp(90px, 20vw, 100px);
             background: rgba(255,255,255,0.9);
             color: #333;
-        }
-
-        .unidade-select-config {
-            width: 100%;
-            padding: clamp(6px, 1.8vw, 10px) clamp(8px, 2vw, 12px);
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
-            background: white;
-            cursor: pointer;
-            margin: 8px 0;
-        }
-
-        .unidades-selecionadas-config {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 8px;
-        }
-
-        .unidade-tag-config {
-            background: rgba(255,255,255,0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: clamp(0.7rem, 2.2vw, 0.8rem);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            white-space: normal;
-            word-break: break-word;
-        }
-
-        .unidade-tag-config button {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: clamp(1rem, 3vw, 1.2rem);
-            padding: 0 3px;
-            line-height: 1;
         }
 
         .config-actions {
@@ -968,7 +908,7 @@
         }
 
         /* Scroll suave */
-        .turmas-grid, .unidades-compact, .config-modal-content {
+        .turmas-grid, .config-modal-content {
             scroll-behavior: smooth;
         }
 
@@ -1125,7 +1065,7 @@
 
             <div class="info-compact">
                 <div class="info-compact-header">
-                    <h3>📌 Bimestres e Unidades Temáticas</h3>
+                    <h3>📌 Bimestres</h3>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <button class="btn btn-secondary" onclick="document.getElementById('inputCalendarioPdf').click();">📄 Importar Calendário (PDF)</button>
                         <button class="btn btn-primary" onclick="abrirConfigModal()">⚙️ Configurar</button>
@@ -1150,13 +1090,14 @@
         </div>
 
         <div class="config-section">
-            <h3>📅 Datas e Unidades Temáticas</h3>
+            <h3>📅 Datas dos Bimestres</h3>
+            <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">Quais unidades temáticas cada bimestre vai trabalhar agora se define no Planejamento Bimestral (por componente curricular).</p>
             <div id="bimestresConfig"></div>
         </div>
 
         <div class="config-section">
             <h3>🎌 Dias Especiais (feriados, recesso, sábados letivos...)</h3>
-            <p class="pl-indicador" style="margin-top:-6px;">Preenchido automaticamente ao importar o PDF do calendário anual — confira e ajuste antes de salvar.</p>
+            <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">Preenchido automaticamente ao importar o PDF do calendário anual — confira e ajuste antes de salvar.</p>
             <div id="diasEspeciaisConfig"></div>
         </div>
 
@@ -1205,34 +1146,6 @@
             { tipo: "cemfor", nome: "CEMFOR", icone: "🏛️" }
         ];
 
-        // Unidades Temáticas completas da BNCC
-        const unidadesTematicasBNCC = [
-            "Brincadeiras e jogos populares",
-            "Brincadeiras e jogos de matriz indígena",
-            "Brincadeiras e jogos de matriz africana",
-            "Esportes de marca",
-            "Esportes de precisão",
-            "Esportes de invasão",
-            "Esportes técnico-combinatórios",
-            "Esportes de rede/parede",
-            "Esportes de campo e taco",
-            "Esportes de combate",
-            "Ginásticas de condicionamento físico",
-            "Ginásticas de conscientização corporal",
-            "Ginásticas competitivas",
-            "Ginásticas gerais",
-            "Danças urbanas",
-            "Danças brasileiras",
-            "Danças de salão",
-            "Danças folclóricas",
-            "Lutas do Brasil",
-            "Lutas de matriz indígena",
-            "Lutas de matriz africana",
-            "Lutas de matriz oriental",
-            "Práticas corporais de aventura na natureza",
-            "Práticas corporais de aventura urbanas"
-        ];
-
         // Cores dos bimestres
         const coresBimestres = [
             '#E63946', // Vermelho vibrante
@@ -1268,10 +1181,10 @@
 
         // Bimestres com datas editáveis
         let bimestres = [
-            { numero: 1, inicio: "28/01/2026", fim: "16/04/2026", unidades: [] },
-            { numero: 2, inicio: "22/04/2026", fim: "21/07/2026", unidades: [] },
-            { numero: 3, inicio: "22/07/2026", fim: "29/09/2026", unidades: [] },
-            { numero: 4, inicio: "01/10/2026", fim: "10/12/2026", unidades: [] }
+            { numero: 1, inicio: "28/01/2026", fim: "16/04/2026" },
+            { numero: 2, inicio: "22/04/2026", fim: "21/07/2026" },
+            { numero: 3, inicio: "22/07/2026", fim: "29/09/2026" },
+            { numero: 4, inicio: "01/10/2026", fim: "10/12/2026" }
         ];
 
         // Feriados, recesso, sábados letivos etc. — vem do calendário anual
@@ -1830,12 +1743,7 @@
                 <div class="bimestre-card-compact" style="background: ${coresBimestres[index]}">
                     <div class="bimestre-header-compact">
                         <span class="bimestre-numero-compact">${b.numero}º Bimestre</span>
-                        <span class="bimestre-datas-compact">${b.inicio.split('/')[0]}/${b.inicio.split('/')[1]}</span>
-                    </div>
-                    <div class="unidades-compact">
-                        ${b.unidades.length > 0 ?
-                            b.unidades.map(u => `<span class="unidade-tag-compact">${u}</span>`).join('') :
-                            '<span style="opacity:0.7; font-size:0.8em;">Nenhuma unidade selecionada</span>'}
+                        <span class="bimestre-datas-compact">${b.inicio} até ${b.fim}</span>
                     </div>
                 </div>
             `).join('');
@@ -1846,7 +1754,7 @@
             const container = document.getElementById('bimestresConfig');
             container.innerHTML = bimestres.map((b, index) => `
                 <div class="bimestre-config-item" style="background: ${coresBimestres[index]}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <strong style="font-size: 1.1em;">${b.numero}º Bimestre</strong>
                         <div style="display: flex; flex-wrap: wrap; gap: 5px;">
                             <input type="text"
@@ -1862,33 +1770,6 @@
                                    style="width: 95px;">
                         </div>
                     </div>
-
-                    <div>
-                        <label><strong>Selecionar Unidade Temática:</strong></label>
-                        <select class="unidade-select-config" onchange="adicionarUnidadeBimestre(${index}, this.value)">
-                            <option value="">Selecione uma unidade de Educação Física...</option>
-                            ${unidadesTematicasBNCC.map(u => `<option value="${u}">${u}</option>`).join('')}
-                        </select>
-
-                        <!-- A lista acima só cobre a BNCC de Educação Física
-                             (único componente com conteúdo curado no app até
-                             agora) — esse campo permite registrar unidades de
-                             qualquer outro componente ativo (ver "Meus
-                             Componentes Curriculares" acima). -->
-                        <div style="display:flex;gap:6px;margin-top:6px;">
-                            <input type="text" id="unidadeLivre-${index}" placeholder="Ou digite a unidade de outra disciplina..." style="flex:1;">
-                            <button type="button" class="btn btn-secondary" onclick="adicionarUnidadeBimestreLivre(${index})">➕</button>
-                        </div>
-
-                        <div class="unidades-selecionadas-config" id="unidades-bimestre-${index}">
-                            ${b.unidades.map(u => `
-                                <span class="unidade-tag-config">
-                                    ${u}
-                                    <button class="btn-remover-unidade" onclick="removerUnidadeBimestre(${index}, '${u}')">×</button>
-                                </span>
-                            `).join('')}
-                        </div>
-                    </div>
                 </div>
             `).join('');
         }
@@ -1901,7 +1782,7 @@
             if (!container) return;
             container.innerHTML = `
                 <div class="dias-especiais-lista">
-                    ${diasEspeciais.length === 0 ? '<p class="pl-estado-vazio">Nenhum dia especial cadastrado ainda.</p>' : diasEspeciais.map((d, index) => `
+                    ${diasEspeciais.length === 0 ? '<p style="font-size:0.85rem;color:#666;text-align:center;padding:12px;">Nenhum dia especial cadastrado ainda.</p>' : diasEspeciais.map((d, index) => `
                         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;background:${(CATEGORIAS_DIA_ESPECIAL[d.categoria] || CATEGORIAS_DIA_ESPECIAL['outro']).cor};padding:6px 8px;border-radius:6px;color:#fff;">
                             <input type="text" value="${d.data}" onchange="atualizarDiaEspecial(${index}, 'data', this.value)" placeholder="DD/MM/AAAA" style="width:95px;">
                             <input type="text" value="${(d.rotulo || '').replace(/"/g, '&quot;')}" onchange="atualizarDiaEspecial(${index}, 'rotulo', this.value)" placeholder="Rótulo" style="flex:1;min-width:120px;">
@@ -1959,30 +1840,6 @@
             renderizarConfiguracoesBimestres();
         };
 
-        window.adicionarUnidadeBimestre = function(index, unidade) {
-            if (!unidade) return;
-
-            if (!bimestres[index].unidades.includes(unidade)) {
-                bimestres[index].unidades.push(unidade);
-                renderizarConfiguracoesBimestres();
-            } else {
-                mostrarMensagem('Esta unidade já foi adicionada!', 'info');
-            }
-        };
-
-        window.adicionarUnidadeBimestreLivre = function(index) {
-            const input = document.getElementById(`unidadeLivre-${index}`);
-            const unidade = input.value.trim();
-            if (!unidade) return;
-            input.value = '';
-            window.adicionarUnidadeBimestre(index, unidade);
-        };
-
-        window.removerUnidadeBimestre = function(index, unidade) {
-            bimestres[index].unidades = bimestres[index].unidades.filter(u => u !== unidade);
-            renderizarConfiguracoesBimestres();
-        };
-
         window.atualizarDiaEspecial = function(index, campo, valor) {
             diasEspeciais[index][campo] = valor;
             renderizarDiasEspeciaisConfig();
@@ -2018,10 +1875,10 @@
 
         window.resetarConfiguracoes = function() {
             bimestres = [
-                { numero: 1, inicio: "28/01/2026", fim: "16/04/2026", unidades: [] },
-                { numero: 2, inicio: "22/04/2026", fim: "21/07/2026", unidades: [] },
-                { numero: 3, inicio: "22/07/2026", fim: "29/09/2026", unidades: [] },
-                { numero: 4, inicio: "01/10/2026", fim: "10/12/2026", unidades: [] }
+                { numero: 1, inicio: "28/01/2026", fim: "16/04/2026" },
+                { numero: 2, inicio: "22/04/2026", fim: "21/07/2026" },
+                { numero: 3, inicio: "22/07/2026", fim: "29/09/2026" },
+                { numero: 4, inicio: "01/10/2026", fim: "10/12/2026" }
             ];
             diasEspeciais = [];
             renderizarConfiguracoesBimestres();

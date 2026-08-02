@@ -317,6 +317,15 @@
         let aulaEditando = null; // id da aula sendo editada, null = criando nova
         let importacaoAtual = null; // rascunho de importação de DOCX em revisão, fora da convenção selecionado.nivel
 
+        // Estado local da tela de Planejamento Bimestral, entre re-renderizações
+        // e antes de salvar — permite trocar de componente pra marcar unidades
+        // de mais de um (ex: Educação Física e Artes na mesma turma) sem perder
+        // o que já foi marcado no componente anterior. Resetado sempre que o
+        // bimestral selecionado muda (ver renderizarBimestral).
+        let unidadesBimestralSelecionadas = new Set();
+        let componenteBimestralAtual = null;
+        let bimestralIdEmEdicao = null;
+
         const TURMAS_DISPONIVEIS = ["1º Ano","2º Ano","3º Ano","4º Ano","5º Ano","6º Ano","7º Ano","8º Ano","9º Ano"];
         const NOMES_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -366,29 +375,18 @@
             });
         }
 
-        function normalizarTexto(texto) {
-            return (texto || '').trim().toLowerCase();
-        }
-
-        // O seletor de "Unidade Temática" por bimestre em Configurações na
-        // verdade guarda nomes no nível de ESPECIFICAÇÃO da BNCC (ex: "Esportes
-        // de precisão"), não o nível grosso que unidadesPorAno usa (ex:
-        // "Esportes") — por isso a sugestão de bimestre precisa comparar contra
-        // especificacoesPorUnidade, não contra a lista de unidades da turma.
-        // Comparação normalizada (minúsculo/trim) porque as strings salvas em
-        // Configurações não têm exatamente a mesma capitalização do dataset
-        // canônico em data/bncc-curriculum.js.
-        function especificacoesSugeridasBimestre(turma, unidade, componente) {
-            const bimestreSelect = document.getElementById('plAulaBimestre');
-            const numeroBimestre = bimestreSelect ? parseInt(bimestreSelect.value, 10) : null;
+        // Unidades que o professor marcou como planejadas pra um bimestre no
+        // Planejamento Bimestral (aba "Unidades Temáticas deste Bimestre") —
+        // fonte única da sugestão automática no formulário de aula. Antes essa
+        // sugestão lia de Configurações (bimestres[].unidades, comparando em
+        // texto livre contra especificações) — consolidado aqui porque
+        // Configurações não sabia de componente curricular nenhum, e o
+        // Planejamento Bimestral tem esse dado direto por já ser aberto na
+        // turma+bimestre certos.
+        function unidadesPlanejadasBimestre(numeroBimestre) {
             if (!numeroBimestre) return [];
-            const cfg = bimestresConfig.find(b => b.numero === numeroBimestre);
-            const configuradas = (cfg && cfg.unidades) || [];
-            if (configuradas.length === 0) return [];
-            const configuradasNorm = configuradas.map(normalizarTexto);
-            const bncc = BNCC_POR_COMPONENTE[componente || COMPONENTE_CURRICULAR_PADRAO];
-            const especificacoes = bncc ? ((bncc.especificacoesPorUnidade[turma] || {})[unidade] || []) : [];
-            return especificacoes.filter(e => configuradasNorm.includes(normalizarTexto(e)));
+            const bimestral = encontrarBimestral(numeroBimestre);
+            return (bimestral && bimestral.unidadesTematicas) || [];
         }
 
         // ---------- Cascata BNCC (turma → unidade → especificação → habilidades) ----------
@@ -484,13 +482,11 @@
             optionDefault.textContent = 'Selecione a unidade temática';
             unidadeTematicaSelect.appendChild(optionDefault);
 
-            // Unidades planejadas pra este bimestre em Configurações (se houver) —
-            // uma unidade "conta" se pelo menos uma das especificações
-            // configuradas pra este bimestre pertence a ela.
+            // Unidades marcadas como planejadas pra este bimestre no
+            // Planejamento Bimestral (ver unidadesPlanejadasBimestre).
             const numeroBimestre = bimestreSelect ? parseInt(bimestreSelect.value, 10) : null;
-            const sugeridas = numeroBimestre
-                ? unidadesDoAno.filter(u => especificacoesSugeridasBimestre(turmaSelecionada, u, componenteSelecionado).length > 0)
-                : [];
+            const planejadasNoBimestre = numeroBimestre ? unidadesPlanejadasBimestre(numeroBimestre) : [];
+            const sugeridas = unidadesDoAno.filter(u => planejadasNoBimestre.includes(u));
             const restantes = unidadesDoAno.filter(u => !sugeridas.includes(u));
 
             function adicionarOpcao(destino, unidade) {
@@ -513,8 +509,8 @@
 
                 if (hint) {
                     hint.textContent = sugeridas.length === 1
-                        ? `Unidade sugerida automaticamente a partir do planejamento do ${numeroBimestre}º Bimestre em Configurações.`
-                        : `${sugeridas.length} unidades planejadas para o ${numeroBimestre}º Bimestre em Configurações — destacadas acima.`;
+                        ? `Unidade sugerida automaticamente a partir do Planejamento Bimestral do ${numeroBimestre}º Bimestre.`
+                        : `${sugeridas.length} unidades planejadas para o ${numeroBimestre}º Bimestre no Planejamento Bimestral — destacadas acima.`;
                 }
             } else {
                 unidadesDoAno.forEach(u => adicionarOpcao(unidadeTematicaSelect, u));
@@ -1041,22 +1037,35 @@
             const totalMeses = cfg ? mesesDoIntervalo(cfg.inicio, cfg.fim).length : 0;
             const mesesComPlano = cfg ? mesesDoIntervalo(cfg.inicio, cfg.fim).filter(({ mes }) => encontrarMensal(numero, mes)).length : 0;
 
-            // Planejamento Bimestral ainda é só de Educação Física — essa
-            // camada (Anual/Bimestral/Mensal) não tem seletor de componente
-            // como o formulário de Aula, escopo de uma extensão futura.
-            const unidadesDisponiveis = bnccEducacaoFisica.unidadesPorAno[turmaAtual] || [];
-            const unidadesSelecionadas = new Set(dados.unidadesTematicas || []);
+            // Muda de bimestral selecionado (ou é a primeira renderização) —
+            // recarrega o estado local a partir do que está salvo. Fora
+            // disso, o estado local é quem manda (permite trocar de
+            // componente sem perder marcações ainda não salvas).
+            if (bimestralIdEmEdicao !== selecionado.id) {
+                bimestralIdEmEdicao = selecionado.id;
+                unidadesBimestralSelecionadas = new Set(dados.unidadesTematicas || []);
+                componenteBimestralAtual = componentesAtivos[0] || COMPONENTE_CURRICULAR_PADRAO;
+            }
+
+            const bnccComponenteBimestral = BNCC_POR_COMPONENTE[componenteBimestralAtual];
+            const unidadesDisponiveis = bnccComponenteBimestral ? (bnccComponenteBimestral.unidadesPorAno[turmaAtual] || []) : [];
 
             container.innerHTML = `
                 <h2>📗 ${rotuloBimestre(numero)} — ${turmaAtual} (${anoLetivoAtual})</h2>
                 <span class="pl-indicador">${mesesComPlano} de ${totalMeses} meses com plano cadastrado</span>
                 <div class="pf-field">
                     <label>Unidades Temáticas deste Bimestre</label>
+                    <select class="pf-filter-select" onchange="mudarComponenteBimestral(this.value)" style="margin-bottom:8px;">
+                        ${componentesAtivos.map(c => `<option value="${c}" ${c === componenteBimestralAtual ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+                    ${unidadesDisponiveis.length === 0 ? `<p class="pl-estado-vazio">Sem BNCC cadastrada pra ${componenteBimestralAtual} nesta série ainda.</p>` : `
                     <div>${unidadesDisponiveis.map(u => `
                         <label class="pl-unidade-checkbox">
-                            <input type="checkbox" name="plUnidadeBimestral" value="${u}" ${unidadesSelecionadas.has(u) ? 'checked' : ''}> ${u}
+                            <input type="checkbox" onchange="toggleUnidadeBimestral('${u.replace(/'/g, "\\'")}', this.checked)" ${unidadesBimestralSelecionadas.has(u) ? 'checked' : ''}> ${u}
                         </label>
                     `).join('')}</div>
+                    `}
+                    ${unidadesBimestralSelecionadas.size > 0 ? `<p class="pl-indicador" style="margin-top:6px;">Já marcadas neste bimestre (de qualquer componente): ${Array.from(unidadesBimestralSelecionadas).join(', ')}</p>` : ''}
                 </div>
                 <div class="pf-field">
                     <label>Objetivos do Bimestre</label>
@@ -1084,9 +1093,19 @@
             `;
         }
 
+        window.toggleUnidadeBimestral = function (unidade, marcado) {
+            if (marcado) unidadesBimestralSelecionadas.add(unidade);
+            else unidadesBimestralSelecionadas.delete(unidade);
+        };
+
+        window.mudarComponenteBimestral = function (componente) {
+            componenteBimestralAtual = componente;
+            renderizarAreaPrincipal();
+        };
+
         window.salvarBimestral = async function (numero) {
             const anual = encontrarAnual();
-            const unidadesTematicas = Array.from(document.querySelectorAll('input[name="plUnidadeBimestral"]:checked')).map(cb => cb.value);
+            const unidadesTematicas = Array.from(unidadesBimestralSelecionadas);
             const dados = {
                 turma: turmaAtual,
                 anoLetivo: anoLetivoAtual,
