@@ -407,13 +407,14 @@
             return `${dia}/${mes}/${ano}`;
         }
 
-        // Texto final pra colar no sistema externo: código(s) de habilidade
-        // ministrada + a descrição registrada — pedido explícito, não é só
-        // a descrição sozinha.
+        // Texto final pra colar no sistema externo: todos os códigos de
+        // habilidade (planejadas + ministradas, sem repetir) + título e
+        // descrição da aula (campos de Planejamento).
         function textoParaColar(linha) {
             const partes = [];
             if (linha.codigosHabilidades.length > 0) partes.push(`Habilidades: ${linha.codigosHabilidades.join(', ')}`);
-            if (linha.conteudo) partes.push(linha.conteudo);
+            if (linha.titulo) partes.push(`Título: ${linha.titulo}`);
+            if (linha.descricao) partes.push(`Descrição: ${linha.descricao}`);
             return partes.join('\n');
         }
 
@@ -422,17 +423,17 @@
                 ...d,
                 data: resolverDataRealAula(gradeAtual, d.turma, d.componenteCurricular, d.data, normalizarCelula)
             }));
-            if (diarioAtual.length === 0) return '<p class="rel-estado-vazio">Nenhum conteúdo ministrado registrado pra esses filtros ainda.</p>';
+            if (diarioAtual.length === 0) return '<p class="rel-estado-vazio">Nenhuma aula encontrada pra esses filtros ainda.</p>';
             return `
                 <p style="font-size:0.85rem;color:var(--pf-gray-500);margin-bottom:var(--pf-space-3);">
-                    Conteúdo já registrado no Controlador, em ordem cronológica — a data já é corrigida pro dia da semana real de cada turma na grade. Pronto pra copiar e colar no diário de classe de sistemas externos (ex: Omega/SGE). Se um conteúdo ocupou mais de uma aula (ver coluna "Aulas"), repita o mesmo texto nas datas seguintes de lá — o Controlador guarda uma data de início por conteúdo, não uma por sessão.
+                    Título, descrição e habilidades já registrados no Planejamento/Controlador, em ordem cronológica — a data já é corrigida pro dia da semana real de cada turma na grade. Pronto pra copiar e colar no diário de classe de sistemas externos (ex: Omega/SGE). Se um conteúdo ocupou mais de uma aula (ver coluna "Aulas"), repita o mesmo texto nas datas seguintes de lá — o Controlador guarda uma data de início por conteúdo, não uma por sessão.
                 </p>
                 <div style="margin-bottom:var(--pf-space-3);">
                     <button class="pf-btn pf-btn--info" onclick="copiarDiarioCompleto()">📋 Copiar tudo</button>
                 </div>
                 <div class="rel-table-wrap">
                     <table class="pf-table">
-                        <thead><tr><th>Data</th><th>Turma</th><th>Aulas</th><th>Habilidades</th><th>Conteúdo</th><th></th></tr></thead>
+                        <thead><tr><th>Data</th><th>Turma</th><th>Aulas</th><th>Habilidades</th><th>Título</th><th>Descrição</th><th></th></tr></thead>
                         <tbody>
                             ${diarioAtual.map((d, i) => `
                                 <tr>
@@ -440,7 +441,8 @@
                                     <td>${d.turma}</td>
                                     <td>${d.numAulas}</td>
                                     <td>${d.codigosHabilidades.join(', ') || '-'}</td>
-                                    <td>${d.conteudo}</td>
+                                    <td>${d.titulo || '-'}</td>
+                                    <td>${d.descricao || '-'}</td>
                                     <td><button class="pf-btn pf-btn--secondary" onclick="copiarLinhaDiario(${i})">📋 Copiar</button></td>
                                 </tr>
                             `).join('')}
@@ -554,8 +556,8 @@
                     data: resolverDataRealAula(gradeAtual, d.turma, d.componenteCurricular, d.data, normalizarCelula)
                 }));
                 exportarCsv(
-                    ['Data', 'Turma', 'Componente', 'Aulas', 'Habilidades', 'Conteúdo'],
-                    linhas.map(d => [formatarDataISO(d.data), d.turma, d.componenteCurricular, d.numAulas, d.codigosHabilidades.join(', '), d.conteudo]),
+                    ['Data', 'Turma', 'Componente', 'Aulas', 'Habilidades', 'Título', 'Descrição'],
+                    linhas.map(d => [formatarDataISO(d.data), d.turma, d.componenteCurricular, d.numAulas, d.codigosHabilidades.join(', '), d.titulo, d.descricao]),
                     'relatorio-diario-de-classe'
                 );
             }

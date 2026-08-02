@@ -110,24 +110,30 @@ export function montarRelatorioPlanejamentoPorTurma(aulasFiltradas) {
 // ocupou 2+ sessões aparece como 1 linha aqui; o professor repete o texto
 // nas datas seguintes do sistema externo.
 //
-// `codigosHabilidades` traz só os códigos (ex: "EF67EF01") das habilidades
-// MINISTRADAS (habilidadesTrabalhadas — marcadas pelo professor no Registro
-// da Aula), não as planejadas — pedido explícito: o diário externo precisa
-// do que foi de fato trabalhado, não do que só estava previsto.
+// `codigosHabilidades` é a UNIÃO (sem repetir) dos códigos planejados
+// (`habilidades`) e dos efetivamente ministrados (`habilidadesTrabalhadas`)
+// — pedido explícito: expor as duas, não só uma. `titulo`/`descricao` vêm
+// direto do Planejamento (campos copiados pro Controlador na sincronização),
+// não do registro de execução — é o que o professor pediu pro "conteúdo".
 export function montarDiarioDeClasse(aulasFiltradas) {
     return (aulasFiltradas || [])
         .filter(a => a.dataInicio)
         .slice()
         .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio))
-        .map(a => ({
-            id: a.id,
-            data: a.dataInicio,
-            turma: a.turma,
-            componenteCurricular: a.componenteCurricular,
-            numAulas: a.numAulas || 0,
-            codigosHabilidades: (a.habilidadesTrabalhadas || []).slice(),
-            conteudo: (a.conteudoMinistrado && a.conteudoMinistrado.trim()) || a.titulo || a.objetoConhecimento || ''
-        }));
+        .map(a => {
+            const codigosPlanejados = (a.habilidades || []).map(h => h.codigo || h);
+            const codigosMinistrados = a.habilidadesTrabalhadas || [];
+            return {
+                id: a.id,
+                data: a.dataInicio,
+                turma: a.turma,
+                componenteCurricular: a.componenteCurricular,
+                numAulas: a.numAulas || 0,
+                codigosHabilidades: [...new Set([...codigosPlanejados, ...codigosMinistrados])],
+                titulo: a.titulo || '',
+                descricao: a.descricao || ''
+            };
+        });
 }
 
 const DIA_CHAVES_SEMANA = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
