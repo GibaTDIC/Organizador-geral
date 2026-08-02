@@ -51,6 +51,102 @@
             flex-wrap: wrap;
         }
 
+        /* Calendário do Ano — mesmo visual do Dashboard, com paginação por
+           mês (lá é só o mês atual, fixo) e clique pra saltar dataSelecionada. */
+        .pd-calendario {
+            margin-bottom: var(--pf-space-4);
+        }
+
+        .pd-calendario-cabecalho {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--pf-space-3);
+            margin-bottom: var(--pf-space-2);
+        }
+
+        .pd-card-titulo {
+            font-size: 1.05rem;
+            color: var(--pf-gray-900);
+            margin: 0;
+        }
+
+        .pd-calendario-cabecalho h2 {
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .pd-cal-semana, .pd-cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .pd-cal-semana {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--pf-gray-500);
+            margin-bottom: var(--pf-space-2);
+        }
+
+        .pd-cal-dia {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--pf-radius-sm);
+            font-size: 0.8rem;
+            color: var(--pf-gray-700);
+            background: var(--pf-gray-100);
+            cursor: pointer;
+        }
+
+        .pd-cal-dia--vazio {
+            background: transparent;
+            cursor: default;
+        }
+
+        .pd-cal-dia--hoje {
+            outline: 2px solid var(--pf-blue-700);
+            font-weight: 700;
+        }
+
+        .pd-cal-dia--selecionado {
+            outline: 2px dashed var(--pf-gray-900);
+        }
+
+        .pd-cal-dia--bimestre-1 { background: var(--pf-bimestre-1); color: var(--pf-white); }
+        .pd-cal-dia--bimestre-2 { background: var(--pf-bimestre-2); color: var(--pf-white); }
+        .pd-cal-dia--bimestre-3 { background: var(--pf-bimestre-3); color: var(--pf-white); }
+        .pd-cal-dia--bimestre-4 { background: var(--pf-bimestre-4); color: var(--pf-white); }
+
+        .pd-cal-legenda {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: var(--pf-space-3);
+            margin-top: var(--pf-space-3);
+            font-size: 0.72rem;
+            color: var(--pf-gray-500);
+        }
+
+        .pd-cal-legenda span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pd-cal-legenda i {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
         /* Layout lista + painel */
         .pd-layout {
             display: grid;
@@ -314,6 +410,20 @@
                     </div>
                 </div>
 
+                <!-- Calendário do Ano -->
+                <section class="pf-card pd-calendario">
+                    <div class="pd-calendario-cabecalho">
+                        <button class="pf-btn pf-btn--secondary" onclick="mesCalendarioAnterior()">◀</button>
+                        <h2 class="pd-card-titulo" id="pdCalendarioMes">—</h2>
+                        <button class="pf-btn pf-btn--secondary" onclick="mesCalendarioProximo()">▶</button>
+                    </div>
+                    <div class="pd-cal-semana">
+                        <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+                    </div>
+                    <div class="pd-cal-grid" id="pdCalendarioGrid"></div>
+                    <div class="pd-cal-legenda" id="pdCalendarioLegenda"></div>
+                </section>
+
                 <!-- Lista + Painel -->
                 <div class="pd-layout">
                     <div class="pd-lista" id="pdLista">
@@ -357,7 +467,13 @@
         let aulasFirebaseRaw = [];
         let atividadesCarregadas = [];
         let controladorAtual = { aulas: [], aulaAtualId: null };
+        let bimestres = []; // ver Configurações — só usado pra colorir o Calendário do Ano abaixo
         let diasEspeciais = []; // feriados, recesso, sábado letivo etc. (ver Configurações)
+
+        // Mês exibido no Calendário do Ano — independente de dataSelecionada
+        // (o dia sendo navegado na lista/painel). Só muda via ◀/▶ ou "Hoje";
+        // clicar num dia do calendário move dataSelecionada, não este cursor.
+        let mesCalendarioBase = new Date();
 
         // Duplicado de propósito de configuracoes/index.html e dashboard/index.html
         // (mesma convenção de pequenas tabelas de lookup já usada no repo).
@@ -453,6 +569,80 @@
             const info = CATEGORIAS_DIA_ESPECIAL[especial.categoria] || CATEGORIAS_DIA_ESPECIAL['outro'];
             return especial.rotulo ? `${info.label}: ${especial.rotulo}` : info.label;
         }
+
+        // ---------- Calendário do Ano ----------
+        // Variante "null como padrão" (igual dashboard/index.html): o
+        // calendário desenha o mês inteiro, incluindo fins de semana e fora
+        // do ano letivo — colori-los como "1º Bimestre" por padrão seria
+        // enganoso.
+        function determinarBimestreAno(data) {
+            if (!bimestres || !data) return null;
+            for (let i = 0; i < bimestres.length; i++) {
+                const inicio = stringParaDataBR(bimestres[i].inicio);
+                const fim = stringParaDataBR(bimestres[i].fim);
+                fim.setHours(23, 59, 59, 999);
+                if (data >= inicio && data <= fim) return i;
+            }
+            return null;
+        }
+
+        function stringParaDataBR(dataStr) {
+            const [dia, mes, ano] = dataStr.split('/').map(Number);
+            return new Date(ano, mes - 1, dia);
+        }
+
+        function renderizarCalendarioAno() {
+            const ano = mesCalendarioBase.getFullYear();
+            const mes = mesCalendarioBase.getMonth();
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const primeiroDia = new Date(ano, mes, 1);
+            const ultimoDia = new Date(ano, mes + 1, 0);
+            const dias = [];
+            for (let i = 0; i < primeiroDia.getDay(); i++) dias.push(null);
+            for (let d = 1; d <= ultimoDia.getDate(); d++) dias.push(new Date(ano, mes, d));
+
+            document.getElementById('pdCalendarioMes').textContent = `${MESES_EXTENSO[mes]} de ${ano}`;
+            document.getElementById('pdCalendarioGrid').innerHTML = dias.map(data => {
+                if (!data) return '<div class="pd-cal-dia pd-cal-dia--vazio"></div>';
+                const idxBimestre = determinarBimestreAno(data);
+                const especial = diaEspecialDoDia(data);
+                const classes = ['pd-cal-dia'];
+                if (idxBimestre !== null) classes.push(`pd-cal-dia--bimestre-${idxBimestre + 1}`);
+                if (data.toDateString() === hoje.toDateString()) classes.push('pd-cal-dia--hoje');
+                if (data.toDateString() === dataSelecionada.toDateString()) classes.push('pd-cal-dia--selecionado');
+                const estiloEspecial = especial ? ` style="box-shadow: inset 0 0 0 2px ${(CATEGORIAS_DIA_ESPECIAL[especial.categoria] || CATEGORIAS_DIA_ESPECIAL['outro']).cor};"` : '';
+                const tituloEspecial = especial ? ` title="${rotuloDiaEspecial(especial).replace(/"/g, '&quot;')}"` : '';
+                return `<div class="${classes.join(' ')}"${estiloEspecial}${tituloEspecial} onclick="selecionarDataCalendario(${data.getFullYear()}, ${data.getMonth()}, ${data.getDate()})">${data.getDate()}</div>`;
+            }).join('');
+
+            const categoriasPresentes = [...new Set(diasEspeciais.map(d => CATEGORIAS_DIA_ESPECIAL[d.categoria] ? d.categoria : 'outro'))];
+            const legendaBimestres = (bimestres && bimestres.length > 0)
+                ? bimestres.map((b, i) => `<span><i class="pd-cal-dia--bimestre-${i + 1}"></i>${b.numero}º Bimestre</span>`).join('')
+                : '<span>Configure os bimestres em Configurações para colorir o calendário.</span>';
+            const legendaEspeciais = categoriasPresentes.map(cat => `<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;box-shadow: inset 0 0 0 2px ${CATEGORIAS_DIA_ESPECIAL[cat].cor};"></i>${CATEGORIAS_DIA_ESPECIAL[cat].label}</span>`).join('');
+            document.getElementById('pdCalendarioLegenda').innerHTML = legendaBimestres + legendaEspeciais;
+        }
+
+        window.mesCalendarioAnterior = function () {
+            mesCalendarioBase = new Date(mesCalendarioBase.getFullYear(), mesCalendarioBase.getMonth() - 1, 1);
+            renderizarCalendarioAno();
+        };
+
+        window.mesCalendarioProximo = function () {
+            mesCalendarioBase = new Date(mesCalendarioBase.getFullYear(), mesCalendarioBase.getMonth() + 1, 1);
+            renderizarCalendarioAno();
+        };
+
+        // Clicar num dia do calendário salta a navegação de dia (lista +
+        // painel) pra essa data — não muda o mês exibido no calendário, só
+        // o dia selecionado embaixo.
+        window.selecionarDataCalendario = function (ano, mes, dia) {
+            dataSelecionada = new Date(ano, mes, dia);
+            chaveSelecionada = null;
+            entradaFixadaId = null;
+            renderizarTudo();
+        };
 
         // ---------- Regra de junção grade × controlador ----------
         // Idêntica à do Dashboard (duplicada por convenção já estabelecida
@@ -755,6 +945,7 @@
         window.irParaHoje = function () {
             dataSelecionada = new Date();
             dataSelecionada.setHours(0, 0, 0, 0);
+            mesCalendarioBase = new Date(dataSelecionada.getFullYear(), dataSelecionada.getMonth(), 1);
             chaveSelecionada = null;
             entradaFixadaId = null;
             renderizarTudo();
@@ -1107,6 +1298,11 @@
         }
 
         function renderizarTudo() {
+            // Independente do resto (grade/turmas/controlador) — só depende
+            // de bimestres/diasEspeciais/dataSelecionada, que podem chegar
+            // antes ou depois dos outros listeners do Firestore.
+            renderizarCalendarioAno();
+
             if (!gradeCarregada || !turmasCarregada || !controladorCarregada) return;
 
             // Primeira renderização com tudo carregado, vindo de ?turma= no
@@ -1192,6 +1388,7 @@
         function carregarConfiguracoes() {
             return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
                 const data = docSnap.data();
+                bimestres = (data && data.bimestres) ? data.bimestres : [];
                 diasEspeciais = (data && data.diasEspeciais) ? data.diasEspeciais : [];
                 renderizarTudo();
             });
