@@ -149,13 +149,14 @@
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { auth } from "../../scripts/firebase-config.js";
+        import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirControlador } from "../../scripts/services/controlador-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { serieDaTurma } from "../../scripts/services/controlador-sync.js";
         import {
             filtrarAulas, turmasDistintas, componentesDistintos, calcularIndicadores,
             montarRelatorioExecucao, montarRelatorioPlanejamentoPorTurma, montarRelatorioBNCC,
-            resolverPeriodoPreset
+            montarDiarioDeClasse, resolverPeriodoPreset
         } from "../../scripts/services/relatorios-service.js";
 
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -196,12 +197,13 @@
 
         let filtroTurma = '', filtroComponente = '', filtroBimestre = '';
         let filtroPeriodoPreset = 'bimestre';
-        let abaAtiva = 'execucao'; // 'execucao' | 'planejamento' | 'bncc'
+        let abaAtiva = 'execucao'; // 'execucao' | 'planejamento' | 'bncc' | 'diario'
 
         const ABAS = [
             { id: 'execucao', label: '✅ Execução das Aulas' },
             { id: 'planejamento', label: '📚 Planejamento por Turma' },
-            { id: 'bncc', label: '🧭 BNCC' }
+            { id: 'bncc', label: '🧭 BNCC' },
+            { id: 'diario', label: '📋 Diário de Classe' }
         ];
 
         // ---------- Helpers ----------
@@ -392,12 +394,73 @@
             `;
         }
 
+        // Estado auxiliar da aba Diário de Classe — os botões de copiar
+        // referenciam por índice pra não precisar escapar texto livre (que
+        // pode ter aspas/quebras de linha) dentro de um atributo onclick.
+        let diarioAtual = [];
+
+        function formatarDataISO(data) {
+            if (!data) return '-';
+            const [ano, mes, dia] = data.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function renderizarDiario(aulasFiltradas) {
+            diarioAtual = montarDiarioDeClasse(aulasFiltradas);
+            if (diarioAtual.length === 0) return '<p class="rel-estado-vazio">Nenhum conteúdo ministrado registrado pra esses filtros ainda.</p>';
+            return `
+                <p style="font-size:0.85rem;color:var(--pf-gray-500);margin-bottom:var(--pf-space-3);">
+                    Conteúdo já registrado no Controlador, em ordem cronológica — pronto pra copiar e colar no diário de classe de sistemas externos (ex: Omega/SGE). Se um conteúdo ocupou mais de uma aula (ver coluna "Aulas"), repita o mesmo texto nas datas seguintes de lá — o Controlador guarda uma data de início por conteúdo, não uma por sessão.
+                </p>
+                <div style="margin-bottom:var(--pf-space-3);">
+                    <button class="pf-btn pf-btn--info" onclick="copiarDiarioCompleto()">📋 Copiar tudo</button>
+                </div>
+                <div class="rel-table-wrap">
+                    <table class="pf-table">
+                        <thead><tr><th>Data</th><th>Turma</th><th>Aulas</th><th>Conteúdo</th><th></th></tr></thead>
+                        <tbody>
+                            ${diarioAtual.map((d, i) => `
+                                <tr>
+                                    <td>${formatarDataISO(d.data)}</td>
+                                    <td>${d.turma}</td>
+                                    <td>${d.numAulas}</td>
+                                    <td>${d.conteudo}</td>
+                                    <td><button class="pf-btn pf-btn--secondary" onclick="copiarLinhaDiario(${i})">📋 Copiar</button></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        async function copiarTexto(texto) {
+            try {
+                await navigator.clipboard.writeText(texto);
+                showToast('Copiado!', 'success');
+            } catch (erro) {
+                showToast('Não foi possível copiar automaticamente — selecione o texto e copie manualmente.', 'error');
+            }
+        }
+
+        window.copiarLinhaDiario = function (indice) {
+            const linha = diarioAtual[indice];
+            if (!linha) return;
+            copiarTexto(linha.conteudo);
+        };
+
+        window.copiarDiarioCompleto = function () {
+            const texto = diarioAtual.map(d => `${formatarDataISO(d.data)}: ${d.conteudo}`).join('\n\n');
+            copiarTexto(texto);
+        };
+
         function renderizarConteudo() {
             const aulasFiltradas = aulasFiltradasAtuais();
             const container = document.getElementById('relConteudo');
             if (abaAtiva === 'execucao') container.innerHTML = renderizarExecucao(aulasFiltradas);
             else if (abaAtiva === 'planejamento') container.innerHTML = renderizarPlanejamento(aulasFiltradas);
             else if (abaAtiva === 'bncc') container.innerHTML = renderizarBNCC(aulasFiltradas);
+            else if (abaAtiva === 'diario') container.innerHTML = renderizarDiario(aulasFiltradas);
         }
 
         function renderizarEmissao() {
@@ -468,6 +531,13 @@
                     ['Turma', 'Componente', 'Unidade Temática', 'Especificação', 'Código', 'Habilidade', 'Situação'],
                     linhas.map(l => [l.turma, l.componenteCurricular, l.unidadeTematica, l.especificacao, l.codigo, l.descricao, l.status]),
                     'relatorio-bncc'
+                );
+            } else if (abaAtiva === 'diario') {
+                const linhas = montarDiarioDeClasse(aulasFiltradas);
+                exportarCsv(
+                    ['Data', 'Turma', 'Componente', 'Aulas', 'Conteúdo'],
+                    linhas.map(d => [formatarDataISO(d.data), d.turma, d.componenteCurricular, d.numAulas, d.conteudo]),
+                    'relatorio-diario-de-classe'
                 );
             }
         };

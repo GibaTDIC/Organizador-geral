@@ -101,6 +101,29 @@ export function montarRelatorioPlanejamentoPorTurma(aulasFiltradas) {
     }));
 }
 
+// ---------- Diário de Classe (pra colar em sistemas externos, ex: Omega) ----------
+// Um sistema oficial da secretaria (SGE/Omega) pede "conteúdo ministrado"
+// por data — este relatório organiza o que já foi registrado no Controlador
+// em ordem cronológica, pronto pra copiar. Limitação conhecida: o Controlador
+// guarda uma única dataInicio por conteúdo (que pode ocupar mais de uma aula,
+// ver numAulas) — não uma data por sessão individual — então uma aula que
+// ocupou 2+ sessões aparece como 1 linha aqui; o professor repete o texto
+// nas datas seguintes do sistema externo.
+export function montarDiarioDeClasse(aulasFiltradas) {
+    return (aulasFiltradas || [])
+        .filter(a => a.dataInicio)
+        .slice()
+        .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio))
+        .map(a => ({
+            id: a.id,
+            data: a.dataInicio,
+            turma: a.turma,
+            componenteCurricular: a.componenteCurricular,
+            numAulas: a.numAulas || 0,
+            conteudo: (a.conteudoMinistrado && a.conteudoMinistrado.trim()) || a.titulo || a.objetoConhecimento || ''
+        }));
+}
+
 // ---------- Relatório: BNCC (previstas x trabalhadas x pendentes) ----------
 // "Pendente" é sempre relativo ao CATÁLOGO COMPLETO da série+componente (não
 // só ao que foi planejado) — é isso que permite o relatório apontar
