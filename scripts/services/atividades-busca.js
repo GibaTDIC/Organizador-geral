@@ -37,3 +37,40 @@ export function buscarAtividadesCompativeis(atividades, criterios, opcoes = {}) 
         .filter(r => r.pontuacao > 0)
         .sort((x, y) => y.pontuacao - x.pontuacao);
 }
+
+// Duplicidade por TÍTULO — complementar a buscarAtividadesCompativeis acima
+// (que compara Unidade Temática/Objeto de Conhecimento/habilidades da BNCC).
+// Título é o único dado sempre presente desde o primeiro instante — na
+// importação de arquivo, por exemplo, a BNCC só é classificada manualmente
+// DEPOIS que o professor revisa o formulário, então checar só por
+// compatibilidade de BNCC não pega nada nesse momento. Comparação puramente
+// textual (normaliza acento/caixa/espaço + correspondência exata ou uma
+// string contida na outra) — não é similaridade semântica via IA/embeddings,
+// que continua fora de escopo.
+function normalizarTitulo(titulo) {
+    return (titulo || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
+// criterios: { titulo, componenteCurricular }
+// opcoes: { excluirIds?:[], incluirArquivadas?:false }
+export function buscarTitulosSimilares(atividades, criterios, opcoes = {}) {
+    const tituloBusca = normalizarTitulo(criterios && criterios.titulo);
+    if (!tituloBusca) return [];
+    const { excluirIds = [], incluirArquivadas = false } = opcoes;
+    return (atividades || []).filter(a => {
+        if (!a || excluirIds.includes(a.id)) return false;
+        if (!incluirArquivadas && a.arquivada) return false;
+        if ((a.componenteCurricular || null) !== (criterios.componenteCurricular || null)) return false;
+        const tituloAtual = normalizarTitulo(a.titulo);
+        if (!tituloAtual) return false;
+        if (tituloAtual === tituloBusca) return true;
+        // Contenção só entra em jogo com títulos "reais" (>=4 caracteres),
+        // senão títulos curtos como "Bola" geram falso positivo demais.
+        return tituloBusca.length >= 4 && tituloAtual.length >= 4 &&
+            (tituloAtual.includes(tituloBusca) || tituloBusca.includes(tituloAtual));
+    });
+}

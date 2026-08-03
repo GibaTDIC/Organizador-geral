@@ -264,7 +264,7 @@
             duplicarAtividade, favoritar, desfavoritar, arquivar, desarquivar,
             adicionarVariacao, atualizarVariacao, removerVariacao
         } from "../../scripts/services/atividades-service.js";
-        import { buscarAtividadesCompativeis } from "../../scripts/services/atividades-busca.js";
+        import { buscarAtividadesCompativeis, buscarTitulosSimilares } from "../../scripts/services/atividades-busca.js";
         import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
         import { extrairTextoDocxAtividade } from "../../scripts/services/atividade-docx-extrator.js";
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -735,6 +735,17 @@
             dados.arquivos = linkExterno
                 ? [{ nome: linkExterno, caminhoStorage: null, url: linkExterno, tipo: 'link', tamanho: 0 }]
                 : [];
+
+            if (!atividadeEditando) {
+                const similares = buscarTitulosSimilares(atividades, {
+                    titulo: dados.titulo,
+                    componenteCurricular: dados.componenteCurricular
+                });
+                if (similares.length > 0) {
+                    const continuar = confirm(`Já existe uma atividade parecida cadastrada: "${similares[0].titulo}". Deseja salvar mesmo assim?`);
+                    if (!continuar) return;
+                }
+            }
 
             try {
                 if (!atividadeEditando) {
