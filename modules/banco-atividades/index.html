@@ -74,6 +74,14 @@
         .ba-estado-vazio { color: var(--pf-gray-500); font-size: 0.9rem; text-align: center; padding: var(--pf-space-8); }
 
         #modalAtividade .pf-modal { max-width: 640px; max-height: 90vh; overflow-y: auto; }
+        #modalFilaImportacao .pf-modal { max-width: 560px; max-height: 90vh; overflow-y: auto; }
+        .ba-fila-item {
+            display: flex; justify-content: space-between; align-items: center; gap: var(--pf-space-3);
+            padding: var(--pf-space-3); border: 1px solid var(--pf-gray-200); border-radius: var(--pf-radius-md);
+            margin-bottom: var(--pf-space-2);
+        }
+        .ba-fila-item strong { display: block; font-size: 0.9rem; }
+        .ba-fila-item p { font-size: 0.8rem; color: var(--pf-gray-500); margin: 2px 0 0; }
         .ba-especificacao-group.hidden { display: none; }
         .ba-habilidades-container {
             max-height: 200px; overflow-y: auto; border: 2px solid var(--pf-gray-300);
@@ -157,10 +165,21 @@
         </div>
     </pf-modal>
 
+    <pf-modal id="modalFilaImportacao">
+        <div class="pf-modal-header">
+            <h2 style="font-size:1.1rem;">📋 Atividades encontradas no arquivo</h2>
+            <span style="cursor:pointer;" onclick="document.getElementById('modalFilaImportacao').close()">&times;</span>
+        </div>
+        <div class="pf-modal-body">
+            <p>Revise e salve uma de cada vez. Fechar sem revisar descarta as atividades restantes.</p>
+            <div id="baListaFilaImportacao"></div>
+        </div>
+    </pf-modal>
+
     <pf-modal id="modalAtividade">
         <div class="pf-modal-header">
             <h2 id="modalAtividadeTitulo" style="font-size:1.1rem;">➕ Nova Atividade</h2>
-            <span style="cursor:pointer;" onclick="document.getElementById('modalAtividade').close()">&times;</span>
+            <span style="cursor:pointer;" onclick="fecharModalAtividade()">&times;</span>
         </div>
         <div class="pf-modal-body">
             <form id="formAtividade">
@@ -727,6 +746,7 @@
 
                 mostrarMensagem('Atividade salva!', 'success');
                 document.getElementById('modalAtividade').close();
+                continuarFilaImportacaoSeHouver();
             } catch (erro) {
                 console.error(erro);
                 mostrarMensagem('Erro ao salvar atividade: ' + erro.message, 'error');
@@ -860,7 +880,18 @@
         }
 
         function promptEstruturarAtividade() {
-            return 'Extraia desta atividade pedagógica os campos e responda SOMENTE um JSON no formato {"titulo":"...","descricao":"...","objetivo":"...","palavrasChave":["..."]}, sem markdown, sem comentários, em português do Brasil. Se o arquivo tiver múltiplas atividades, use a primeira. Não invente informação que não estiver no documento.';
+            return 'Extraia deste documento as atividades pedagógicas nele descritas e responda SOMENTE um JSON no formato [{"titulo":"...","descricao":"...","objetivo":"...","palavrasChave":["..."]}, ...], sem markdown, sem comentários, em português do Brasil. Se o documento tiver várias atividades, inclua uma no array pra cada uma delas. Se tiver só uma, retorne um array com um único item. Não invente informação que não estiver no documento.';
+        }
+
+        function normalizarExtraidoImportacao(resposta) {
+            let dados;
+            try {
+                dados = JSON.parse(resposta);
+            } catch {
+                throw new Error('o assistente respondeu: "' + resposta.slice(0, 200) + '"');
+            }
+            const lista = Array.isArray(dados) ? dados : [dados];
+            return lista.filter(item => item && (item.titulo || item.descricao));
         }
 
         async function processarImportacaoAtividade(file) {
@@ -871,39 +902,86 @@
             const extensao = (file.name.split('.').pop() || '').toLowerCase();
             mostrarMensagem('Lendo o arquivo...', 'info');
             try {
-                let extraido;
+                let lista;
                 if (extensao === 'txt') {
                     const texto = await file.text();
-                    extraido = { titulo: file.name.replace(/\.txt$/i, ''), descricao: texto, objetivo: '', palavrasChave: [] };
+                    lista = [{ titulo: file.name.replace(/\.txt$/i, ''), descricao: texto, objetivo: '', palavrasChave: [] }];
                 } else if (extensao === 'pdf') {
                     const dadosBase64 = await arquivoParaBase64BA(file);
                     const resposta = await chamarAssistenteIA(promptEstruturarAtividade(), null, { mimeType: file.type || 'application/pdf', dadosBase64 });
-                    try {
-                        extraido = JSON.parse(resposta);
-                    } catch {
-                        throw new Error('o assistente respondeu: "' + resposta.slice(0, 200) + '"');
-                    }
+                    lista = normalizarExtraidoImportacao(resposta);
                 } else if (extensao === 'docx') {
                     const texto = await extrairTextoDocxAtividade(file);
                     const resposta = await chamarAssistenteIA(promptEstruturarAtividade(), { textoDocumento: texto }, null, 'json');
-                    try {
-                        extraido = JSON.parse(resposta);
-                    } catch {
-                        throw new Error('o assistente respondeu: "' + resposta.slice(0, 200) + '"');
-                    }
+                    lista = normalizarExtraidoImportacao(resposta);
                 } else {
                     mostrarMensagem('Formato não suportado. Use .docx, .pdf ou .txt.', 'error');
                     return;
                 }
 
-                novaAtividade();
-                preencherFormularioComSugestao(extraido);
-                origemAtualForm = 'importacao';
-                mostrarMensagem('Documento lido! Revise os campos (e classifique BNCC) antes de salvar.', 'success');
+                if (lista.length === 0) {
+                    mostrarMensagem('Não foi possível identificar nenhuma atividade no documento.', 'error');
+                    return;
+                }
+
+                if (lista.length === 1) {
+                    novaAtividade();
+                    preencherFormularioComSugestao(lista[0]);
+                    origemAtualForm = 'importacao';
+                    mostrarMensagem('Documento lido! Revise os campos (e classifique BNCC) antes de salvar.', 'success');
+                } else {
+                    filaImportacao = lista;
+                    renderizarFilaImportacao();
+                    document.getElementById('modalFilaImportacao').open();
+                    mostrarMensagem(`Encontramos ${lista.length} atividades no arquivo. Revise e salve uma de cada vez.`, 'success');
+                }
             } catch (erro) {
                 mostrarMensagem('Não foi possível importar: ' + erro.message, 'error');
             }
         }
+
+        // ---------- Fila de importação (documentos com múltiplas atividades) ----------
+        let filaImportacao = [];
+
+        function renderizarFilaImportacao() {
+            const container = document.getElementById('baListaFilaImportacao');
+            if (filaImportacao.length === 0) {
+                container.innerHTML = '<p class="ba-estado-vazio">Nenhuma atividade pendente.</p>';
+                document.getElementById('modalFilaImportacao').close();
+                return;
+            }
+            container.innerHTML = filaImportacao.map((item, indice) => `
+                <div class="ba-fila-item">
+                    <div>
+                        <strong>${item.titulo || '(sem título)'}</strong>
+                        <p>${(item.descricao || '').slice(0, 140)}${(item.descricao || '').length > 140 ? '…' : ''}</p>
+                    </div>
+                    <button type="button" class="pf-btn pf-btn--success" onclick="carregarItemFilaImportacao(${indice})">📝 Revisar e Salvar</button>
+                </div>
+            `).join('');
+        }
+
+        window.carregarItemFilaImportacao = function (indice) {
+            const item = filaImportacao[indice];
+            if (!item) return;
+            filaImportacao.splice(indice, 1);
+            document.getElementById('modalFilaImportacao').close();
+            novaAtividade();
+            preencherFormularioComSugestao(item);
+            origemAtualForm = 'importacao';
+        };
+
+        function continuarFilaImportacaoSeHouver() {
+            if (filaImportacao.length > 0) {
+                renderizarFilaImportacao();
+                document.getElementById('modalFilaImportacao').open();
+            }
+        }
+
+        window.fecharModalAtividade = function () {
+            document.getElementById('modalAtividade').close();
+            continuarFilaImportacaoSeHouver();
+        };
 
         document.getElementById('baInputImportacao').addEventListener('change', (evento) => {
             const file = evento.target.files[0];
