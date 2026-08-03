@@ -403,7 +403,7 @@
             align-items: center;
             justify-content: center;
             border-radius: var(--pf-radius-sm);
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             color: var(--pf-gray-700);
             background: var(--pf-gray-100);
         }
@@ -415,6 +415,10 @@
         .dash-cal-dia--hoje {
             outline: 2px solid var(--pf-blue-700);
             font-weight: 700;
+        }
+
+        .dash-cal-dia--especial {
+            cursor: pointer;
         }
 
         .dash-cal-dia--bimestre-1 { background: var(--pf-bimestre-1); color: var(--pf-white); }
@@ -582,6 +586,16 @@
         </div>
     </pf-modal>
 
+    <!-- Pop-up de detalhe do dia especial, aberto ao clicar num dia marcado
+         (feriado, recesso, conselho de classe etc.) — tanto no card fixo
+         quanto no pop-up "Calendário do Ano". -->
+    <pf-modal id="dashDiaEspecialModal">
+        <div class="pf-modal-body">
+            <h3 id="dashDiaEspecialTitulo">—</h3>
+            <p id="dashDiaEspecialDescricao"></p>
+        </div>
+    </pf-modal>
+
     <!-- Pop-up do Calendário do Ano, aberto pelo Acesso Rápido -->
     <pf-modal id="dashCalendarioAnoModal">
         <div class="pf-modal-body">
@@ -688,6 +702,13 @@
         function stringParaData(dataStr) {
             const [dia, mes, ano] = dataStr.split('/').map(Number);
             return new Date(ano, mes - 1, dia);
+        }
+
+        // Chave estável (ano-mês-dia local) pra identificar uma célula do
+        // calendário no onclick sem depender de toISOString() — que usa UTC
+        // e pode virar o dia errado em fusos negativos como o do Brasil.
+        function chaveDataISO(data) {
+            return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
         }
 
         // Variante local de determinarBimestre: diferente da versão de
@@ -1250,9 +1271,11 @@
                 const classes = ['dash-cal-dia'];
                 if (idxBimestre !== null) classes.push(`dash-cal-dia--bimestre-${idxBimestre + 1}`);
                 if (data.toDateString() === hoje.toDateString()) classes.push('dash-cal-dia--hoje');
-                const estiloEspecial = especial ? ` style="box-shadow: inset 0 0 0 2px ${(CATEGORIAS_DIA_ESPECIAL[especial.categoria] || CATEGORIAS_DIA_ESPECIAL['outro']).cor};"` : '';
+                if (especial) classes.push('dash-cal-dia--especial');
+                const estiloEspecial = especial ? ` style="box-shadow: inset 0 0 0 3px ${(CATEGORIAS_DIA_ESPECIAL[especial.categoria] || CATEGORIAS_DIA_ESPECIAL['outro']).cor};"` : '';
                 const tituloEspecial = especial ? ` title="${(especial.rotulo || CATEGORIAS_DIA_ESPECIAL[especial.categoria].label).replace(/"/g, '&quot;')}"` : '';
-                return `<div class="${classes.join(' ')}"${estiloEspecial}${tituloEspecial}>${data.getDate()}</div>`;
+                const cliqueEspecial = especial ? ` onclick="abrirDiaEspecial('${chaveDataISO(data)}')"` : '';
+                return `<div class="${classes.join(' ')}"${estiloEspecial}${tituloEspecial}${cliqueEspecial}>${data.getDate()}</div>`;
             }).join('');
 
             const categoriasPresentes = [...new Set(diasEspeciaisAtual.map(d => CATEGORIAS_DIA_ESPECIAL[d.categoria] ? d.categoria : 'outro'))];
@@ -1262,6 +1285,19 @@
             const legendaEspeciais = categoriasPresentes.map(cat => `<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;box-shadow: inset 0 0 0 2px ${CATEGORIAS_DIA_ESPECIAL[cat].cor};"></i>${CATEGORIAS_DIA_ESPECIAL[cat].label}</span>`).join('');
             document.getElementById(idLegenda).innerHTML = legendaBimestres + legendaEspeciais;
         }
+
+        // Pop-up de detalhe do dia especial — abre ao clicar num dia marcado,
+        // tanto no card fixo quanto no pop-up "Calendário do Ano" (os dois
+        // usam o mesmo onclick, gerado por renderizarGradeMes acima).
+        window.abrirDiaEspecial = function (chaveISO) {
+            const [ano, mes, dia] = chaveISO.split('-').map(Number);
+            const data = new Date(ano, mes - 1, dia);
+            const especial = diaEspecialDoDia(data);
+            if (!especial) return;
+            document.getElementById('dashDiaEspecialTitulo').textContent = formatarDataCompleta(data);
+            document.getElementById('dashDiaEspecialDescricao').textContent = rotuloDiaEspecial(especial);
+            document.getElementById('dashDiaEspecialModal').open();
+        };
 
         function renderizarCalendario() {
             renderizarGradeMes(mesCalendarioBase, 'dashCalendarioMes', 'dashCalendarioGrid', 'dashCalendarioLegenda');
