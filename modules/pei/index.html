@@ -630,10 +630,12 @@
             documentoRascunho.planilhaAcompanhamento[indice][campo] = valor;
         };
 
-        // Recalcula as datas de aula da grade pro período deste PEI e
-        // adiciona só as que ainda não estão na planilha — não mexe nos
-        // registros já existentes (nem apaga, nem sobrescreve a atividade
-        // já escrita), útil se a grade mudou depois de criado o PEI.
+        // Recalcula as datas de aula da grade pro período deste PEI. Pra
+        // datas que já existem na planilha mas ainda sem atividade escrita,
+        // completa com o nome da aula agora que ele já pode ser calculado
+        // (ex: PEI criado antes de existir Planejamento pra essa semana) —
+        // nunca sobrescreve uma atividade que o professor já editou. Datas
+        // que ainda não existem são adicionadas, já com o nome da aula.
         window.preencherDatasDaGrade = function () {
             const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
             const linhas = montarLinhasPlanilha(aluno, documentoRascunho.dataInicio, documentoRascunho.dataTermino);
@@ -642,6 +644,16 @@
                 return;
             }
             documentoRascunho.planilhaAcompanhamento = documentoRascunho.planilhaAcompanhamento || [];
+            const atividadePorData = new Map(linhas.map(l => [l.data, l.atividade]));
+
+            let completadas = 0;
+            documentoRascunho.planilhaAcompanhamento.forEach(linha => {
+                if (!linha.atividade && atividadePorData.has(linha.data)) {
+                    const atividade = atividadePorData.get(linha.data);
+                    if (atividade) { linha.atividade = atividade; completadas++; }
+                }
+            });
+
             const datasJaExistentes = new Set(documentoRascunho.planilhaAcompanhamento.map(a => a.data));
             let adicionadas = 0;
             linhas.forEach(linha => {
@@ -650,9 +662,23 @@
                     adicionadas++;
                 }
             });
+
             documentoRascunho.planilhaAcompanhamento.sort((a, b) => (a.data || '').localeCompare(b.data || ''));
             document.getElementById('peiAtividades').innerHTML = renderizarAtividades();
-            showToast(adicionadas > 0 ? `${adicionadas} data(s) adicionada(s).` : 'Todas as datas de aula já estavam na planilha.', 'success');
+
+            const aindaEmBranco = documentoRascunho.planilhaAcompanhamento.filter(a => !a.atividade).length;
+
+            if (adicionadas === 0 && completadas === 0) {
+                showToast(aindaEmBranco > 0
+                    ? `Nenhuma novidade — ${aindaEmBranco} data(s) continuam sem nome de aula porque não há Planejamento lançado pra elas ainda.`
+                    : 'Nada pra atualizar — todas as datas já estão na planilha e com o nome da aula preenchido.', aindaEmBranco > 0 ? 'info' : 'success');
+            } else {
+                const partes = [];
+                if (adicionadas > 0) partes.push(`${adicionadas} data(s) adicionada(s)`);
+                if (completadas > 0) partes.push(`${completadas} nome(s) de aula completado(s)`);
+                if (aindaEmBranco > 0) partes.push(`${aindaEmBranco} ainda sem Planejamento lançado`);
+                showToast(partes.join(', ') + '.', 'success');
+            }
         };
 
         window.salvarDocumentoAtual = async function () {
