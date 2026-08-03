@@ -389,6 +389,19 @@
             return (bimestral && bimestral.unidadesTematicas) || [];
         }
 
+        // Chamada por atualizarEspecificacoes pra destacar quais objetos de
+        // conhecimento já foram planejados pro bimestre — mas o Planejamento
+        // Bimestral só guarda unidadesTematicas (nível de unidade), não uma
+        // lista de objetos de conhecimento por unidade. Sem essa granularidade
+        // ainda, não tem "sugeridas" real pra devolver: retorna [] de propósito,
+        // o que faz atualizarEspecificacoes cair no branch normal e listar
+        // todos os objetos da unidade (sem o destaque "planejado pro
+        // bimestre", que exigiria uma extensão futura do Planejamento
+        // Bimestral pra guardar isso).
+        function especificacoesSugeridasBimestre() {
+            return [];
+        }
+
         // ---------- Cascata BNCC (turma → unidade → especificação → habilidades) ----------
         // Só existe conteúdo curado (data/bncc-curriculum.js) pra Educação
         // Física — pra qualquer outro componente que a escola tenha marcado
