@@ -216,6 +216,79 @@ export function montarRelatorioBNCC(aulasFiltradas, { bnccCatalogoPorComponente,
     return linhas;
 }
 
+// ---------- Relatório: Banco de Atividades ----------
+export function filtrarAtividades(atividades, filtros = {}) {
+    const { turma, componenteCurricular } = filtros;
+    return (atividades || []).filter(a => {
+        if (turma && a.turma !== turma) return false;
+        if (componenteCurricular && a.componenteCurricular !== componenteCurricular) return false;
+        return true;
+    });
+}
+
+export function calcularIndicadoresAtividades(atividadesFiltradas) {
+    const lista = atividadesFiltradas || [];
+    const ativas = lista.filter(a => !a.arquivada);
+
+    function contarPor(campo, padrao) {
+        const mapa = new Map();
+        ativas.forEach(a => {
+            const chave = a[campo] || padrao;
+            mapa.set(chave, (mapa.get(chave) || 0) + 1);
+        });
+        return [...mapa.entries()].map(([chave, quantidade]) => ({ chave, quantidade }));
+    }
+
+    return {
+        total: lista.length,
+        ativas: ativas.length,
+        arquivadas: lista.length - ativas.length,
+        nuncaUsadas: ativas.filter(a => (a.usos || []).length === 0).length,
+        totalUsos: ativas.reduce((soma, a) => soma + (a.usos || []).length, 0),
+        comVariacoes: ativas.filter(a => (a.variacoes || []).length > 0).length,
+        porTipo: contarPor('tipo', 'Outros'),
+        porOrigem: contarPor('origem', 'manual')
+    };
+}
+
+// Cobertura do Banco de Atividades: quais habilidades do catálogo completo
+// já têm pelo menos uma atividade cadastrada, por turma+componente — mesmo
+// formato de montarRelatorioBNCC, só que "trabalhados" (Controlador) vira
+// "com atividade cadastrada" (Banco).
+export function montarCoberturaBNCCAtividades(atividadesFiltradas, { bnccCatalogoPorComponente, serieDaTurmaFn }) {
+    const combos = new Map(); // "turma|||componente" -> { turma, componenteCurricular, cobertos: Set }
+    (atividadesFiltradas || []).filter(a => !a.arquivada).forEach(a => {
+        if (!a.turma || !a.componenteCurricular) return;
+        const chave = `${a.turma}|||${a.componenteCurricular}`;
+        if (!combos.has(chave)) {
+            combos.set(chave, { turma: a.turma, componenteCurricular: a.componenteCurricular, cobertos: new Set() });
+        }
+        const combo = combos.get(chave);
+        (a.habilidades || []).forEach(h => combo.cobertos.add(h.codigo || h));
+    });
+
+    const linhas = [];
+    combos.forEach(combo => {
+        const serie = serieDaTurmaFn(combo.turma);
+        const catalogo = bnccCatalogoPorComponente[combo.componenteCurricular];
+        const habilidadesPorUnidade = catalogo && catalogo.habilidadesBNCC && catalogo.habilidadesBNCC[serie];
+        if (!habilidadesPorUnidade) return;
+
+        Object.entries(habilidadesPorUnidade).forEach(([unidadeTematica, porEspecificacao]) => {
+            Object.entries(porEspecificacao).forEach(([especificacao, habilidadesList]) => {
+                (habilidadesList || []).forEach(h => {
+                    const codigo = h.codigo || h;
+                    const descricao = h.descricao || '';
+                    const status = combo.cobertos.has(codigo) ? 'coberta' : 'sem-atividade';
+                    linhas.push({ turma: combo.turma, serie, componenteCurricular: combo.componenteCurricular, unidadeTematica, especificacao, codigo, descricao, status });
+                });
+            });
+        });
+    });
+
+    return linhas;
+}
+
 // ---------- Período (filtro de data) ----------
 function paraISO(data) {
     const ano = data.getFullYear();

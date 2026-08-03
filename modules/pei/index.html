@@ -218,8 +218,9 @@
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirControlador } from "../../scripts/services/controlador-service.js";
         import { ouvirTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
-        import { ouvirGrade, normalizarCelula } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
+        import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
         import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
         import {
             ouvirPeiAlunos, salvarPeiAluno, removerPeiAluno,
@@ -236,7 +237,8 @@
         let escolaAtualId = null;
         let escolasCarregadas = [];
         let unsubControlador = null, unsubTurmas = null, unsubGrade = null, unsubConfiguracoes = null;
-        let unsubPeiAlunos = null, unsubPeiDocumentos = null, unsubVersoes = null;
+        let unsubPeiAlunos = null, unsubPeiDocumentos = null, unsubVersoes = null, unsubAtividadesBanco = null;
+        let atividadesBanco = [];
 
         let aulasControlador = [];
         let turmasAtuais = [];
@@ -703,6 +705,9 @@
                 '"avaliacaoPeriodo" (texto corrido descrevendo como a avaliação será conduzida com esse estudante ' +
                 'nesse período) e "adaptacoesFuncionais" (texto corrido com adaptações funcionais concretas pras ' +
                 'atividades desse conteúdo, considerando a deficiência informada). ' +
+                'Se o contexto tiver "atividadesBanco" (atividades já cadastradas para esse componente/habilidades), ' +
+                'use-as como referência concreta em "metodologiaRecursos"/"adaptacoesFuncionais", citando-as pelo nome ' +
+                'quando fizer sentido — não invente uma atividade diferente das listadas. ' +
                 'Responda SOMENTE um JSON no formato {"metodologiaRecursos":"...","avaliacaoPeriodo":"...","adaptacoesFuncionais":"..."}, ' +
                 'sem markdown, sem comentários, em português do Brasil, tom profissional e objetivo.';
         }
@@ -710,7 +715,7 @@
         window.gerarComIA = async function () {
             const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
             if (!aluno || !documentoRascunho) return;
-            const contexto = montarContextoIA(aluno, aulasControlador);
+            const contexto = montarContextoIA(aluno, aulasControlador, atividadesBanco);
             if (contexto.objetosConhecimento.length === 0) {
                 showToast('Nenhuma aula encontrada no Controlador para a turma/componente deste estudante ainda — cadastre o Planejamento primeiro.', 'info');
             }
@@ -839,6 +844,12 @@
             });
         }
 
+        function carregarAtividadesBanco() {
+            return ouvirAtividades(escolaAtualId, (snap) => {
+                atividadesBanco = snap.docs.map(d => ({ id: d.id, ...d.data(), componenteCurricular: d.data().componenteCurricular || COMPONENTE_CURRICULAR_PADRAO }));
+            });
+        }
+
         function renderizarTudo() {
             renderizarListaAlunos();
             renderizarPainelCentral();
@@ -856,10 +867,12 @@
             if (unsubConfiguracoes) unsubConfiguracoes();
             if (unsubPeiAlunos) unsubPeiAlunos();
             if (unsubPeiDocumentos) unsubPeiDocumentos();
+            if (unsubAtividadesBanco) unsubAtividadesBanco();
             unsubControlador = carregarControlador();
             unsubTurmas = carregarTurmas();
             unsubGrade = carregarGrade();
             unsubConfiguracoes = carregarConfiguracoes();
+            unsubAtividadesBanco = carregarAtividadesBanco();
             unsubPeiAlunos = carregarPeiAlunos();
             unsubPeiDocumentos = carregarPeiDocumentos();
         });

@@ -106,6 +106,9 @@
                         <div class="pf-search-field">
                             <input type="text" id="baBusca" placeholder="Buscar por título, descrição, palavra-chave ou habilidade (ex: EF05MA08)...">
                         </div>
+                        <select class="pf-filter-select" id="baFiltroComponente">
+                            <option value="">Todos os componentes</option>
+                        </select>
                         <select class="pf-filter-select" id="baFiltroSerie">
                             <option value="">Todas as séries</option>
                         </select>
@@ -117,6 +120,7 @@
                     </div>
                     <div class="ba-barra-acoes">
                         <button class="pf-btn pf-btn--success" onclick="novaAtividade()">➕ Nova Atividade</button>
+                        <button class="pf-btn pf-btn--secondary" onclick="document.getElementById('baInputImportacao').click()">📥 Importar</button>
                         <button class="pf-btn pf-btn--info" onclick="exportarAtividadesCsv()">⬇️ Exportar</button>
                     </div>
                 </div>
@@ -130,6 +134,28 @@
             </div>
         </div>
     </div>
+
+    <input type="file" id="baInputImportacao" accept=".docx,.pdf,.txt" style="display:none;">
+
+    <pf-modal id="modalVariacoes">
+        <div class="pf-modal-header">
+            <h2 style="font-size:1.1rem;">🔀 Variações da Atividade</h2>
+            <span style="cursor:pointer;" onclick="document.getElementById('modalVariacoes').close()">&times;</span>
+        </div>
+        <div class="pf-modal-body">
+            <div id="baListaVariacoes"></div>
+            <hr style="margin: var(--pf-space-3) 0; border-color: var(--pf-gray-200);">
+            <div class="pf-field">
+                <label for="baNovaVariacaoTitulo">Título da variação</label>
+                <input type="text" id="baNovaVariacaoTitulo" placeholder="Ex: Com colchonete">
+            </div>
+            <div class="pf-field">
+                <label for="baNovaVariacaoDescricao">Descrição</label>
+                <textarea id="baNovaVariacaoDescricao" rows="3"></textarea>
+            </div>
+            <button type="button" class="pf-btn pf-btn--success" onclick="adicionarVariacaoAtual()">+ Adicionar Variação</button>
+        </div>
+    </pf-modal>
 
     <pf-modal id="modalAtividade">
         <div class="pf-modal-header">
@@ -151,8 +177,16 @@
                     <textarea id="baObjetivo" rows="2"></textarea>
                 </div>
                 <div class="pf-field">
+                    <button type="button" class="pf-btn pf-btn--info" id="btnGerarAtividadeIA" onclick="gerarAtividadeComIA()">🤖 Gerar com IA</button>
+                    <span style="font-size:0.78rem;color:var(--pf-gray-500);">Preencha componente, série e unidade temática antes.</span>
+                </div>
+                <div class="pf-field">
                     <label for="baTipo">Tipo de Atividade *</label>
                     <select id="baTipo" required></select>
+                </div>
+                <div class="pf-field">
+                    <label for="baComponente">Componente Curricular *</label>
+                    <select id="baComponente" required onchange="atualizarUnidadesTematicasBA()"></select>
                 </div>
                 <div class="pf-field">
                     <label for="baTurma">Série (BNCC)</label>
@@ -205,11 +239,41 @@
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { auth } from "../../scripts/firebase-config.js";
+        import { COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import {
             ouvirAtividades, criarAtividade, atualizarAtividade, excluirAtividade,
-            duplicarAtividade, favoritar, desfavoritar, arquivar, desarquivar
+            duplicarAtividade, favoritar, desfavoritar, arquivar, desarquivar,
+            adicionarVariacao, atualizarVariacao, removerVariacao
         } from "../../scripts/services/atividades-service.js";
-        import { unidadesPorAno, especificacoesPorUnidade, habilidadesBNCC } from "../../data/bncc-curriculum.js";
+        import { buscarAtividadesCompativeis } from "../../scripts/services/atividades-busca.js";
+        import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
+        import { extrairTextoDocxAtividade } from "../../scripts/services/atividade-docx-extrator.js";
+        import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
+        import * as bnccArte from "../../data/bncc-curriculum-arte.js";
+        import * as bnccEnsinoReligioso from "../../data/bncc-curriculum-ensino-religioso.js";
+        import * as bnccCiencias from "../../data/bncc-curriculum-ciencias.js";
+        import * as bnccGeografia from "../../data/bncc-curriculum-geografia.js";
+        import * as bnccHistoria from "../../data/bncc-curriculum-historia.js";
+        import * as bnccMatematica from "../../data/bncc-curriculum-matematica.js";
+        import * as bnccLinguaInglesa from "../../data/bncc-curriculum-lingua-inglesa.js";
+        import * as bnccLinguaPortuguesa from "../../data/bncc-curriculum-lingua-portuguesa.js";
+        import * as bnccComputacao from "../../data/bncc-curriculum-computacao.js";
+
+        // Mesmo mapa de modules/planejamento/index.html — cada componente com
+        // BNCC curada tem seu próprio arquivo em data/, mesmo formato
+        // (unidadesPorAno/especificacoesPorUnidade/habilidadesBNCC).
+        const BNCC_POR_COMPONENTE = {
+            [COMPONENTE_CURRICULAR_PADRAO]: bnccEducacaoFisica,
+            "Arte": bnccArte,
+            "Ensino Religioso": bnccEnsinoReligioso,
+            "Ciências": bnccCiencias,
+            "Geografia": bnccGeografia,
+            "História": bnccHistoria,
+            "Matemática": bnccMatematica,
+            "Língua Inglesa": bnccLinguaInglesa,
+            "Língua Portuguesa": bnccLinguaPortuguesa,
+            "Computação": bnccComputacao
+        };
 
         // ---------- Constantes ----------
         const TURMAS_DISPONIVEIS = ["1º Ano","2º Ano","3º Ano","4º Ano","5º Ano","6º Ano","7º Ano","8º Ano","9º Ano"];
@@ -224,14 +288,17 @@
         let unsubAtividades = null;
         let atividades = [];
         let uidAtual = null;
+        let componentesAtivos = [COMPONENTE_CURRICULAR_PADRAO];
 
         let termoBusca = '';
         let filtroSerie = '';
         let filtroTipo = '';
+        let filtroComponente = '';
         let somenteFavoritas = false;
         let mostrarArquivadas = false;
 
         let atividadeEditando = null; // id da atividade em edição, null = criando nova
+        let origemAtualForm = 'manual'; // 'manual' | 'ia' | 'importacao' — só usado na criação
 
         // ---------- Helpers ----------
         function mostrarMensagem(texto, tipo) {
@@ -248,6 +315,12 @@
         // branch de unidade sem especificação em atualizarEspecificacoesBA, e
         // habilidadesPreSelecionadasBA setada/resetada ao redor da cascata na edição) ----------
         let habilidadesPreSelecionadasBA = null;
+
+        function bnccAtualBA() {
+            const componenteSelect = document.getElementById('baComponente');
+            const componente = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
+            return BNCC_POR_COMPONENTE[componente];
+        }
 
         window.atualizarUnidadesTematicasBA = function () {
             const turmaSelect = document.getElementById('baTurma');
@@ -267,7 +340,8 @@
                 return;
             }
 
-            const unidades = unidadesPorAno[turmaSelecionada] || [];
+            const bncc = bnccAtualBA();
+            const unidades = (bncc && bncc.unidadesPorAno[turmaSelecionada]) || [];
             if (unidades.length === 0) {
                 unidadeTematicaSelect.innerHTML = '<option value="">Nenhuma unidade encontrada</option>';
                 return;
@@ -304,7 +378,8 @@
                 return;
             }
 
-            const especificacoes = (especificacoesPorUnidade[turmaSelect.value] || {})[unidadeSelecionada] || [];
+            const bncc = bnccAtualBA();
+            const especificacoes = (bncc && (bncc.especificacoesPorUnidade[turmaSelect.value] || {})[unidadeSelecionada]) || [];
             if (especificacoes.length > 0) {
                 especificacaoGroup.classList.remove('hidden');
                 especificacoes.forEach(espec => {
@@ -317,7 +392,7 @@
             } else {
                 especificacaoGroup.classList.add('hidden');
                 const turmaSelecionada = turmaSelect.value;
-                const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
+                const habilidadesTurma = bncc && bncc.habilidadesBNCC[turmaSelecionada];
                 if (habilidadesTurma && habilidadesTurma[unidadeSelecionada]) {
                     const habilidades = [];
                     Object.values(habilidadesTurma[unidadeSelecionada]).forEach(especHabilidades => {
@@ -348,7 +423,8 @@
                 return;
             }
 
-            const habilidadesTurma = habilidadesBNCC[turmaSelecionada];
+            const bncc = bnccAtualBA();
+            const habilidadesTurma = bncc && bncc.habilidadesBNCC[turmaSelecionada];
             if (!habilidadesTurma) {
                 habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Nenhuma habilidade encontrada para esta série</p>';
                 return;
@@ -419,9 +495,23 @@
         function renderizarTudo() {
             renderizarEstatisticas();
             renderizarGrid();
+            if (atividadeVariacoesAbertas) renderizarListaVariacoes();
         }
 
         // ---------- Barra superior ----------
+        // Componente ativo pode mudar quando a escola muda (pf-escola-ready) —
+        // por isso os selects de componente são repopulados à parte, não só
+        // na inicialização fixa como série/tipo.
+        function atualizarSelectsComponenteBA() {
+            const valorFiltroAnterior = document.getElementById('baFiltroComponente').value;
+            document.getElementById('baFiltroComponente').innerHTML =
+                '<option value="">Todos os componentes</option>' +
+                componentesAtivos.map(c => `<option value="${c}">${c}</option>`).join('');
+            if (componentesAtivos.includes(valorFiltroAnterior)) document.getElementById('baFiltroComponente').value = valorFiltroAnterior;
+
+            document.getElementById('baComponente').innerHTML = componentesAtivos.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
         function inicializarBarraSuperior() {
             const selectSerie = document.getElementById('baFiltroSerie');
             selectSerie.innerHTML += TURMAS_DISPONIVEIS.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -430,6 +520,8 @@
             const selectTipo = document.getElementById('baFiltroTipo');
             selectTipo.innerHTML += TIPOS_ATIVIDADE.map(t => `<option value="${t}">${t}</option>`).join('');
             selectTipo.addEventListener('change', (e) => { filtroTipo = e.target.value; renderizarGrid(); });
+
+            document.getElementById('baFiltroComponente').addEventListener('change', (e) => { filtroComponente = e.target.value; renderizarGrid(); });
 
             document.getElementById('baBusca').addEventListener('input', (e) => {
                 termoBusca = e.target.value.toLowerCase();
@@ -449,6 +541,7 @@
             selectTurmaForm.innerHTML += TURMAS_DISPONIVEIS.map(t => `<option value="${t}">${t}</option>`).join('');
             const selectTipoForm = document.getElementById('baTipo');
             selectTipoForm.innerHTML = TIPOS_ATIVIDADE.map(t => `<option value="${t}">${t}</option>`).join('');
+            atualizarSelectsComponenteBA();
         }
 
         // ---------- Inicialização ----------
@@ -462,6 +555,11 @@
 
         document.addEventListener('pf-escola-ready', (evento) => {
             escolaAtualId = evento.detail.escolaId;
+            const escolaAtiva = (evento.detail.escolas || []).find(e => e.id === escolaAtualId);
+            componentesAtivos = (escolaAtiva && escolaAtiva.componentesAtivos && escolaAtiva.componentesAtivos.length > 0)
+                ? escolaAtiva.componentesAtivos
+                : [COMPONENTE_CURRICULAR_PADRAO];
+            atualizarSelectsComponenteBA();
             if (unsubAtividades) unsubAtividades();
             unsubAtividades = carregarAtividades();
         });
@@ -470,6 +568,7 @@
         function atividadesFiltradas() {
             return atividades.filter(a => {
                 if (!mostrarArquivadas && a.arquivada) return false;
+                if (filtroComponente && (a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO) !== filtroComponente) return false;
                 if (filtroSerie && a.turma !== filtroSerie) return false;
                 if (filtroTipo && a.tipo !== filtroTipo) return false;
                 if (somenteFavoritas && !(a.favoritadoPor || []).includes(uidAtual)) return false;
@@ -517,17 +616,20 @@
                 container.innerHTML = '<p class="ba-estado-vazio">Nenhuma atividade encontrada com os filtros atuais.</p>';
                 return;
             }
+            const iconeOrigem = { manual: '', ia: '🤖', importacao: '📥' };
             container.innerHTML = lista.map(a => {
                 const favoritada = (a.favoritadoPor || []).includes(uidAtual);
                 const habilidadesTexto = (a.habilidades || []).map(h => h.codigo).join(', ');
                 const descricaoResumo = (a.descricao || '').length > 100 ? a.descricao.substring(0, 100) + '…' : (a.descricao || '');
+                const qtdVariacoes = (a.variacoes || []).length;
                 return `
                     <div class="pf-card ba-card ${a.arquivada ? 'ba-card--arquivada' : ''}">
                         <div class="ba-card-topo">
-                            <div class="ba-card-titulo">${a.titulo}</div>
+                            <div class="ba-card-titulo">${iconeOrigem[a.origem] ? iconeOrigem[a.origem] + ' ' : ''}${a.titulo}</div>
                             <button class="ba-card-fav" onclick="toggleFavorito('${a.id}')" title="Favoritar">${favoritada ? '⭐' : '☆'}</button>
                         </div>
                         <div class="ba-card-badges">
+                            <span class="ba-card-badge">${a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO}</span>
                             <span class="ba-card-badge ba-card-badge--tipo">${a.tipo || 'Outros'}</span>
                             ${a.turma ? `<span class="ba-card-badge">${a.turma}</span>` : ''}
                             ${a.arquivada ? `<span class="ba-card-badge">Arquivada</span>` : ''}
@@ -540,6 +642,7 @@
                         </div>
                         <div class="ba-card-acoes">
                             <button class="pf-btn pf-btn--secondary" onclick="editarAtividade('${a.id}')">✏️ Editar</button>
+                            <button class="pf-btn pf-btn--secondary" onclick="abrirVariacoes('${a.id}')">🔀 Variações (${qtdVariacoes})</button>
                             <button class="pf-btn pf-btn--secondary" onclick="duplicarAtividadeAtual('${a.id}')">📋 Duplicar</button>
                             <button class="pf-btn pf-btn--secondary" onclick="toggleArquivar('${a.id}', ${a.arquivada ? 'true' : 'false'})">${a.arquivada ? '📤 Restaurar' : '🗄️ Arquivar'}</button>
                             <button class="pf-btn pf-btn--danger" onclick="excluirAtividadeAtual('${a.id}')">🗑️ Excluir</button>
@@ -552,8 +655,10 @@
         // ---------- Modal de cadastro/edição ----------
         window.novaAtividade = function () {
             atividadeEditando = null;
+            origemAtualForm = 'manual';
             document.getElementById('modalAtividadeTitulo').textContent = '➕ Nova Atividade';
             document.getElementById('formAtividade').reset();
+            document.getElementById('baComponente').value = componentesAtivos[0] || COMPONENTE_CURRICULAR_PADRAO;
             atualizarUnidadesTematicasBA();
             document.getElementById('modalAtividade').open();
         };
@@ -562,6 +667,7 @@
             const a = atividades.find(x => x.id === id);
             if (!a) return;
             atividadeEditando = id;
+            origemAtualForm = a.origem || 'manual';
             const linkExistente = (a.arquivos || []).find(arq => arq.tipo === 'link');
 
             document.getElementById('modalAtividadeTitulo').textContent = '✏️ Editar Atividade';
@@ -573,6 +679,7 @@
             document.getElementById('baVisibilidade').value = a.visibilidade || 'privada';
             document.getElementById('baLinkExterno').value = linkExistente ? linkExistente.url : '';
 
+            document.getElementById('baComponente').value = a.componenteCurricular || componentesAtivos[0] || COMPONENTE_CURRICULAR_PADRAO;
             document.getElementById('baTurma').value = a.turma || '';
             habilidadesPreSelecionadasBA = a.habilidades || [];
             atualizarUnidadesTematicasBA();
@@ -595,6 +702,7 @@
                 descricao: document.getElementById('baDescricao').value,
                 objetivo: document.getElementById('baObjetivo').value,
                 tipo: document.getElementById('baTipo').value,
+                componenteCurricular: document.getElementById('baComponente').value || COMPONENTE_CURRICULAR_PADRAO,
                 turma: document.getElementById('baTurma').value || null,
                 unidadeTematica: document.getElementById('baUnidadeTematica').value || null,
                 especificacao: document.getElementById('baEspecificacao').value || null,
@@ -611,6 +719,7 @@
 
             try {
                 if (!atividadeEditando) {
+                    dados.origem = origemAtualForm;
                     await criarAtividade(escolaAtualId, dados);
                 } else {
                     await atualizarAtividade(escolaAtualId, atividadeEditando, dados);
@@ -640,7 +749,9 @@
         window.duplicarAtividadeAtual = async function (id) {
             const original = atividades.find(a => a.id === id);
             try {
-                await duplicarAtividade(escolaAtualId, id, { titulo: `${original ? original.titulo : ''} (cópia)` });
+                // Duplicar é sempre uma ação manual, mesmo que o original
+                // tenha vindo de IA/importação.
+                await duplicarAtividade(escolaAtualId, id, { titulo: `${original ? original.titulo : ''} (cópia)`, origem: 'manual' });
                 mostrarMensagem('Atividade duplicada!', 'success');
             } catch (erro) {
                 mostrarMensagem('Erro ao duplicar: ' + erro.message, 'error');
@@ -663,6 +774,196 @@
                 mostrarMensagem('Atividade excluída!', 'success');
             } catch (erro) {
                 mostrarMensagem('Erro ao excluir: ' + erro.message, 'error');
+            }
+        };
+
+        // ---------- Gerar com IA ----------
+        function montarContextoIABA() {
+            const componenteCurricular = document.getElementById('baComponente').value;
+            const turma = document.getElementById('baTurma').value;
+            const unidadeTematica = document.getElementById('baUnidadeTematica').value;
+            if (!componenteCurricular || !turma || !unidadeTematica) {
+                mostrarMensagem('Preencha componente, série e unidade temática antes de gerar com IA.', 'error');
+                return null;
+            }
+            return {
+                componenteCurricular, turma, unidadeTematica,
+                especificacao: document.getElementById('baEspecificacao').value || null,
+                habilidades: getHabilidadesSelecionadasBA(),
+                tipo: document.getElementById('baTipo').value || null
+            };
+        }
+
+        function buscarCompativeisParaContextoBA(contexto) {
+            const normalizadas = atividades.map(a => ({ ...a, componenteCurricular: a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO }));
+            return buscarAtividadesCompativeis(normalizadas, {
+                componenteCurricular: contexto.componenteCurricular,
+                unidadeTematica: contexto.unidadeTematica,
+                especificacao: contexto.especificacao,
+                habilidadesCodigos: contexto.habilidades.map(h => h.codigo)
+            }, { excluirIds: atividadeEditando ? [atividadeEditando] : [] });
+        }
+
+        function montarPromptIABA(contexto) {
+            return `Sugira, em português, uma atividade pedagógica de ${contexto.componenteCurricular} do tipo "${contexto.tipo || 'Outros'}", com base no objeto de conhecimento e nas habilidades da BNCC informados no contexto. Responda SOMENTE um JSON no formato {"titulo":"...","descricao":"...","objetivo":"...","palavrasChave":["..."]}, sem markdown, sem comentários, em português do Brasil.`;
+        }
+
+        function preencherFormularioComSugestao(extraido) {
+            document.getElementById('baTitulo').value = extraido.titulo || '';
+            document.getElementById('baDescricao').value = extraido.descricao || '';
+            document.getElementById('baObjetivo').value = extraido.objetivo || '';
+            document.getElementById('baPalavrasChave').value = (extraido.palavrasChave || []).join(', ');
+        }
+
+        window.gerarAtividadeComIA = async function () {
+            const contexto = montarContextoIABA();
+            if (!contexto) return;
+
+            const compativeis = buscarCompativeisParaContextoBA(contexto);
+            if (compativeis.length > 0) {
+                const continuar = confirm(`Encontramos ${compativeis.length} atividade(s) parecida(s) já cadastrada(s) (ex: "${compativeis[0].atividade.titulo}"). Deseja gerar uma nova com IA mesmo assim? (Cancelar pra revisar as existentes.)`);
+                if (!continuar) return;
+            }
+
+            const botao = document.getElementById('btnGerarAtividadeIA');
+            botao.disabled = true;
+            botao.textContent = '⏳ Gerando...';
+            try {
+                const resposta = await chamarAssistenteIA(montarPromptIABA(contexto), contexto, null, 'json');
+                let extraido;
+                try {
+                    extraido = JSON.parse(resposta);
+                } catch {
+                    throw new Error('o assistente respondeu: "' + resposta.slice(0, 200) + '"');
+                }
+                preencherFormularioComSugestao(extraido);
+                origemAtualForm = 'ia';
+                mostrarMensagem('Atividade gerada! Revise os campos antes de salvar.', 'success');
+            } catch (erro) {
+                mostrarMensagem(erro.message, 'error');
+            } finally {
+                botao.disabled = false;
+                botao.textContent = '🤖 Gerar com IA';
+            }
+        };
+
+        // ---------- Importação de arquivos (DOCX/PDF/TXT) ----------
+        const TAMANHO_MAXIMO_IMPORTACAO = 8 * 1024 * 1024;
+
+        function arquivoParaBase64BA(file) {
+            return new Promise((resolve, reject) => {
+                const leitor = new FileReader();
+                leitor.onload = () => resolve(leitor.result.split(',')[1] || '');
+                leitor.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+                leitor.readAsDataURL(file);
+            });
+        }
+
+        function promptEstruturarAtividade() {
+            return 'Extraia desta atividade pedagógica os campos e responda SOMENTE um JSON no formato {"titulo":"...","descricao":"...","objetivo":"...","palavrasChave":["..."]}, sem markdown, sem comentários, em português do Brasil. Se o arquivo tiver múltiplas atividades, use a primeira. Não invente informação que não estiver no documento.';
+        }
+
+        async function processarImportacaoAtividade(file) {
+            if (file.size > TAMANHO_MAXIMO_IMPORTACAO) {
+                mostrarMensagem('Arquivo muito grande (máx. 8MB).', 'error');
+                return;
+            }
+            const extensao = (file.name.split('.').pop() || '').toLowerCase();
+            mostrarMensagem('Lendo o arquivo...', 'info');
+            try {
+                let extraido;
+                if (extensao === 'txt') {
+                    const texto = await file.text();
+                    extraido = { titulo: file.name.replace(/\.txt$/i, ''), descricao: texto, objetivo: '', palavrasChave: [] };
+                } else if (extensao === 'pdf') {
+                    const dadosBase64 = await arquivoParaBase64BA(file);
+                    const resposta = await chamarAssistenteIA(promptEstruturarAtividade(), null, { mimeType: file.type || 'application/pdf', dadosBase64 });
+                    try {
+                        extraido = JSON.parse(resposta);
+                    } catch {
+                        throw new Error('o assistente respondeu: "' + resposta.slice(0, 200) + '"');
+                    }
+                } else if (extensao === 'docx') {
+                    const texto = await extrairTextoDocxAtividade(file);
+                    const resposta = await chamarAssistenteIA(promptEstruturarAtividade(), { textoDocumento: texto }, null, 'json');
+                    try {
+                        extraido = JSON.parse(resposta);
+                    } catch {
+                        throw new Error('o assistente respondeu: "' + resposta.slice(0, 200) + '"');
+                    }
+                } else {
+                    mostrarMensagem('Formato não suportado. Use .docx, .pdf ou .txt.', 'error');
+                    return;
+                }
+
+                novaAtividade();
+                preencherFormularioComSugestao(extraido);
+                origemAtualForm = 'importacao';
+                mostrarMensagem('Documento lido! Revise os campos (e classifique BNCC) antes de salvar.', 'success');
+            } catch (erro) {
+                mostrarMensagem('Não foi possível importar: ' + erro.message, 'error');
+            }
+        }
+
+        document.getElementById('baInputImportacao').addEventListener('change', (evento) => {
+            const file = evento.target.files[0];
+            evento.target.value = '';
+            if (file) processarImportacaoAtividade(file);
+        });
+
+        // ---------- Variações ----------
+        let atividadeVariacoesAbertas = null;
+
+        function renderizarListaVariacoes() {
+            const a = atividades.find(x => x.id === atividadeVariacoesAbertas);
+            const container = document.getElementById('baListaVariacoes');
+            const variacoes = (a && a.variacoes) || [];
+            if (variacoes.length === 0) {
+                container.innerHTML = '<p class="ba-estado-vazio">Nenhuma variação cadastrada ainda.</p>';
+                return;
+            }
+            container.innerHTML = variacoes.map(v => `
+                <div class="pf-card" style="margin-bottom: var(--pf-space-2);">
+                    <strong>${v.titulo || '(sem título)'}</strong>
+                    <p style="font-size:0.85rem;color:var(--pf-gray-700);">${v.descricao || ''}</p>
+                    <div style="display:flex;gap:4px;">
+                        <button class="pf-btn pf-btn--danger" style="font-size:0.72rem;padding:4px 8px;" onclick="removerVariacaoAtual('${v.id}')">🗑️ Remover</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.abrirVariacoes = function (id) {
+            atividadeVariacoesAbertas = id;
+            document.getElementById('baNovaVariacaoTitulo').value = '';
+            document.getElementById('baNovaVariacaoDescricao').value = '';
+            renderizarListaVariacoes();
+            document.getElementById('modalVariacoes').open();
+        };
+
+        window.adicionarVariacaoAtual = async function () {
+            const titulo = document.getElementById('baNovaVariacaoTitulo').value.trim();
+            if (!titulo) { mostrarMensagem('Informe um título para a variação.', 'error'); return; }
+            try {
+                await adicionarVariacao(escolaAtualId, atividadeVariacoesAbertas, {
+                    titulo,
+                    descricao: document.getElementById('baNovaVariacaoDescricao').value.trim()
+                });
+                document.getElementById('baNovaVariacaoTitulo').value = '';
+                document.getElementById('baNovaVariacaoDescricao').value = '';
+                mostrarMensagem('Variação adicionada!', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao adicionar variação: ' + erro.message, 'error');
+            }
+        };
+
+        window.removerVariacaoAtual = async function (variacaoId) {
+            if (!confirm('Remover esta variação?')) return;
+            try {
+                await removerVariacao(escolaAtualId, atividadeVariacoesAbertas, variacaoId);
+                mostrarMensagem('Variação removida.', 'success');
+            } catch (erro) {
+                mostrarMensagem('Erro ao remover variação: ' + erro.message, 'error');
             }
         };
 

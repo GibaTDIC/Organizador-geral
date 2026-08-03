@@ -35,6 +35,8 @@ export function criarAtividade(escolaId, dados) {
         usos: [],
         arquivos: [],
         arquivada: false,
+        variacoes: [],
+        origem: 'manual',
         ...dados,
         criadoEm: agora,
         atualizadoEm: agora
@@ -85,4 +87,41 @@ export function registrarUso(escolaId, id, turma) {
     return updateDoc(atividadeDocRef(escolaId, id), {
         usos: arrayUnion({ turma, data: new Date().toISOString() })
     });
+}
+
+export function adicionarVariacao(escolaId, id, dadosVariacao) {
+    const variacao = {
+        id: crypto.randomUUID(),
+        titulo: dadosVariacao.titulo || '',
+        descricao: dadosVariacao.descricao || '',
+        materiais: dadosVariacao.materiais || '',
+        desenvolvimento: dadosVariacao.desenvolvimento || '',
+        avaliacao: dadosVariacao.avaliacao || '',
+        criadoEm: new Date().toISOString()
+    };
+    return updateDoc(atividadeDocRef(escolaId, id), {
+        variacoes: arrayUnion(variacao),
+        atualizadoEm: new Date().toISOString()
+    });
+}
+
+// Editar/remover um item específico do array precisa ler o documento
+// inteiro (arrayUnion/arrayRemove só casam por igualdade exata do objeto,
+// não por id) — diferente de favoritos/usos, aceitável aqui porque
+// variações normalmente são curadas pelo próprio autor da atividade, não
+// por vários professores da escola ao mesmo tempo.
+export async function atualizarVariacao(escolaId, id, variacaoId, dados) {
+    const snap = await getDoc(atividadeDocRef(escolaId, id));
+    if (!snap.exists()) throw new Error('Atividade não encontrada.');
+    const variacoes = (snap.data().variacoes || []).map(v =>
+        v.id === variacaoId ? { ...v, ...dados, id: variacaoId } : v
+    );
+    return updateDoc(atividadeDocRef(escolaId, id), { variacoes, atualizadoEm: new Date().toISOString() });
+}
+
+export async function removerVariacao(escolaId, id, variacaoId) {
+    const snap = await getDoc(atividadeDocRef(escolaId, id));
+    if (!snap.exists()) throw new Error('Atividade não encontrada.');
+    const variacoes = (snap.data().variacoes || []).filter(v => v.id !== variacaoId);
+    return updateDoc(atividadeDocRef(escolaId, id), { variacoes, atualizadoEm: new Date().toISOString() });
 }

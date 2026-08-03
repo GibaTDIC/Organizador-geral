@@ -74,6 +74,8 @@
         .rel-badge--trabalhada { background: #d4edda; color: #155724; }
         .rel-badge--prevista-nao-trabalhada { background: #fff3cd; color: #856404; }
         .rel-badge--pendente { background: #f8d7da; color: #721c24; }
+        .rel-badge--coberta { background: #d4edda; color: #155724; }
+        .rel-badge--sem-atividade { background: #f8d7da; color: #721c24; }
 
         .rel-nota { font-size: 0.78rem; color: var(--pf-gray-500); margin-top: var(--pf-space-3); }
         .rel-emissao { font-size: 0.78rem; color: var(--pf-gray-500); margin-top: var(--pf-space-4); text-align: center; }
@@ -152,12 +154,14 @@
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirControlador } from "../../scripts/services/controlador-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
-        import { ouvirGrade, normalizarCelula } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import { serieDaTurma } from "../../scripts/services/controlador-sync.js";
+        import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
         import {
             filtrarAulas, turmasDistintas, componentesDistintos, calcularIndicadores,
             montarRelatorioExecucao, montarRelatorioPlanejamentoPorTurma, montarRelatorioBNCC,
-            montarDiarioDeClasse, resolverDataRealAula, resolverPeriodoPreset
+            montarDiarioDeClasse, resolverDataRealAula, resolverPeriodoPreset,
+            filtrarAtividades, calcularIndicadoresAtividades, montarCoberturaBNCCAtividades
         } from "../../scripts/services/relatorios-service.js";
 
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -191,21 +195,23 @@
         // ---------- Estado ----------
         let escolaAtualId = null;
         let escolasCarregadas = [];
-        let unsubControlador = null, unsubConfiguracoes = null, unsubGrade = null;
+        let unsubControlador = null, unsubConfiguracoes = null, unsubGrade = null, unsubAtividades = null;
 
         let aulasControlador = [];
         let bimestresConfig = [];
         let gradeAtual = { matutino: [], vespertino: [] }; // só usado pela aba Diário de Classe, pra corrigir a data por turma
+        let atividadesBanco = [];
 
         let filtroTurma = '', filtroComponente = '', filtroBimestre = '';
         let filtroPeriodoPreset = 'bimestre';
-        let abaAtiva = 'execucao'; // 'execucao' | 'planejamento' | 'bncc' | 'diario'
+        let abaAtiva = 'execucao'; // 'execucao' | 'planejamento' | 'bncc' | 'diario' | 'atividades'
 
         const ABAS = [
             { id: 'execucao', label: '✅ Execução das Aulas' },
             { id: 'planejamento', label: '📚 Planejamento por Turma' },
             { id: 'bncc', label: '🧭 BNCC' },
-            { id: 'diario', label: '📋 Diário de Classe' }
+            { id: 'diario', label: '📋 Diário de Classe' },
+            { id: 'atividades', label: '🗂️ Banco de Atividades' }
         ];
 
         // ---------- Helpers ----------
@@ -396,6 +402,54 @@
             `;
         }
 
+        function renderizarAtividadesAba() {
+            const atividadesFiltradas = filtrarAtividades(atividadesBanco, { turma: filtroTurma || null, componenteCurricular: filtroComponente || null });
+            const ind = calcularIndicadoresAtividades(atividadesFiltradas);
+            const rotuloOrigem = { manual: 'Manual', ia: 'IA', importacao: 'Importação' };
+            const cobertura = montarCoberturaBNCCAtividades(atividadesFiltradas, { bnccCatalogoPorComponente: BNCC_POR_COMPONENTE, serieDaTurmaFn: serieDaTurma });
+
+            const cardsIndicadores = `
+                <div class="rel-indicadores" style="margin-bottom: var(--pf-space-4);">
+                    <div class="rel-indicador"><div class="rel-indicador-valor">${ind.ativas}</div><div class="rel-indicador-label">Ativas</div></div>
+                    <div class="rel-indicador"><div class="rel-indicador-valor">${ind.nuncaUsadas}</div><div class="rel-indicador-label">Nunca Usadas</div></div>
+                    <div class="rel-indicador"><div class="rel-indicador-valor">${ind.totalUsos}</div><div class="rel-indicador-label">Total de Usos</div></div>
+                    <div class="rel-indicador"><div class="rel-indicador-valor">${ind.comVariacoes}</div><div class="rel-indicador-label">Com Variações</div></div>
+                    ${ind.porOrigem.map(o => `<div class="rel-indicador"><div class="rel-indicador-valor">${o.quantidade}</div><div class="rel-indicador-label">Origem: ${rotuloOrigem[o.chave] || o.chave}</div></div>`).join('')}
+                </div>
+            `;
+
+            if (cobertura.length === 0) {
+                return cardsIndicadores + '<p class="rel-estado-vazio">Nenhuma habilidade encontrada — confira se a turma/componente selecionados têm atividades cadastradas com BNCC.</p>';
+            }
+
+            const rotuloStatus = { 'coberta': 'Com atividade', 'sem-atividade': 'Sem atividade' };
+            return cardsIndicadores + `
+                <div class="rel-table-wrap">
+                    <table class="pf-table">
+                        <thead>
+                            <tr>
+                                <th>Turma</th><th>Componente</th><th>Unidade Temática</th><th>Especificação</th>
+                                <th>Código</th><th>Habilidade</th><th>Situação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cobertura.map(l => `
+                                <tr>
+                                    <td>${l.turma}</td>
+                                    <td>${l.componenteCurricular}</td>
+                                    <td>${l.unidadeTematica}</td>
+                                    <td>${l.especificacao}</td>
+                                    <td>${l.codigo}</td>
+                                    <td>${l.descricao}</td>
+                                    <td><span class="rel-badge rel-badge--${l.status}">${rotuloStatus[l.status]}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
         // Estado auxiliar da aba Diário de Classe — os botões de copiar
         // referenciam por índice pra não precisar escapar texto livre (que
         // pode ter aspas/quebras de linha) dentro de um atributo onclick.
@@ -479,6 +533,7 @@
             else if (abaAtiva === 'planejamento') container.innerHTML = renderizarPlanejamento(aulasFiltradas);
             else if (abaAtiva === 'bncc') container.innerHTML = renderizarBNCC(aulasFiltradas);
             else if (abaAtiva === 'diario') container.innerHTML = renderizarDiario(aulasFiltradas);
+            else if (abaAtiva === 'atividades') container.innerHTML = renderizarAtividadesAba();
         }
 
         function renderizarEmissao() {
@@ -588,6 +643,13 @@
             });
         }
 
+        function carregarAtividades() {
+            return ouvirAtividades(escolaAtualId, (snap) => {
+                atividadesBanco = snap.docs.map(d => ({ id: d.id, ...d.data(), componenteCurricular: d.data().componenteCurricular || COMPONENTE_CURRICULAR_PADRAO }));
+                renderizarTudo();
+            });
+        }
+
         // ---------- Inicialização ----------
         requireAuth({ loginPath: '../../login.html' });
 
@@ -597,9 +659,11 @@
             if (unsubControlador) unsubControlador();
             if (unsubConfiguracoes) unsubConfiguracoes();
             if (unsubGrade) unsubGrade();
+            if (unsubAtividades) unsubAtividades();
             unsubControlador = carregarControlador();
             unsubConfiguracoes = carregarConfiguracoes();
             unsubGrade = carregarGrade();
+            unsubAtividades = carregarAtividades();
         });
     </script>
 </body>

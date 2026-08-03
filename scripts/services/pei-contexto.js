@@ -3,13 +3,18 @@
 // calcula. Separado de pei-service.js pra continuar testável com Node puro,
 // sem precisar simular o import do SDK do Firebase.
 import { resolverDataRealAula } from './relatorios-service.js';
+import { buscarAtividadesCompativeis } from './atividades-busca.js';
 
 // Agrega, a partir do Controlador já carregado (mesma fonte usada em
 // Relatórios), o que o Planejamento já sabe sobre a turma+componente do
 // aluno: objetos do conhecimento distintos e habilidades BNCC distintas
 // (planejadas ou trabalhadas). Isso vira o contexto curricular enviado à IA
 // — ela não inventa objeto/habilidade, só escreve a adaptação pedagógica.
-export function montarContextoIA(aluno, aulasControlador) {
+// `atividadesBanco` é opcional (retrocompatível com chamadas de 2
+// argumentos já em produção) — quando informado, busca atividades já
+// cadastradas compatíveis com o componente/habilidades do aluno pra IA usar
+// como referência concreta, em vez de inventar do zero.
+export function montarContextoIA(aluno, aulasControlador, atividadesBanco) {
     const relevantes = (aulasControlador || []).filter(a =>
         a.turma === aluno.turmaSistema && a.componenteCurricular === aluno.componenteCurricular
     );
@@ -26,12 +31,28 @@ export function montarContextoIA(aluno, aulasControlador) {
         });
     });
 
-    return {
+    const contexto = {
         objetosConhecimento,
         habilidades: [...habilidadesPorCodigo.values()],
         deficiencia: aluno.deficiencia || '',
         cid: aluno.cid || ''
     };
+
+    if (atividadesBanco && atividadesBanco.length > 0) {
+        const compativeis = buscarAtividadesCompativeis(atividadesBanco, {
+            componenteCurricular: aluno.componenteCurricular,
+            habilidadesCodigos: contexto.habilidades.map(h => h.codigo)
+        });
+        if (compativeis.length > 0) {
+            contexto.atividadesBanco = compativeis.slice(0, 8).map(r => ({
+                titulo: r.atividade.titulo,
+                tipo: r.atividade.tipo || null,
+                descricao: r.atividade.descricao || ''
+            }));
+        }
+    }
+
+    return contexto;
 }
 
 // 'DD/MM/AAAA' (formato dos bimestres em Configurações) -> 'AAAA-MM-DD'

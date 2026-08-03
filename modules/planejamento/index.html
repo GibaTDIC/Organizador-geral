@@ -238,6 +238,7 @@
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirAulas, criarAula, excluirAula as excluirAulaService } from "../../scripts/services/aulas-service.js";
         import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
+        import { buscarAtividadesCompativeis } from "../../scripts/services/atividades-busca.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { ouvirGrade, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -645,7 +646,51 @@
             }
         };
 
+        // Painel de "atividades compatíveis já cadastradas", acima da lista
+        // de checkboxes "Atividades Vinculadas" — não duplica a lista, só
+        // pré-marca um checkbox já existente quando o professor clica
+        // "+ Vincular" numa sugestão. Só funciona pra componentes com BNCC
+        // curada (precisa de código de habilidade pra comparar) — em
+        // componentes de texto livre (renderizarHabilidadesLivres) o painel
+        // fica vazio, sem chamada nenhuma daqui.
+        function renderizarSugestoesAtividadesCompativeis() {
+            const container = document.getElementById('plSugestoesAtividades');
+            if (!container) return;
+            const componenteSelect = document.getElementById('plAulaComponente');
+            const componenteCurricular = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
+            const unidadeTematica = document.getElementById('unidadeTematica')?.value;
+            if (!unidadeTematica) { container.innerHTML = ''; return; }
+
+            const jaVinculadas = Array.from(document.querySelectorAll('input[name="plAtividadeVinculada"]:checked')).map(cb => cb.value);
+            const normalizadas = atividadesDisponiveis.map(a => ({ ...a, componenteCurricular: a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO }));
+            const compativeis = buscarAtividadesCompativeis(normalizadas, {
+                componenteCurricular, unidadeTematica,
+                especificacao: document.getElementById('especificacao')?.value || null,
+                habilidadesCodigos: getHabilidadesSelecionadas().map(h => h.codigo)
+            }, { excluirIds: jaVinculadas });
+
+            if (compativeis.length === 0) { container.innerHTML = ''; return; }
+            container.innerHTML = `
+                <div class="pf-field" style="background:var(--pf-gray-100);border:2px dashed var(--pf-gray-300);border-radius:var(--pf-radius-md);padding:var(--pf-space-2);">
+                    <label>💡 Atividades compatíveis já cadastradas</label>
+                    ${compativeis.slice(0, 5).map(r => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:3px 0;font-size:0.85rem;">
+                            <span>${r.atividade.titulo} <span style="color:var(--pf-gray-500);">(${r.pontuacao} ponto(s) em comum)</span></span>
+                            <button type="button" class="pf-btn pf-btn--secondary" style="font-size:0.72rem;padding:4px 8px;" onclick="vincularAtividadeSugerida('${r.atividade.id}')">+ Vincular</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        window.vincularAtividadeSugerida = function (id) {
+            const cb = document.querySelector(`input[name="plAtividadeVinculada"][value="${id}"]`);
+            if (cb) cb.checked = true;
+            renderizarSugestoesAtividadesCompativeis();
+        };
+
         window.atualizarHabilidades = function () {
+            renderizarSugestoesAtividadesCompativeis();
             const componenteSelect = document.getElementById('plAulaComponente');
             const bncc = BNCC_POR_COMPONENTE[componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO];
             if (!bncc) return;
@@ -1400,6 +1445,7 @@
                         <label for="recursos">Recursos Didáticos Previstos (opcional)</label>
                         <textarea id="recursos" rows="2">${existente ? (existente.recursos || '') : ''}</textarea>
                     </div>
+                    <div id="plSugestoesAtividades"></div>
                     <div class="pf-field">
                         <label>Atividades Vinculadas (Banco de Atividades)</label>
                         <div id="plAtividadesVinculadas" style="max-height:160px;overflow-y:auto;border:2px solid var(--pf-gray-300);border-radius:var(--pf-radius-md);padding:var(--pf-space-2);background:var(--pf-white);">
