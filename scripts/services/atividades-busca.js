@@ -50,6 +50,10 @@ export function buscarAtividadesCompativeis(atividades, criterios, opcoes = {}) 
 function normalizarTitulo(titulo) {
     return (titulo || '')
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        // Indicador ordinal (\u00ba/\u00aa) \u2014 s\u00e9rie extra\u00edda de um documento \u00e0s vezes
+        // vem sem ele ("6 Ano" em vez de "6\u00ba Ano"); tratar como equivalente
+        // evita que s\u00f3 essa diferen\u00e7a quebre o match da s\u00e9rie.
+        .replace(/[\u00ba\u00aa]/g, '')
         .toLowerCase()
         .trim()
         .replace(/\s+/g, ' ');
@@ -73,4 +77,23 @@ export function buscarTitulosSimilares(atividades, criterios, opcoes = {}) {
         return tituloBusca.length >= 4 && tituloAtual.length >= 4 &&
             (tituloAtual.includes(tituloBusca) || tituloBusca.includes(tituloAtual));
     });
+}
+
+// Casa um texto lido de um documento importado (ex: a IA extraiu "Esportes
+// de Marca" do cabeçalho do arquivo) contra a lista de opções curadas da
+// BNCC pra aquele componente/série (ex: unidadesPorAno, especificacoesPor
+// Unidade[serie][unidade]) — mesma normalização de buscarTitulosSimilares
+// (sem acento/caixa/espaço). Nunca inventa uma opção que não exista na
+// lista curada; sem correspondência confiável, devolve null e quem chama
+// deixa o campo em branco pro professor escolher manualmente.
+export function encontrarOpcaoCorrespondente(valorExtraido, opcoesDisponiveis) {
+    const alvo = normalizarTitulo(valorExtraido);
+    if (!alvo) return null;
+    const lista = opcoesDisponiveis || [];
+    const exata = lista.find(op => normalizarTitulo(op) === alvo);
+    if (exata) return exata;
+    return lista.find(op => {
+        const opNorm = normalizarTitulo(op);
+        return opNorm.length >= 4 && alvo.length >= 4 && (opNorm.includes(alvo) || alvo.includes(opNorm));
+    }) || null;
 }

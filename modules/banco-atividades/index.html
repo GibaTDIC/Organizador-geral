@@ -220,9 +220,9 @@
                     </select>
                 </div>
                 <div class="pf-field ba-especificacao-group hidden" id="baEspecificacaoGroup">
-                    <label for="baEspecificacao">Especificação</label>
+                    <label for="baEspecificacao">Objeto de Conhecimento (BNCC)</label>
                     <select id="baEspecificacao" onchange="atualizarHabilidadesBA()">
-                        <option value="">Selecione a especificação</option>
+                        <option value="">Selecione o objeto de conhecimento</option>
                     </select>
                 </div>
                 <div class="pf-field">
@@ -264,7 +264,7 @@
             duplicarAtividade, favoritar, desfavoritar, arquivar, desarquivar,
             adicionarVariacao, atualizarVariacao, removerVariacao
         } from "../../scripts/services/atividades-service.js";
-        import { buscarAtividadesCompativeis, buscarTitulosSimilares } from "../../scripts/services/atividades-busca.js";
+        import { buscarAtividadesCompativeis, buscarTitulosSimilares, encontrarOpcaoCorrespondente } from "../../scripts/services/atividades-busca.js";
         import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
         import { extrairTextoDocxAtividade } from "../../scripts/services/atividade-docx-extrator.js";
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -351,11 +351,11 @@
             const turmaSelecionada = turmaSelect.value;
             unidadeTematicaSelect.innerHTML = '';
             especificacaoGroup.classList.add('hidden');
-            especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+            especificacaoSelect.innerHTML = '<option value="">Selecione o objeto de conhecimento</option>';
 
             if (!turmaSelecionada) {
                 unidadeTematicaSelect.innerHTML = '<option value="">Selecione a série primeiro</option>';
-                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a série, unidade temática e especificação primeiro</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione a série, unidade temática e objeto de conhecimento primeiro</p>';
                 return;
             }
 
@@ -389,7 +389,7 @@
             const habilidadesContainer = document.getElementById('baHabilidadesContainer');
 
             const unidadeSelecionada = unidadeTematicaSelect.value;
-            especificacaoSelect.innerHTML = '<option value="">Selecione a especificação</option>';
+            especificacaoSelect.innerHTML = '<option value="">Selecione o objeto de conhecimento</option>';
 
             if (!unidadeSelecionada) {
                 especificacaoGroup.classList.add('hidden');
@@ -407,7 +407,7 @@
                     option.textContent = espec;
                     especificacaoSelect.appendChild(option);
                 });
-                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione um objeto de conhecimento</p>';
             } else {
                 especificacaoGroup.classList.add('hidden');
                 const turmaSelecionada = turmaSelect.value;
@@ -438,7 +438,7 @@
                 return;
             }
             if (especificacaoGroup.classList.contains('hidden') === false && !especificacaoSelecionada) {
-                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione uma especificação</p>';
+                habilidadesContainer.innerHTML = '<p style="color:#666;text-align:center;">Selecione um objeto de conhecimento</p>';
                 return;
             }
 
@@ -844,6 +844,39 @@
             document.getElementById('baDescricao').value = extraido.descricao || '';
             document.getElementById('baObjetivo').value = extraido.objetivo || '';
             document.getElementById('baPalavrasChave').value = (extraido.palavrasChave || []).join(', ');
+            sugerirCascataBNCCBA(extraido.serie, extraido.unidadeTematica, extraido.objetoConhecimento);
+        }
+
+        // Tenta pré-selecionar Série → Unidade Temática → Objeto de
+        // Conhecimento (campo "especificacao" no dado salvo, mesmo termo
+        // interno usado em todo o app — ver Planejamento) com o que a IA
+        // leu EXPLICITAMENTE escrito no documento importado (ver
+        // promptEstruturarAtividade). Habilidades continuam sempre manuais
+        // — só esses três campos têm lista curada pra casar com segurança.
+        // Cada etapa só avança se achou uma correspondência real na lista
+        // da BNCC; sem match, para ali e deixa o resto pro professor
+        // escolher — nunca força uma opção incerta.
+        function sugerirCascataBNCCBA(serieExtraida, unidadeExtraida, objetoExtraido) {
+            if (!serieExtraida) return;
+            const serieCorrespondente = encontrarOpcaoCorrespondente(serieExtraida, TURMAS_DISPONIVEIS);
+            if (!serieCorrespondente) return;
+            document.getElementById('baTurma').value = serieCorrespondente;
+            atualizarUnidadesTematicasBA();
+
+            if (!unidadeExtraida) return;
+            const bncc = bnccAtualBA();
+            const unidadesDaSerie = (bncc && bncc.unidadesPorAno[serieCorrespondente]) || [];
+            const unidadeCorrespondente = encontrarOpcaoCorrespondente(unidadeExtraida, unidadesDaSerie);
+            if (!unidadeCorrespondente) return;
+            document.getElementById('baUnidadeTematica').value = unidadeCorrespondente;
+            atualizarEspecificacoesBA();
+
+            if (!objetoExtraido) return;
+            const especificacoesDaUnidade = (bncc && (bncc.especificacoesPorUnidade[serieCorrespondente] || {})[unidadeCorrespondente]) || [];
+            const objetoCorrespondente = encontrarOpcaoCorrespondente(objetoExtraido, especificacoesDaUnidade);
+            if (!objetoCorrespondente) return;
+            document.getElementById('baEspecificacao').value = objetoCorrespondente;
+            atualizarHabilidadesBA();
         }
 
         window.gerarAtividadeComIA = async function () {
@@ -891,7 +924,7 @@
         }
 
         function promptEstruturarAtividade() {
-            return 'Extraia deste documento as atividades pedagógicas nele descritas e responda SOMENTE um JSON no formato [{"titulo":"...","descricao":"...","objetivo":"...","palavrasChave":["..."]}, ...], sem markdown, sem comentários, em português do Brasil. Se o documento tiver várias atividades, inclua uma no array pra cada uma delas. Se tiver só uma, retorne um array com um único item. Não invente informação que não estiver no documento.';
+            return 'Extraia deste documento as atividades pedagógicas nele descritas e responda SOMENTE um JSON no formato [{"titulo":"...","descricao":"...","objetivo":"...","palavrasChave":["..."],"serie":"...","unidadeTematica":"...","objetoConhecimento":"..."}, ...], sem markdown, sem comentários, em português do Brasil. Os campos "serie" (ex: "6º Ano"), "unidadeTematica" e "objetoConhecimento" só devem ser preenchidos se estiverem EXPLICITAMENTE escritos no documento (ex: um cabeçalho ou rótulo "Unidade Temática:" ou "Objeto de Conhecimento:" na própria atividade) — nunca classifique ou infira por conta própria; se não estiver escrito no documento, deixe como null. Se o documento tiver várias atividades, inclua uma no array pra cada uma delas. Se tiver só uma, retorne um array com um único item. Não invente informação que não estiver no documento.';
         }
 
         function normalizarExtraidoImportacao(resposta) {
