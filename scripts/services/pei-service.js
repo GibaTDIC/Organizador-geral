@@ -9,6 +9,7 @@ import {
     doc,
     setDoc,
     deleteDoc,
+    getDocs,
     onSnapshot
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { salvarComHistorico, ouvirHistorico, restaurarVersao } from './historico-service.js';
@@ -59,4 +60,15 @@ export function ouvirVersoesPeiDocumento(escolaId, documentoId, callback) {
 
 export function restaurarVersaoPeiDocumento(escolaId, documentoId, dadosDaVersao) {
     return restaurarVersao(peiDocumentoDocRef(escolaId, documentoId), dadosDaVersao);
+}
+
+// Apaga o PEI do bimestre e o histórico de versões dele junto — sem isso
+// as versões antigas ficariam órfãs na subcoleção, inacessíveis pela UI
+// mas ainda ocupando espaço no Firestore. Usado quando o professor gerou
+// mais de um PEI pro mesmo bimestre e quer manter só o definitivo.
+export async function removerPeiDocumento(escolaId, id) {
+    const ref = peiDocumentoDocRef(escolaId, id);
+    const versoes = await getDocs(collection(ref, 'historico'));
+    await Promise.all(versoes.docs.map(v => deleteDoc(v.ref)));
+    await deleteDoc(ref);
 }

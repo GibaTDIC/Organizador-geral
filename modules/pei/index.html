@@ -51,6 +51,12 @@
             font-weight: 600; font-size: 0.82rem; cursor: pointer;
         }
         .pei-bimestre-tab--ativa { background: var(--pf-blue-700); border-color: var(--pf-blue-700); color: var(--pf-white); }
+        .pei-bimestre-item { display: inline-flex; align-items: center; gap: 2px; }
+        .pei-bimestre-excluir {
+            border: 2px solid var(--pf-gray-200); background: var(--pf-white); color: var(--pf-gray-500);
+            border-radius: var(--pf-radius-lg); width: 28px; height: 100%; cursor: pointer; font-size: 0.8rem;
+        }
+        .pei-bimestre-excluir:hover { background: var(--pf-danger); border-color: var(--pf-danger); color: var(--pf-white); }
 
         .pei-form-grupo { margin-bottom: var(--pf-space-4); }
         .pei-form-grupo label { display: block; font-weight: 600; font-size: 0.82rem; color: var(--pf-gray-700); margin-bottom: 4px; }
@@ -212,22 +218,27 @@
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirControlador } from "../../scripts/services/controlador-service.js";
         import { ouvirTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
+        import { ouvirGrade, normalizarCelula } from "../../scripts/services/grade-service.js";
+        import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
         import {
             ouvirPeiAlunos, salvarPeiAluno, removerPeiAluno,
-            ouvirPeiDocumentos, salvarPeiDocumento,
+            ouvirPeiDocumentos, salvarPeiDocumento, removerPeiDocumento,
             ouvirVersoesPeiDocumento, restaurarVersaoPeiDocumento
         } from "../../scripts/services/pei-service.js";
-        import { montarContextoIA } from "../../scripts/services/pei-contexto.js";
+        import { montarContextoIA, calcularDatasDeAulaNoPeriodo } from "../../scripts/services/pei-contexto.js";
         import { exportarPeiDocx } from "../../scripts/services/pei-docx-export.js";
 
         // ---------- Estado ----------
         let escolaAtualId = null;
         let escolasCarregadas = [];
-        let unsubControlador = null, unsubTurmas = null, unsubPeiAlunos = null, unsubPeiDocumentos = null, unsubVersoes = null;
+        let unsubControlador = null, unsubTurmas = null, unsubGrade = null, unsubConfiguracoes = null;
+        let unsubPeiAlunos = null, unsubPeiDocumentos = null, unsubVersoes = null;
 
         let aulasControlador = [];
         let turmasAtuais = [];
+        let gradeAtual = { matutino: [], vespertino: [] };
+        let diasEspeciaisConfig = [];
         let peiAlunos = [];
         let peiDocumentos = [];
         let versoesAtuais = [];
@@ -296,7 +307,10 @@
 
                     <div class="pei-bimestres">
                         ${documentosDoAluno.map(d => `
-                            <button type="button" class="pei-bimestre-tab${d.id === documentoSelecionadoId ? ' pei-bimestre-tab--ativa' : ''}" onclick="selecionarDocumento('${d.id}')">${d.bimestre}º Bim. ${d.anoLetivo || ''}</button>
+                            <span class="pei-bimestre-item">
+                                <button type="button" class="pei-bimestre-tab${d.id === documentoSelecionadoId ? ' pei-bimestre-tab--ativa' : ''}" onclick="selecionarDocumento('${d.id}')">${d.bimestre}º Bim. ${d.anoLetivo || ''}</button>
+                                <button type="button" class="pei-bimestre-excluir" title="Excluir este PEI" onclick="confirmarRemoverDocumento('${d.id}')">✕</button>
+                            </span>
                         `).join('')}
                         <button type="button" class="pei-bimestre-tab" onclick="abrirModalDocumento()">+ Novo PEI</button>
                     </div>
@@ -372,7 +386,10 @@
 
                 <h4 class="pei-secao-titulo">Planilha de Acompanhamento</h4>
                 <div id="peiAtividades">${renderizarAtividades()}</div>
-                <button class="pf-btn pf-btn--secondary" style="margin-bottom: var(--pf-space-4);" onclick="adicionarAtividade()">+ Adicionar registro</button>
+                <div style="display:flex; gap: var(--pf-space-2); margin-bottom: var(--pf-space-4);">
+                    <button class="pf-btn pf-btn--secondary" onclick="adicionarAtividade()">+ Adicionar registro</button>
+                    <button class="pf-btn pf-btn--secondary" onclick="preencherDatasDaGrade()">📅 Preencher com dias de aula da grade</button>
+                </div>
 
                 <h4 class="pei-secao-titulo">Avaliação (Resultados Obtidos)</h4>
                 <div class="pei-form-grupo">
@@ -481,10 +498,35 @@
             renderizarTudo();
         };
 
+        window.confirmarRemoverDocumento = async function (id) {
+            if (!confirm('Excluir este PEI (e o histórico de versões dele)? Use isso pra manter só o PEI definitivo do bimestre, se tiver criado mais de um por engano. Não pode ser desfeito.')) return;
+            try {
+                await removerPeiDocumento(escolaAtualId, id);
+                if (documentoSelecionadoId === id) { documentoSelecionadoId = null; documentoRascunho = null; }
+                showToast('PEI excluído.', 'success');
+                renderizarTudo();
+            } catch (erro) {
+                showToast('Não foi possível excluir: ' + erro.message, 'error');
+            }
+        };
+
         window.abrirModalDocumento = function () {
             document.getElementById('peiNovoAnoLetivo').value = new Date().getFullYear();
             document.getElementById('peiModalDocumento').open();
         };
+
+        // Datas em que a turma+componente do aluno realmente tem aula na
+        // grade, dentro do período informado — o aluno assiste aula junto
+        // da turma, no mesmo horário, então a Planilha de Acompanhamento já
+        // pode nascer com essas datas (atividade em branco pro professor
+        // preencher conforme a aula acontece).
+        function datasDeAulaParaAluno(aluno, dataInicio, dataTermino) {
+            if (!aluno || !dataInicio || !dataTermino) return [];
+            return calcularDatasDeAulaNoPeriodo(
+                gradeAtual, aluno.turmaSistema, aluno.componenteCurricular,
+                dataInicio, dataTermino, diasEspeciaisConfig, normalizarCelula
+            );
+        }
 
         window.criarNovoDocumento = async function () {
             const bimestre = Number(document.getElementById('peiNovoBimestre').value);
@@ -492,6 +534,8 @@
             const dataInicio = document.getElementById('peiNovoDataInicio').value;
             const dataTermino = document.getElementById('peiNovoDataTermino').value;
             const dados = documentoVazio(alunoSelecionadoId, bimestre, anoLetivo, dataInicio, dataTermino);
+            const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
+            dados.planilhaAcompanhamento = datasDeAulaParaAluno(aluno, dataInicio, dataTermino).map(data => ({ data, atividade: '' }));
             try {
                 const id = await salvarPeiDocumento(escolaAtualId, null, dados);
                 documentoSelecionadoId = id;
@@ -527,6 +571,31 @@
 
         window.atualizarAtividade = function (indice, campo, valor) {
             documentoRascunho.planilhaAcompanhamento[indice][campo] = valor;
+        };
+
+        // Recalcula as datas de aula da grade pro período deste PEI e
+        // adiciona só as que ainda não estão na planilha — não mexe nos
+        // registros já existentes (nem apaga, nem sobrescreve a atividade
+        // já escrita), útil se a grade mudou depois de criado o PEI.
+        window.preencherDatasDaGrade = function () {
+            const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
+            const datas = datasDeAulaParaAluno(aluno, documentoRascunho.dataInicio, documentoRascunho.dataTermino);
+            if (datas.length === 0) {
+                showToast('Nenhuma data de aula encontrada na grade pra esse período — confira se a turma/componente e o período do PEI estão certos.', 'info');
+                return;
+            }
+            documentoRascunho.planilhaAcompanhamento = documentoRascunho.planilhaAcompanhamento || [];
+            const datasJaExistentes = new Set(documentoRascunho.planilhaAcompanhamento.map(a => a.data));
+            let adicionadas = 0;
+            datas.forEach(data => {
+                if (!datasJaExistentes.has(data)) {
+                    documentoRascunho.planilhaAcompanhamento.push({ data, atividade: '' });
+                    adicionadas++;
+                }
+            });
+            documentoRascunho.planilhaAcompanhamento.sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+            document.getElementById('peiAtividades').innerHTML = renderizarAtividades();
+            showToast(adicionadas > 0 ? `${adicionadas} data(s) adicionada(s).` : 'Todas as datas de aula já estavam na planilha.', 'success');
         };
 
         window.salvarDocumentoAtual = async function () {
@@ -658,6 +727,20 @@
             });
         }
 
+        function carregarGrade() {
+            return ouvirGrade(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                gradeAtual = (data && data.matutino && data.vespertino) ? data : { matutino: [], vespertino: [] };
+            });
+        }
+
+        function carregarConfiguracoes() {
+            return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
+                const data = docSnap.data();
+                diasEspeciaisConfig = (data && data.diasEspeciais) ? data.diasEspeciais : [];
+            });
+        }
+
         function carregarPeiAlunos() {
             return ouvirPeiAlunos(escolaAtualId, (snap) => {
                 peiAlunos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -685,10 +768,14 @@
             escolasCarregadas = evento.detail.escolas || [];
             if (unsubControlador) unsubControlador();
             if (unsubTurmas) unsubTurmas();
+            if (unsubGrade) unsubGrade();
+            if (unsubConfiguracoes) unsubConfiguracoes();
             if (unsubPeiAlunos) unsubPeiAlunos();
             if (unsubPeiDocumentos) unsubPeiDocumentos();
             unsubControlador = carregarControlador();
             unsubTurmas = carregarTurmas();
+            unsubGrade = carregarGrade();
+            unsubConfiguracoes = carregarConfiguracoes();
             unsubPeiAlunos = carregarPeiAlunos();
             unsubPeiDocumentos = carregarPeiDocumentos();
         });
