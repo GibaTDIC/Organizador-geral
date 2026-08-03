@@ -2,6 +2,7 @@
 // relatorios-service.js): recebe o Controlador já carregado pela página e só
 // calcula. Separado de pei-service.js pra continuar testável com Node puro,
 // sem precisar simular o import do SDK do Firebase.
+import { resolverDataRealAula } from './relatorios-service.js';
 
 // Agrega, a partir do Controlador já carregado (mesma fonte usada em
 // Relatórios), o que o Planejamento já sabe sobre a turma+componente do
@@ -88,4 +89,34 @@ export function calcularDatasDeAulaNoPeriodo(gradeAtual, turma, componenteCurric
         cursor.setDate(cursor.getDate() + 1);
     }
     return datas;
+}
+
+// Linha do tempo do conteúdo dado pra essa turma+componente: cada aula do
+// Controlador vira um ponto {data, titulo}, com a data corrigida pro dia real
+// da semana (reaproveita resolverDataRealAula, mesma correção do Diário de
+// Classe em Relatórios — o Controlador guarda uma única dataInicio por
+// conteúdo, igual pra toda turma da série, não uma por turma física).
+export function montarLinhaDoTempoConteudo(aulasControlador, turma, componenteCurricular, gradeAtual, normalizarCelulaFn) {
+    return (aulasControlador || [])
+        .filter(a => a.turma === turma && a.componenteCurricular === componenteCurricular && a.dataInicio)
+        .map(a => ({
+            titulo: a.titulo || '',
+            data: resolverDataRealAula(gradeAtual, turma, componenteCurricular, a.dataInicio, normalizarCelulaFn)
+        }))
+        .filter(e => e.data)
+        .sort((x, y) => x.data.localeCompare(y.data));
+}
+
+// Qual era o conteúdo "vigente" numa data específica: o último item da linha
+// do tempo cuja data de início já tinha chegado. Cobre sozinho o caso de um
+// conteúdo ocupar mais de uma aula (numAulas > 1) — não precisa calcular
+// quantas semanas ele durou, só precisa saber que nenhum conteúdo novo
+// começou ainda depois dele.
+export function tituloVigenteNaData(linhaDoTempo, dataISO) {
+    let atual = '';
+    for (const item of linhaDoTempo) {
+        if (item.data <= dataISO) atual = item.titulo;
+        else break;
+    }
+    return atual;
 }

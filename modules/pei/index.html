@@ -226,7 +226,10 @@
             ouvirPeiDocumentos, salvarPeiDocumento, removerPeiDocumento,
             ouvirVersoesPeiDocumento, restaurarVersaoPeiDocumento
         } from "../../scripts/services/pei-service.js";
-        import { montarContextoIA, calcularDatasDeAulaNoPeriodo, dataBRParaISO } from "../../scripts/services/pei-contexto.js";
+        import {
+            montarContextoIA, calcularDatasDeAulaNoPeriodo, dataBRParaISO,
+            montarLinhaDoTempoConteudo, tituloVigenteNaData
+        } from "../../scripts/services/pei-contexto.js";
         import { exportarPeiDocx } from "../../scripts/services/pei-docx-export.js";
 
         // ---------- Estado ----------
@@ -409,7 +412,7 @@
             return atividades.map((a, i) => `
                 <div class="pei-atividade-linha">
                     <input type="date" value="${a.data || ''}" oninput="atualizarAtividade(${i}, 'data', this.value)">
-                    <input type="text" placeholder="Atividade / observação" value="${(a.atividade || '').replace(/"/g, '&quot;')}" oninput="atualizarAtividade(${i}, 'atividade', this.value)">
+                    <input type="text" placeholder="Nome da aula / participação do aluno" value="${(a.atividade || '').replace(/"/g, '&quot;')}" oninput="atualizarAtividade(${i}, 'atividade', this.value)">
                     <button class="pf-btn pf-btn--danger" style="padding:4px 10px;" onclick="removerAtividade(${i})">✕</button>
                 </div>
             `).join('');
@@ -527,17 +530,22 @@
             document.getElementById('peiModalDocumento').open();
         };
 
-        // Datas em que a turma+componente do aluno realmente tem aula na
-        // grade, dentro do período informado — o aluno assiste aula junto
-        // da turma, no mesmo horário, então a Planilha de Acompanhamento já
-        // pode nascer com essas datas (atividade em branco pro professor
-        // preencher conforme a aula acontece).
-        function datasDeAulaParaAluno(aluno, dataInicio, dataTermino) {
+        // Linhas da Planilha de Acompanhamento: uma por data em que a
+        // turma+componente do aluno tem aula na grade, dentro do período
+        // informado (o aluno assiste junto da turma, no mesmo horário), já
+        // com o nome da aula que estava em andamento naquela data (a partir
+        // do que o Planejamento/Controlador já registrou) — o professor só
+        // completa descrevendo a participação do aluno naquele dia.
+        function montarLinhasPlanilha(aluno, dataInicio, dataTermino) {
             if (!aluno || !dataInicio || !dataTermino) return [];
-            return calcularDatasDeAulaNoPeriodo(
+            const datas = calcularDatasDeAulaNoPeriodo(
                 gradeAtual, aluno.turmaSistema, aluno.componenteCurricular,
                 dataInicio, dataTermino, diasEspeciaisConfig, normalizarCelula
             );
+            const linhaDoTempo = montarLinhaDoTempoConteudo(
+                aulasControlador, aluno.turmaSistema, aluno.componenteCurricular, gradeAtual, normalizarCelula
+            );
+            return datas.map(data => ({ data, atividade: tituloVigenteNaData(linhaDoTempo, data) }));
         }
 
         // As datas de cada bimestre já existem em Configurações — não faz
@@ -556,7 +564,7 @@
                 const dataTermino = dataBRParaISO(b.fim);
                 if (!dataInicio || !dataTermino) continue;
                 const dados = documentoVazio(alunoId, Number(b.numero), dataInicio.slice(0, 4), dataInicio, dataTermino);
-                dados.planilhaAcompanhamento = datasDeAulaParaAluno(aluno, dataInicio, dataTermino).map(data => ({ data, atividade: '' }));
+                dados.planilhaAcompanhamento = montarLinhasPlanilha(aluno, dataInicio, dataTermino);
                 await salvarPeiDocumento(escolaAtualId, null, dados);
                 criados++;
             }
@@ -584,7 +592,7 @@
             const dataTermino = document.getElementById('peiNovoDataTermino').value;
             const dados = documentoVazio(alunoSelecionadoId, bimestre, anoLetivo, dataInicio, dataTermino);
             const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
-            dados.planilhaAcompanhamento = datasDeAulaParaAluno(aluno, dataInicio, dataTermino).map(data => ({ data, atividade: '' }));
+            dados.planilhaAcompanhamento = montarLinhasPlanilha(aluno, dataInicio, dataTermino);
             try {
                 const id = await salvarPeiDocumento(escolaAtualId, null, dados);
                 documentoSelecionadoId = id;
@@ -628,17 +636,17 @@
         // já escrita), útil se a grade mudou depois de criado o PEI.
         window.preencherDatasDaGrade = function () {
             const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
-            const datas = datasDeAulaParaAluno(aluno, documentoRascunho.dataInicio, documentoRascunho.dataTermino);
-            if (datas.length === 0) {
+            const linhas = montarLinhasPlanilha(aluno, documentoRascunho.dataInicio, documentoRascunho.dataTermino);
+            if (linhas.length === 0) {
                 showToast('Nenhuma data de aula encontrada na grade pra esse período — confira se a turma/componente e o período do PEI estão certos.', 'info');
                 return;
             }
             documentoRascunho.planilhaAcompanhamento = documentoRascunho.planilhaAcompanhamento || [];
             const datasJaExistentes = new Set(documentoRascunho.planilhaAcompanhamento.map(a => a.data));
             let adicionadas = 0;
-            datas.forEach(data => {
-                if (!datasJaExistentes.has(data)) {
-                    documentoRascunho.planilhaAcompanhamento.push({ data, atividade: '' });
+            linhas.forEach(linha => {
+                if (!datasJaExistentes.has(linha.data)) {
+                    documentoRascunho.planilhaAcompanhamento.push(linha);
                     adicionadas++;
                 }
             });
