@@ -291,6 +291,9 @@
                 .filter(d => d.alunoId === alunoSelecionadoId)
                 .sort((a, b) => (a.bimestre || 0) - (b.bimestre || 0));
 
+            const numerosExistentes = new Set(documentosDoAluno.map(d => Number(d.bimestre)));
+            const faltamBimestres = bimestresConfig.some(b => !numerosExistentes.has(Number(b.numero)));
+
             let html = `
                 <div class="pf-card">
                     <div class="pei-aluno-resumo">
@@ -314,6 +317,7 @@
                             </span>
                         `).join('')}
                         <button type="button" class="pei-bimestre-tab" onclick="abrirModalDocumento()">+ Novo PEI</button>
+                        ${faltamBimestres ? '<button type="button" class="pei-bimestre-tab" onclick="criarBimestresQueFaltam()">📅 Criar bimestres que faltam</button>' : ''}
                     </div>
             `;
 
@@ -467,7 +471,7 @@
                 document.getElementById('peiModalAluno').close();
                 if (!editandoId) {
                     alunoSelecionadoId = id;
-                    await criarBimestresIniciais(id, dados);
+                    await criarBimestresFaltantes(id, dados, []);
                     showToast(bimestresConfig.length > 0
                         ? 'Estudante salvo com os PEIs dos bimestres já criados.'
                         : 'Estudante salvo. Configure os bimestres em Configurações pra os PEIs já virem criados da próxima vez.', 'success');
@@ -537,21 +541,41 @@
         }
 
         // As datas de cada bimestre já existem em Configurações — não faz
-        // sentido pedir pro professor digitar de novo pra cada aluno. Criado
-        // uma vez, na hora do cadastro do estudante; "+ Novo PEI" continua
-        // disponível pra casos extras (bimestre recriado, ano configurado
-        // depois do cadastro etc).
-        async function criarBimestresIniciais(alunoId, aluno) {
-            if (bimestresConfig.length === 0) return;
+        // sentido pedir pro professor digitar de novo pra cada aluno. `numerosParaPular`
+        // evita recriar um bimestre que o aluno já tem (seja porque veio do
+        // cadastro inicial, seja um criado manualmente antes desta função
+        // existir) — sem isso, rodar de novo pra um aluno já cadastrado
+        // duplicaria os PEIs em vez de só completar o que falta.
+        async function criarBimestresFaltantes(alunoId, aluno, numerosParaPular) {
+            if (bimestresConfig.length === 0) return 0;
+            const pular = new Set(numerosParaPular || []);
+            let criados = 0;
             for (const b of bimestresConfig.slice().sort((x, y) => Number(x.numero) - Number(y.numero))) {
+                if (pular.has(Number(b.numero))) continue;
                 const dataInicio = dataBRParaISO(b.inicio);
                 const dataTermino = dataBRParaISO(b.fim);
                 if (!dataInicio || !dataTermino) continue;
                 const dados = documentoVazio(alunoId, Number(b.numero), dataInicio.slice(0, 4), dataInicio, dataTermino);
                 dados.planilhaAcompanhamento = datasDeAulaParaAluno(aluno, dataInicio, dataTermino).map(data => ({ data, atividade: '' }));
                 await salvarPeiDocumento(escolaAtualId, null, dados);
+                criados++;
             }
+            return criados;
         }
+
+        window.criarBimestresQueFaltam = async function () {
+            const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
+            if (!aluno) return;
+            const numerosExistentes = peiDocumentos
+                .filter(d => d.alunoId === alunoSelecionadoId)
+                .map(d => Number(d.bimestre));
+            try {
+                const criados = await criarBimestresFaltantes(alunoSelecionadoId, aluno, numerosExistentes);
+                showToast(criados > 0 ? `${criados} PEI(s) de bimestre criado(s).` : 'Este aluno já tem PEI de todos os bimestres configurados.', 'success');
+            } catch (erro) {
+                showToast('Não foi possível criar os bimestres: ' + erro.message, 'error');
+            }
+        };
 
         window.criarNovoDocumento = async function () {
             const bimestre = Number(document.getElementById('peiNovoBimestre').value);
