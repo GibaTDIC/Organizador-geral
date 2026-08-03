@@ -33,6 +33,13 @@ export function montarContextoIA(aluno, aulasControlador) {
     };
 }
 
+// 'DD/MM/AAAA' (formato dos bimestres em Configurações) -> 'AAAA-MM-DD'
+// (formato dos <input type="date"> do PEI). Retorna '' se não bater o padrão.
+export function dataBRParaISO(dataBR) {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dataBR || '');
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+}
+
 const DIAS_SEMANA_GRADE = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
 
 // O aluno do PEI assiste aula junto da turma dele, no mesmo horário — então

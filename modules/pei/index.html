@@ -226,7 +226,7 @@
             ouvirPeiDocumentos, salvarPeiDocumento, removerPeiDocumento,
             ouvirVersoesPeiDocumento, restaurarVersaoPeiDocumento
         } from "../../scripts/services/pei-service.js";
-        import { montarContextoIA, calcularDatasDeAulaNoPeriodo } from "../../scripts/services/pei-contexto.js";
+        import { montarContextoIA, calcularDatasDeAulaNoPeriodo, dataBRParaISO } from "../../scripts/services/pei-contexto.js";
         import { exportarPeiDocx } from "../../scripts/services/pei-docx-export.js";
 
         // ---------- Estado ----------
@@ -239,6 +239,7 @@
         let turmasAtuais = [];
         let gradeAtual = { matutino: [], vespertino: [] };
         let diasEspeciaisConfig = [];
+        let bimestresConfig = [];
         let peiAlunos = [];
         let peiDocumentos = [];
         let versoesAtuais = [];
@@ -463,9 +464,16 @@
             };
             try {
                 const id = await salvarPeiAluno(escolaAtualId, editandoId, dados);
-                if (!editandoId) alunoSelecionadoId = id;
                 document.getElementById('peiModalAluno').close();
-                showToast('Estudante salvo.', 'success');
+                if (!editandoId) {
+                    alunoSelecionadoId = id;
+                    await criarBimestresIniciais(id, dados);
+                    showToast(bimestresConfig.length > 0
+                        ? 'Estudante salvo com os PEIs dos bimestres já criados.'
+                        : 'Estudante salvo. Configure os bimestres em Configurações pra os PEIs já virem criados da próxima vez.', 'success');
+                } else {
+                    showToast('Estudante salvo.', 'success');
+                }
             } catch (erro) {
                 showToast('Não foi possível salvar: ' + erro.message, 'error');
             }
@@ -526,6 +534,23 @@
                 gradeAtual, aluno.turmaSistema, aluno.componenteCurricular,
                 dataInicio, dataTermino, diasEspeciaisConfig, normalizarCelula
             );
+        }
+
+        // As datas de cada bimestre já existem em Configurações — não faz
+        // sentido pedir pro professor digitar de novo pra cada aluno. Criado
+        // uma vez, na hora do cadastro do estudante; "+ Novo PEI" continua
+        // disponível pra casos extras (bimestre recriado, ano configurado
+        // depois do cadastro etc).
+        async function criarBimestresIniciais(alunoId, aluno) {
+            if (bimestresConfig.length === 0) return;
+            for (const b of bimestresConfig.slice().sort((x, y) => Number(x.numero) - Number(y.numero))) {
+                const dataInicio = dataBRParaISO(b.inicio);
+                const dataTermino = dataBRParaISO(b.fim);
+                if (!dataInicio || !dataTermino) continue;
+                const dados = documentoVazio(alunoId, Number(b.numero), dataInicio.slice(0, 4), dataInicio, dataTermino);
+                dados.planilhaAcompanhamento = datasDeAulaParaAluno(aluno, dataInicio, dataTermino).map(data => ({ data, atividade: '' }));
+                await salvarPeiDocumento(escolaAtualId, null, dados);
+            }
         }
 
         window.criarNovoDocumento = async function () {
@@ -738,6 +763,7 @@
             return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
                 const data = docSnap.data();
                 diasEspeciaisConfig = (data && data.diasEspeciais) ? data.diasEspeciais : [];
+                bimestresConfig = (data && data.bimestres) ? data.bimestres : [];
             });
         }
 
