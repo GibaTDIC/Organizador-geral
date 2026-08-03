@@ -171,6 +171,17 @@
             background: var(--pf-gray-200);
         }
 
+        /* Aula cujo horário já passou — esmaece pra destacar visualmente
+           o que ainda está por vir hoje, mesmo com o badge de status igual. */
+        .dash-rotina-item--passada {
+            opacity: 0.55;
+            border-left-color: var(--pf-gray-400);
+        }
+
+        .dash-rotina-item--passada:hover {
+            opacity: 0.8;
+        }
+
         .dash-rotina-item__horario {
             font-size: 0.75rem;
             color: var(--pf-gray-500);
@@ -656,6 +667,12 @@
             return `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
         }
 
+        function aulaJaPassou(item) {
+            const janela = janelaDoSlot(item.periodo, item.horario);
+            if (!janela) return false;
+            return horaAtualStr() >= janela.fim;
+        }
+
         // ---------- Helpers de data ----------
         // Duplicado de propósito de programacao-diaria/index.html — este
         // codebase trata funções puras pequenas como seguras para duplicar
@@ -975,9 +992,10 @@
                     periodoAtual = item.periodo;
                     cabecalho = `<div class="dash-rotina-periodo">${item.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'}</div>`;
                 }
+                const classePassada = aulaJaPassou(item) ? ' dash-rotina-item--passada' : '';
                 return `
                     ${cabecalho}
-                    <div class="dash-rotina-item" onclick="irParaProgramacaoDiaria('${item.valor}')">
+                    <div class="dash-rotina-item${classePassada}" onclick="irParaProgramacaoDiaria('${item.valor}')">
                         <span class="dash-rotina-item__horario">${item.horario}</span>
                         <div class="dash-rotina-item__info">
                             <span class="dash-rotina-item__turma">${item.valor}</span>
