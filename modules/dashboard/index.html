@@ -444,9 +444,8 @@
             display: inline-block;
         }
 
-        /* Cabeçalho com paginação de mês do pop-up "Calendário do Ano"
-           (ver #dashCalendarioAnoModal) — o card fixo acima não tem isso,
-           mostra sempre o mês atual. */
+        /* Cabeçalho com paginação de mês — usado tanto no card fixo do
+           Calendário quanto no pop-up "Calendário do Ano". */
         .dash-calendario-cabecalho {
             display: flex;
             align-items: center;
@@ -455,9 +454,12 @@
             margin-bottom: var(--pf-space-3);
         }
 
-        .dash-calendario-cabecalho h3 {
+        .dash-calendario-cabecalho h3,
+        .dash-calendario-cabecalho .dash-card-titulo {
             min-width: 180px;
             text-align: center;
+            justify-content: center;
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -555,7 +557,11 @@
 
                     <!-- Calendário do Bimestre -->
                     <section class="pf-card">
-                        <h2 class="dash-card-titulo">🗓️ Calendário — <span id="dashCalendarioMes">—</span></h2>
+                        <div class="dash-calendario-cabecalho">
+                            <button type="button" class="pf-btn pf-btn--secondary" onclick="mesCalendarioAnterior()">◀</button>
+                            <h2 class="dash-card-titulo">🗓️ <span id="dashCalendarioMes">—</span></h2>
+                            <button type="button" class="pf-btn pf-btn--secondary" onclick="mesCalendarioProximo()">▶</button>
+                        </div>
                         <div class="dash-cal-semana">
                             <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
                         </div>
@@ -617,8 +623,10 @@
         let bimestresAtual = null; // null = ainda não configurado
         let diasEspeciaisAtual = []; // feriados, recesso, sábado letivo etc.
 
-        // Mês exibido no pop-up "Calendário do Ano" (ver #dashCalendarioAnoModal)
-        // — independente do card fixo da página, que sempre mostra o mês atual.
+        // Mês exibido no card fixo do Calendário e no pop-up "Calendário do
+        // Ano" — cada um navega de forma independente (trocar de mês no
+        // card não afeta o pop-up e vice-versa).
+        let mesCalendarioBase = new Date();
         let mesCalendarioAnoBase = new Date();
 
         let controladorAtual = { aulas: [], aulaAtualId: null };
@@ -1221,18 +1229,21 @@
                 `;
         }
 
-        function renderizarCalendario() {
+        // Lógica compartilhada de grade mensal — usada tanto pelo card fixo
+        // do Calendário quanto pelo pop-up "Calendário do Ano", cada um com
+        // seu próprio mês-base e seus próprios ids de elemento.
+        function renderizarGradeMes(mesBase, idMes, idGrid, idLegenda) {
             const hoje = new Date();
-            const ano = hoje.getFullYear();
-            const mes = hoje.getMonth();
+            const ano = mesBase.getFullYear();
+            const mes = mesBase.getMonth();
             const primeiroDia = new Date(ano, mes, 1);
             const ultimoDia = new Date(ano, mes + 1, 0);
             const dias = [];
             for (let i = 0; i < primeiroDia.getDay(); i++) dias.push(null);
             for (let d = 1; d <= ultimoDia.getDate(); d++) dias.push(new Date(ano, mes, d));
 
-            document.getElementById('dashCalendarioMes').textContent = `${MESES_EXTENSO[mes]} de ${ano}`;
-            document.getElementById('dashCalendarioGrid').innerHTML = dias.map(data => {
+            document.getElementById(idMes).textContent = `${MESES_EXTENSO[mes]} de ${ano}`;
+            document.getElementById(idGrid).innerHTML = dias.map(data => {
                 if (!data) return '<div class="dash-cal-dia dash-cal-dia--vazio"></div>';
                 const idxBimestre = determinarBimestre(bimestresAtual, data);
                 const especial = diasEspeciaisAtual.find(d => stringParaData(d.data).toDateString() === data.toDateString());
@@ -1249,43 +1260,29 @@
                 ? bimestresAtual.map((b, i) => `<span><i class="dash-cal-dia--bimestre-${i + 1}"></i>${b.numero}º Bimestre</span>`).join('')
                 : '<span>Configure os bimestres em Configurações para colorir o calendário.</span>';
             const legendaEspeciais = categoriasPresentes.map(cat => `<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;box-shadow: inset 0 0 0 2px ${CATEGORIAS_DIA_ESPECIAL[cat].cor};"></i>${CATEGORIAS_DIA_ESPECIAL[cat].label}</span>`).join('');
-            document.getElementById('dashCalendarioLegenda').innerHTML = legendaBimestres + legendaEspeciais;
+            document.getElementById(idLegenda).innerHTML = legendaBimestres + legendaEspeciais;
         }
 
+        function renderizarCalendario() {
+            renderizarGradeMes(mesCalendarioBase, 'dashCalendarioMes', 'dashCalendarioGrid', 'dashCalendarioLegenda');
+        }
+
+        window.mesCalendarioAnterior = function () {
+            mesCalendarioBase = new Date(mesCalendarioBase.getFullYear(), mesCalendarioBase.getMonth() - 1, 1);
+            renderizarCalendario();
+        };
+
+        window.mesCalendarioProximo = function () {
+            mesCalendarioBase = new Date(mesCalendarioBase.getFullYear(), mesCalendarioBase.getMonth() + 1, 1);
+            renderizarCalendario();
+        };
+
         // ---------- Pop-up "Calendário do Ano" (Acesso Rápido) ----------
-        // Mesma lógica de renderizarCalendario() acima, mas navegável por
-        // mês em vez de travada no mês atual — aberta sob demanda, não
-        // ocupa espaço fixo na página como o card de cima.
+        // Mesma grade de renderizarCalendario() acima, mas com seu próprio
+        // mês-base — aberta sob demanda, não ocupa espaço fixo na página
+        // como o card de cima.
         function renderizarCalendarioAnoPopup() {
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-            const ano = mesCalendarioAnoBase.getFullYear();
-            const mes = mesCalendarioAnoBase.getMonth();
-            const primeiroDia = new Date(ano, mes, 1);
-            const ultimoDia = new Date(ano, mes + 1, 0);
-            const dias = [];
-            for (let i = 0; i < primeiroDia.getDay(); i++) dias.push(null);
-            for (let d = 1; d <= ultimoDia.getDate(); d++) dias.push(new Date(ano, mes, d));
-
-            document.getElementById('dashCalendarioAnoMes').textContent = `${MESES_EXTENSO[mes]} de ${ano}`;
-            document.getElementById('dashCalendarioAnoGrid').innerHTML = dias.map(data => {
-                if (!data) return '<div class="dash-cal-dia dash-cal-dia--vazio"></div>';
-                const idxBimestre = determinarBimestre(bimestresAtual, data);
-                const especial = diasEspeciaisAtual.find(d => stringParaData(d.data).toDateString() === data.toDateString());
-                const classes = ['dash-cal-dia'];
-                if (idxBimestre !== null) classes.push(`dash-cal-dia--bimestre-${idxBimestre + 1}`);
-                if (data.toDateString() === hoje.toDateString()) classes.push('dash-cal-dia--hoje');
-                const estiloEspecial = especial ? ` style="box-shadow: inset 0 0 0 2px ${(CATEGORIAS_DIA_ESPECIAL[especial.categoria] || CATEGORIAS_DIA_ESPECIAL['outro']).cor};"` : '';
-                const tituloEspecial = especial ? ` title="${(especial.rotulo || CATEGORIAS_DIA_ESPECIAL[especial.categoria].label).replace(/"/g, '&quot;')}"` : '';
-                return `<div class="${classes.join(' ')}"${estiloEspecial}${tituloEspecial}>${data.getDate()}</div>`;
-            }).join('');
-
-            const categoriasPresentes = [...new Set(diasEspeciaisAtual.map(d => CATEGORIAS_DIA_ESPECIAL[d.categoria] ? d.categoria : 'outro'))];
-            const legendaBimestres = (bimestresAtual && bimestresAtual.length > 0)
-                ? bimestresAtual.map((b, i) => `<span><i class="dash-cal-dia--bimestre-${i + 1}"></i>${b.numero}º Bimestre</span>`).join('')
-                : '<span>Configure os bimestres em Configurações para colorir o calendário.</span>';
-            const legendaEspeciais = categoriasPresentes.map(cat => `<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;box-shadow: inset 0 0 0 2px ${CATEGORIAS_DIA_ESPECIAL[cat].cor};"></i>${CATEGORIAS_DIA_ESPECIAL[cat].label}</span>`).join('');
-            document.getElementById('dashCalendarioAnoLegenda').innerHTML = legendaBimestres + legendaEspeciais;
+            renderizarGradeMes(mesCalendarioAnoBase, 'dashCalendarioAnoMes', 'dashCalendarioAnoGrid', 'dashCalendarioAnoLegenda');
         }
 
         window.mesCalendarioAnoAnterior = function () {
