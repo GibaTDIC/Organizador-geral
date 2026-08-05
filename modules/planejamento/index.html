@@ -238,7 +238,7 @@
         import { showToast } from "../../scripts/components/pf-alert.js";
         import { ouvirAulas, criarAula, excluirAula as excluirAulaService } from "../../scripts/services/aulas-service.js";
         import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
-        import { buscarAtividadesCompativeis } from "../../scripts/services/atividades-busca.js";
+        import { buscarAtividadesCompativeis, filtrarAtividadesPorContexto } from "../../scripts/services/atividades-busca.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { ouvirGrade, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -297,6 +297,11 @@
 
         let aulasTodas = [];
         let atividadesDisponiveis = [];
+        // Semente da lista "Atividades Vinculadas" — só usada na primeira
+        // renderização do formulário (container ainda vazio), com os ids já
+        // salvos na aula em edição. Depois disso, renderizarAtividadesVinculadas
+        // lê o estado atual dos checkboxes direto do DOM a cada recascata.
+        let atividadesVinculadasIniciais = [];
         let bimestresConfig = [];
         let planejamentosAnuais = [];
         let planejamentosBimestrais = [];
@@ -451,6 +456,7 @@
         window.atualizarUnidadesTematicas = function (manterUnidade) {
             const turmaSelect = document.getElementById('turma');
             if (!turmaSelect) return;
+            renderizarAtividadesVinculadas();
 
             const componenteSelect = document.getElementById('plAulaComponente');
             const componenteSelecionado = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
@@ -559,6 +565,7 @@
         // continua existindo só pra alimentar a sugestão do bimestre
         // (destacar quais objetos foram planejados em Configurações).
         window.atualizarEspecificacoes = function () {
+            renderizarAtividadesVinculadas();
             const componenteSelect = document.getElementById('plAulaComponente');
             const componenteAtual = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
             const bncc = BNCC_POR_COMPONENTE[componenteAtual];
@@ -646,6 +653,49 @@
             }
         };
 
+        // Lista de checkboxes "Atividades Vinculadas", filtrada pela mesma
+        // cascata BNCC da aula (componente + Unidade Temática + Objeto de
+        // Conhecimento) via filtrarAtividadesPorContexto — sem isso o
+        // professor via TODAS as atividades já cadastradas ali, inclusive de
+        // outra Unidade Temática/Objeto de Conhecimento, inviável de rolar
+        // conforme o Banco cresce. Uma atividade já marcada continua
+        // aparecendo (com aviso) mesmo se deixar de bater no filtro depois
+        // que o professor troca a unidade/objeto — pra não "sumir" um
+        // vínculo já feito sem o professor perceber.
+        function renderizarAtividadesVinculadas() {
+            const container = document.getElementById('plAtividadesVinculadas');
+            if (!container) return;
+
+            const idsAtuais = container.childElementCount > 0
+                ? Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value)
+                : atividadesVinculadasIniciais;
+
+            const componenteSelect = document.getElementById('plAulaComponente');
+            const componenteCurricular = componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO;
+            const unidadeTematica = document.getElementById('unidadeTematica')?.value || null;
+            const especificacao = document.getElementById('especificacao')?.value || null;
+
+            const normalizadas = atividadesDisponiveis.map(a => ({ ...a, componenteCurricular: a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO }));
+            const filtradas = filtrarAtividadesPorContexto(normalizadas, { componenteCurricular, unidadeTematica, especificacao });
+            const idsFiltradas = new Set(filtradas.map(a => a.id));
+            const foraDoFiltro = normalizadas.filter(a => idsAtuais.includes(a.id) && !idsFiltradas.has(a.id));
+            const listaFinal = [...filtradas, ...foraDoFiltro];
+
+            if (listaFinal.length === 0) {
+                container.innerHTML = atividadesDisponiveis.length === 0
+                    ? '<p style="color:#666;text-align:center;font-size:0.85rem;">Nenhuma atividade cadastrada no Banco de Atividades ainda.</p>'
+                    : '<p style="color:#666;text-align:center;font-size:0.85rem;">Nenhuma atividade do Banco bate com a Unidade Temática/Objeto de Conhecimento selecionados.</p>';
+                return;
+            }
+
+            container.innerHTML = listaFinal.map(at => `
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;padding:3px 0;font-weight:normal;">
+                    <input type="checkbox" name="plAtividadeVinculada" value="${at.id}" style="width:auto;" ${idsAtuais.includes(at.id) ? 'checked' : ''}>
+                    ${at.titulo} <span style="color:var(--pf-gray-500);">(${at.tipo || 'Outros'})</span>${!idsFiltradas.has(at.id) ? ' <span style="color:var(--pf-gray-500);">— fora do filtro atual</span>' : ''}
+                </label>
+            `).join('');
+        }
+
         // Painel de "atividades compatíveis já cadastradas", acima da lista
         // de checkboxes "Atividades Vinculadas" — não duplica a lista, só
         // pré-marca um checkbox já existente quando o professor clica
@@ -691,6 +741,7 @@
 
         window.atualizarHabilidades = function () {
             renderizarSugestoesAtividadesCompativeis();
+            renderizarAtividadesVinculadas();
             const componenteSelect = document.getElementById('plAulaComponente');
             const bncc = BNCC_POR_COMPONENTE[componenteSelect ? componenteSelect.value : COMPONENTE_CURRICULAR_PADRAO];
             if (!bncc) return;
@@ -1448,16 +1499,8 @@
                     <div id="plSugestoesAtividades"></div>
                     <div class="pf-field">
                         <label>Atividades Vinculadas (Banco de Atividades)</label>
-                        <div id="plAtividadesVinculadas" style="max-height:160px;overflow-y:auto;border:2px solid var(--pf-gray-300);border-radius:var(--pf-radius-md);padding:var(--pf-space-2);background:var(--pf-white);">
-                            ${atividadesDisponiveis.length === 0
-                                ? '<p style="color:#666;text-align:center;font-size:0.85rem;">Nenhuma atividade cadastrada no Banco de Atividades ainda.</p>'
-                                : atividadesDisponiveis.map(at => `
-                                    <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;padding:3px 0;font-weight:normal;">
-                                        <input type="checkbox" name="plAtividadeVinculada" value="${at.id}" style="width:auto;" ${existente && (existente.atividadesVinculadas || []).includes(at.id) ? 'checked' : ''}>
-                                        ${at.titulo} <span style="color:var(--pf-gray-500);">(${at.tipo || 'Outros'})</span>
-                                    </label>
-                                `).join('')}
-                        </div>
+                        <p style="font-size:0.78rem;color:var(--pf-gray-500);margin:0 0 4px;">Filtrada pela mesma Unidade Temática/Objeto de Conhecimento desta aula.</p>
+                        <div id="plAtividadesVinculadas" style="max-height:160px;overflow-y:auto;border:2px solid var(--pf-gray-300);border-radius:var(--pf-radius-md);padding:var(--pf-space-2);background:var(--pf-white);"></div>
                     </div>
                     <div class="pf-field">
                         <label for="plAulaMes">Vincular a um mês do Planejamento</label>
@@ -1481,6 +1524,7 @@
                 document.getElementById('turma').value = existente.turma || '';
                 document.getElementById('plAulaComponente').value = existente.componenteCurricular || componentesAtivos[0];
                 document.getElementById('plAulaBimestre').value = existente.bimestre || '';
+                atividadesVinculadasIniciais = existente.atividadesVinculadas || [];
                 atualizarUnidadesTematicas(existente.unidadeTematica || '');
                 document.getElementById('unidadeTematica').value = existente.unidadeTematica || '';
                 atualizarEspecificacoes();
@@ -1500,6 +1544,7 @@
                 document.getElementById('turma').value = turmaAtual;
                 document.getElementById('plAulaComponente').value = componentesAtivos[0];
                 document.getElementById('plAulaBimestre').value = bimestreContexto || '';
+                atividadesVinculadasIniciais = [];
                 atualizarUnidadesTematicas();
                 document.getElementById('plAulaMes').value = mensalIdContexto || '';
             }

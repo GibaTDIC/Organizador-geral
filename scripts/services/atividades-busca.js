@@ -51,6 +51,29 @@ export function buscarAtividadesCompativeis(atividades, criterios, opcoes = {}) 
         .sort((x, y) => y.pontuacao - x.pontuacao);
 }
 
+// Filtra atividades pela mesma cascata BNCC (componente + Unidade Temática +
+// Objeto de Conhecimento, quando informados) — sem exigir pontuação mínima
+// nem cortar em N resultados, ao contrário de buscarAtividadesCompativeis
+// (pensada pra "sugestões" curtas). Usada pra restringir a lista completa
+// de "Atividades Vinculadas" no Planejamento: sem isso, o professor via
+// TODAS as atividades já cadastradas ali (inclusive de outra Unidade
+// Temática/Objeto de Conhecimento), inviável de rolar conforme o Banco
+// cresce.
+// criterios: { componenteCurricular?, unidadeTematica?, especificacao? }
+// opcoes: { excluirIds?:[], incluirArquivadas?:false }
+export function filtrarAtividadesPorContexto(atividades, criterios, opcoes = {}) {
+    const { excluirIds = [], incluirArquivadas = false } = opcoes;
+    const c = criterios || {};
+    return (atividades || []).filter(a => {
+        if (!a || excluirIds.includes(a.id)) return false;
+        if (!incluirArquivadas && a.arquivada) return false;
+        if (c.componenteCurricular && a.componenteCurricular !== c.componenteCurricular) return false;
+        if (c.unidadeTematica && a.unidadeTematica !== c.unidadeTematica) return false;
+        if (c.especificacao && a.especificacao !== c.especificacao) return false;
+        return true;
+    });
+}
+
 // Duplicidade por TÍTULO — complementar a buscarAtividadesCompativeis acima
 // (que compara Unidade Temática/Objeto de Conhecimento/habilidades da BNCC).
 // Título é o único dado sempre presente desde o primeiro instante — na
