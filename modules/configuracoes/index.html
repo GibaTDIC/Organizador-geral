@@ -267,71 +267,57 @@
             display: none;
         }
 
-        /* Cards de Aula */
-        .aula-card {
+        /* Seletor de cada célula da grade — dropdown nativo, substitui o
+           antigo esquema de arrastar (difícil em touch/mobile e exigia
+           ativar um "modo" à parte antes de editar qualquer célula). */
+        .grade-select {
             width: 100%;
             background: #e3f2fd;
+            border: none;
             border-left: 4px solid #1e3c72;
             padding: clamp(4px, 1.5vw, 6px) clamp(2px, 1vw, 4px);
             border-radius: 6px;
             text-align: center;
-            cursor: grab;
-            transition: all 0.2s;
-            user-select: none;
+            text-align-last: center;
+            cursor: pointer;
             font-size: clamp(0.65rem, 1.8vw, 0.8rem);
             font-weight: 600;
+            font-family: inherit;
             color: #1e3c72;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             line-height: 1.3;
         }
 
-        .aula-card.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-            transform: scale(0.95);
+        .grade-select:focus {
+            outline: 2px solid #1e3c72;
+            outline-offset: 1px;
         }
 
-        .aula-card.folga {
+        .grade-select.vazio {
+            background: transparent;
+            border-left-color: #ced4da;
+            color: #adb5bd;
+            font-weight: 400;
+            box-shadow: none;
+        }
+
+        .grade-select.folga {
             background: #f8f9fa;
             border-left-color: #6c757d;
             color: #6c757d;
             font-style: italic;
         }
 
-        .aula-card.planejamento {
+        .grade-select.planejamento {
             background: #fff3cd;
             border-left-color: #ffc107;
             color: #856404;
         }
 
-        .aula-card.cemfor {
+        .grade-select.cemfor {
             background: #d1ecf1;
             border-left-color: #17a2b8;
             color: #0c5460;
-        }
-
-        .aula-card.drop-zone {
-            border: 2px dashed #1e3c72;
-            background: rgba(30, 60, 114, 0.1);
-        }
-
-        .aula-turma {
-            font-weight: 700;
-            color: #1e3c72;
-            font-size: clamp(0.65rem, 1.8vw, 0.85rem);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .aula-componente {
-            font-weight: 400;
-            color: #1e3c72;
-            opacity: 0.65;
-            font-size: clamp(0.55rem, 1.3vw, 0.68rem);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         /* Legenda */
@@ -556,7 +542,6 @@
             border-radius: 10px;
             font-weight: 600;
             color: #1e3c72;
-            cursor: grab;
             transition: all 0.2s;
             display: flex;
             align-items: center;
@@ -824,16 +809,8 @@
                 min-height: 44px;
             }
 
-            .aula-card {
+            .grade-select {
                 min-height: 40px;
-                display: flex;
-                /* Sem isso, os dois <div> internos (turma e componente)
-                   viram uma LINHA em vez de empilhados — dois textos
-                   espremidos lado a lado numa célula de ~60-90px, cortando
-                   o nome da turma quase por completo. */
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
             }
 
             .remove-turma {
@@ -870,7 +847,7 @@
                 font-size: 0.65rem;
             }
 
-            .aula-card {
+            .grade-select {
                 font-size: 0.6rem;
             }
 
@@ -912,12 +889,6 @@
             scroll-behavior: smooth;
         }
 
-        /* Melhorias visuais para drop zone em dispositivos touch */
-        .grid-cell.drop-zone {
-            background: rgba(30, 60, 114, 0.2);
-            border: 2px dashed #1e3c72;
-            transition: all 0.2s;
-        }
         /* Botão "×" de remover unidade temática (usado no modal de configuração de bimestres) */
         .btn-remover-unidade {
   padding: 10px 20px;
@@ -1048,11 +1019,10 @@
                 </div>
             </div>
 
-            <!-- Modo de Edição -->
+            <!-- Ações da Grade -->
             <div class="modo-edicao-bar">
-                <span class="modo-edicao-title">✋ Modo de Edição:</span>
+                <span class="modo-edicao-title">Clique numa célula pra escolher a turma ou o compromisso do horário.</span>
                 <div class="modo-edicao-buttons">
-                    <button class="btn btn-primary" onclick="habilitarArrastar()" id="btnArrastar">Ativar Arrastar</button>
                     <button class="btn btn-success" onclick="salvarGrade()">💾 Salvar Grade</button>
                     <button class="btn btn-danger" onclick="resetarGrade()">↺ Resetar</button>
                 </div>
@@ -1130,8 +1100,6 @@
         let unsubConfiguracoes = null;
         let unsubTurmas = null;
         let dataBase = new Date();
-        let modoArrastarAtivo = false;
-        let itemArrastando = null;
         let gradeHorarios = null;
         let turmas = [];
         // Componentes que a escola leciona — restringe os seletores de
@@ -1460,19 +1428,16 @@
             mostrarMensagem('Turmas recarregadas!', 'success');
         };
 
-        // Renderizar lista de turmas e itens especiais
+        // Renderizar lista de turmas e itens especiais — só exibição e
+        // remoção aqui; a atribuição na grade é feita pelo dropdown de cada
+        // célula (ver renderizarSeletorCelula), não mais por arrastar.
         function renderizarTurmasLista() {
             const container = document.getElementById('turmasLista');
             container.innerHTML = '';
 
-            // Renderizar turmas dinâmicas
             turmas.forEach(turma => {
                 const div = document.createElement('div');
                 div.className = 'turma-item';
-                div.setAttribute('draggable', modoArrastarAtivo);
-                div.setAttribute('data-tipo', 'turma');
-                div.setAttribute('data-valor', turma.nome);
-                div.setAttribute('data-componente', turma.componenteCurricular);
 
                 const badgeComponente = turma.componenteCurricular !== COMPONENTE_CURRICULAR_PADRAO
                     ? ` <span style="opacity:0.7;font-size:0.75em;">(${turma.componenteCurricular})</span>`
@@ -1481,11 +1446,6 @@
                     <span>👥 ${turma.nome}${badgeComponente}</span>
                     <button class="remove-turma" onclick="removerTurma('${turma.nome}', '${turma.componenteCurricular}')" title="Remover turma">×</button>
                 `;
-
-                if (modoArrastarAtivo) {
-                    div.addEventListener('dragstart', handleDragStart);
-                    div.addEventListener('dragend', handleDragEnd);
-                }
 
                 container.appendChild(div);
             });
@@ -1497,126 +1457,9 @@
             itensEspeciaisFixos.forEach(item => {
                 const div = document.createElement('div');
                 div.className = `turma-item ${item.tipo}`;
-                div.setAttribute('draggable', modoArrastarAtivo);
-                div.setAttribute('data-tipo', item.tipo);
-                div.setAttribute('data-valor', item.nome);
-
                 div.innerHTML = `<span>${item.icone} ${item.nome}</span>`;
-
-                if (modoArrastarAtivo) {
-                    div.addEventListener('dragstart', handleDragStart);
-                    div.addEventListener('dragend', handleDragEnd);
-                }
-
                 especiaisContainer.appendChild(div);
             });
-        }
-
-        // Handlers de drag and drop
-        function handleDragStart(e) {
-            if (!modoArrastarAtivo) {
-                e.preventDefault();
-                return;
-            }
-
-            const elemento = e.target.closest('.turma-item');
-            if (!elemento) return;
-
-            itemArrastando = {
-                tipo: elemento.dataset.tipo,
-                valor: elemento.dataset.valor,
-                componente: elemento.dataset.componente || null
-            };
-
-            e.dataTransfer.setData('text/plain', JSON.stringify(itemArrastando));
-            e.dataTransfer.effectAllowed = 'move';
-
-            elemento.classList.add('dragging');
-        }
-
-        function handleDragEnd(e) {
-            const elemento = e.target.closest('.turma-item');
-            if (elemento) {
-                elemento.classList.remove('dragging');
-            }
-            itemArrastando = null;
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-
-            const cell = e.target.closest('.grid-cell:not(:first-child)');
-            if (cell) {
-                cell.classList.add('drop-zone');
-            }
-        }
-
-        function handleDragLeave(e) {
-            const cell = e.target.closest('.grid-cell:not(:first-child)');
-            if (cell) {
-                cell.classList.remove('drop-zone');
-            }
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-
-            if (!modoArrastarAtivo) {
-                mostrarMensagem('Ative o modo arrastar primeiro!', 'info');
-                return;
-            }
-
-            const cell = e.target.closest('.grid-cell:not(:first-child)');
-            if (!cell) return;
-
-            cell.classList.remove('drop-zone');
-
-            try {
-                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                if (!data) return;
-
-                // Encontrar a posição na grade
-                const row = cell.closest('.grid-row');
-                const rowIndex = Array.from(row.parentNode.children).indexOf(row);
-                const cellIndex = Array.from(row.children).indexOf(cell);
-
-                // Determinar período e horário
-                let periodo, linhaIndex;
-                const linhasMatutino = gradeHorarios.matutino.length;
-
-                // Ajustar para cabeçalhos e linhas de período
-                const linhasHeader = 2; // Cabeçalho + linha período matutino
-
-                if (rowIndex > 1 && rowIndex <= linhasMatutino + 1) {
-                    periodo = 'matutino';
-                    linhaIndex = rowIndex - 2; // Desconsidera cabeçalho e linha período
-                } else if (rowIndex > linhasMatutino + 2) {
-                    periodo = 'vespertino';
-                    linhaIndex = rowIndex - (linhasMatutino + 3); // Desconsidera cabeçalho, período matutino e período vespertino
-                } else {
-                    return; // Não é uma linha de aula
-                }
-
-                // Mapear índice da célula para dia
-                const diaMap = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
-                const dia = diaMap[cellIndex - 1]; // -1 porque a primeira célula é o horário
-
-                if (periodo && linhaIndex !== undefined && dia && linhaIndex >= 0 && linhaIndex < gradeHorarios[periodo].length) {
-                    // Atualizar a grade — turma vira {turma, componenteCurricular},
-                    // palavra reservada (Folga/Planejamento/CEMFOR/---) continua string.
-                    gradeHorarios[periodo][linhaIndex][dia] = data.tipo === 'turma'
-                        ? { turma: data.valor, componenteCurricular: data.componente || COMPONENTE_CURRICULAR_PADRAO }
-                        : data.valor;
-
-                    // Renderizar novamente
-                    renderizarProgramacao();
-
-                    mostrarMensagem(`Item adicionado com sucesso!`, 'success');
-                }
-            } catch (error) {
-                console.error('Erro no drop:', error);
-            }
         }
 
         // Renderizar grid completo
@@ -1702,39 +1545,71 @@
                 const valor = linha[dia];
                 const cell = document.createElement('div');
                 cell.className = 'grid-cell';
-
-                if (modoArrastarAtivo) {
-                    cell.addEventListener('dragover', handleDragOver);
-                    cell.addEventListener('dragleave', handleDragLeave);
-                    cell.addEventListener('drop', handleDrop);
-                }
-
-                cell.innerHTML = renderizarCard(valor);
+                cell.innerHTML = renderizarSeletorCelula(valor, periodo, linhaIndex, dia);
                 row.appendChild(cell);
             });
 
             return row;
         }
 
-        // Renderizar card da aula
-        function renderizarCard(valorBruto) {
-            const celula = normalizarCelula(valorBruto);
-            if (celula.tipo === 'especial') {
-                switch (celula.valor) {
-                    case 'Folga': return `<div class="aula-card folga">🆓 Folga</div>`;
-                    case 'Planejamento': return `<div class="aula-card planejamento">📝 Planejamento</div>`;
-                    case 'CEMFOR': return `<div class="aula-card cemfor">🏛️ CEMFOR</div>`;
-                    default: return `<div class="aula-card" style="opacity:0.3;">➕</div>`; // '---'
-                }
-            }
-            // É uma turma
-            return `
-                <div class="aula-card">
-                    <div class="aula-turma">👥 ${celula.turma}</div>
-                    <div class="aula-componente">${celula.componenteCurricular}</div>
-                </div>
-            `;
+        // Opções do <select> de uma célula: vazio + itens especiais fixos +
+        // cada turma cadastrada. Valor da turma é "turma:<índice>" (não o
+        // nome) porque duas turmas de componentes diferentes podem ter o
+        // mesmo nome (ex: "6º A" de Educação Física e de Arte).
+        function opcoesSelectCelula(celula) {
+            const opcoes = [`<option value="">➕ ---</option>`];
+
+            itensEspeciaisFixos.forEach(item => {
+                const selecionado = celula.tipo === 'especial' && celula.valor === item.nome ? ' selected' : '';
+                opcoes.push(`<option value="${item.nome}"${selecionado}>${item.icone} ${item.nome}</option>`);
+            });
+
+            turmas.forEach((turma, indice) => {
+                const selecionado = celula.tipo === 'turma' &&
+                    celula.turma === turma.nome &&
+                    celula.componenteCurricular === turma.componenteCurricular ? ' selected' : '';
+                const badge = turma.componenteCurricular !== COMPONENTE_CURRICULAR_PADRAO ? ` (${turma.componenteCurricular})` : '';
+                opcoes.push(`<option value="turma:${indice}"${selecionado}>👥 ${turma.nome}${badge}</option>`);
+            });
+
+            return opcoes.join('');
         }
+
+        function classeSelectCelula(celula) {
+            if (celula.tipo !== 'especial') return '';
+            switch (celula.valor) {
+                case 'Folga': return 'folga';
+                case 'Planejamento': return 'planejamento';
+                case 'CEMFOR': return 'cemfor';
+                default: return 'vazio';
+            }
+        }
+
+        // Dropdown de cada célula da grade — substitui o antigo esquema de
+        // arrastar. Trocar a opção já atualiza gradeHorarios em memória (só
+        // grava no Firestore quando o professor clica "💾 Salvar Grade",
+        // mesmo padrão das outras listas editáveis desta tela).
+        function renderizarSeletorCelula(valorBruto, periodo, linhaIndex, dia) {
+            const celula = normalizarCelula(valorBruto);
+            const classe = classeSelectCelula(celula);
+            return `<select class="grade-select ${classe}" onchange="atualizarCelulaGrade(this, '${periodo}', ${linhaIndex}, '${dia}')">${opcoesSelectCelula(celula)}</select>`;
+        }
+
+        window.atualizarCelulaGrade = function (selectEl, periodo, linhaIndex, dia) {
+            const valor = selectEl.value;
+            let novoValor;
+            if (!valor) {
+                novoValor = '---';
+            } else if (valor.startsWith('turma:')) {
+                const turma = turmas[parseInt(valor.slice(6), 10)];
+                if (!turma) return;
+                novoValor = { turma: turma.nome, componenteCurricular: turma.componenteCurricular };
+            } else {
+                novoValor = valor; // 'Folga' | 'Planejamento' | 'CEMFOR'
+            }
+            gradeHorarios[periodo][linhaIndex][dia] = novoValor;
+            renderizarProgramacao();
+        };
 
         // Renderizar bimestres compactos
         function renderizarBimestresCompact() {
@@ -1887,27 +1762,6 @@
         };
 
         // Funções de grade
-        window.habilitarArrastar = function() {
-            modoArrastarAtivo = !modoArrastarAtivo;
-            const btn = document.getElementById('btnArrastar');
-
-            if (modoArrastarAtivo) {
-                btn.textContent = '✅ Arrastar Ativado';
-                btn.classList.remove('btn-primary');
-                btn.classList.add('btn-success');
-                mostrarMensagem('Modo arrastar ativado!', 'success');
-            } else {
-                btn.textContent = '✋ Ativar Arrastar';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-primary');
-                mostrarMensagem('Modo arrastar desativado.', 'info');
-            }
-
-            // Re-renderizar para atualizar os event listeners
-            renderizarTurmasLista();
-            renderizarProgramacao();
-        };
-
         window.salvarGrade = function() {
     // Migra célula-por-célula pro formato novo a cada salvamento — assim o
     // documento inteiro é atualizado organicamente, sem precisar de script
