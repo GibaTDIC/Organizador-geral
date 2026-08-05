@@ -138,8 +138,14 @@
             scrollbar-width: thin;
         }
 
+        /* min-width fixo (não min(...,100%)): no celular "100%" vencia e
+           travava o container na largura da tela, anulando o overflow-x:auto
+           de .tabela-container — cada célula ficava espremida a ~50-60px,
+           cortando o nome da turma. Um mínimo fixo mais largo que a tela
+           força o scroll horizontal (já estilizado abaixo) a entrar em ação,
+           dando espaço de verdade pra turma + componente curricular. */
         .grid-container {
-            min-width: min(650px, 100%);
+            min-width: 720px;
         }
 
         .grid-row {
@@ -184,24 +190,24 @@
 
         .grid-cell {
             flex: 1 1 0;
-            min-width: clamp(60px, 15vw, 90px);
+            min-width: 108px;
             padding: clamp(4px, 1.5vw, 8px) clamp(2px, 1vw, 4px);
             text-align: center;
             border-right: 1px solid #dee2e6;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(0.7rem, 2vw, 0.85rem);
+            font-size: 0.8rem;
             word-break: break-word;
         }
 
         /* Primeira célula de cada linha (horário) - Azul */
         .grid-cell:first-child {
-            flex: 0 0 clamp(60px, 15vw, 80px);
+            flex: 0 0 80px;
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
             font-weight: 600;
-            font-size: clamp(0.65rem, 1.8vw, 0.8rem);
+            font-size: 0.75rem;
             border-right: 1px solid rgba(255,255,255,0.2);
         }
 
@@ -280,7 +286,7 @@
             text-align: center;
             text-align-last: center;
             cursor: pointer;
-            font-size: clamp(0.65rem, 1.8vw, 0.8rem);
+            font-size: 0.8rem;
             font-weight: 600;
             font-family: inherit;
             color: #1e3c72;
@@ -847,19 +853,6 @@
 
         /* Ajustes para telas muito pequenas */
         @media (max-width: 380px) {
-            .grid-cell:first-child {
-                flex: 0 0 50px;
-            }
-
-            .grid-cell {
-                min-width: 50px;
-                font-size: 0.65rem;
-            }
-
-            .grade-select {
-                font-size: 0.6rem;
-            }
-
             .btn-nav {
                 font-size: 0.65rem;
                 min-width: 70px;
@@ -1607,7 +1600,7 @@
                     celula.turma === turma.nome &&
                     celula.componenteCurricular === turma.componenteCurricular ? ' selected' : '';
                 const badge = turma.componenteCurricular !== COMPONENTE_CURRICULAR_PADRAO ? ` (${turma.componenteCurricular})` : '';
-                opcoes.push(`<option value="turma:${indice}"${selecionado}>👥 ${turma.nome}${badge}</option>`);
+                opcoes.push(`<option value="turma:${indice}"${selecionado}>${turma.nome}${badge}</option>`);
             });
 
             return opcoes.join('');
