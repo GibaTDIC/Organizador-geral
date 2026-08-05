@@ -12,6 +12,19 @@ export function calcularPontuacaoCompatibilidade(atividade, criterios) {
     if (criterios.componenteCurricular && atividade.componenteCurricular !== criterios.componenteCurricular) {
         return 0;
     }
+    // Unidade Temática e Objeto de Conhecimento (especificacao), quando
+    // informados, são filtro obrigatório (cascata) — não pontuação opcional.
+    // Sem isso, uma atividade de um Objeto de Conhecimento diferente que só
+    // compartilha a Unidade Temática (categoria bem mais ampla) ainda
+    // pontuava e aparecia como "compatível", poluindo as sugestões do
+    // Planejamento com o tempo conforme o Banco crescia.
+    if (criterios.unidadeTematica && atividade.unidadeTematica !== criterios.unidadeTematica) {
+        return 0;
+    }
+    if (criterios.especificacao && atividade.especificacao !== criterios.especificacao) {
+        return 0;
+    }
+
     let pontuacao = 0;
     if (criterios.unidadeTematica && atividade.unidadeTematica === criterios.unidadeTematica) pontuacao += 1;
     if (criterios.especificacao && atividade.especificacao === criterios.especificacao) pontuacao += 1;
