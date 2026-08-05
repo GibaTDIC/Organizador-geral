@@ -1316,6 +1316,12 @@
         }
 
         renderizarTurmasLista();
+        // A grade depende de `turmas` pra montar as opções de cada dropdown
+        // (ver opcoesSelectCelula) — sem isso, se este listener resolver
+        // depois do de carregarGradeFirebase (ordem entre os dois não é
+        // garantida), a grade fica com dropdown sem nenhuma turma até
+        // alguma outra coisa forçar um re-render.
+        if (gradeHorarios) renderizarProgramacao();
     });
 }
 
