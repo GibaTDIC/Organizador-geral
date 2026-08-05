@@ -293,6 +293,15 @@
             outline-offset: 1px;
         }
 
+        /* Grade travada após "Salvar": <select disabled> já bloqueia a
+           interação, mas o cursor padrão do navegador pra select
+           desabilitado é sutil demais — reforça visualmente que a célula
+           não abre até clicar "Reordenar Grade". */
+        .grade-select:disabled {
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+
         .grade-select.vazio {
             background: transparent;
             border-left-color: #ced4da;
@@ -1021,10 +1030,10 @@
 
             <!-- Ações da Grade -->
             <div class="modo-edicao-bar">
-                <span class="modo-edicao-title">Clique numa célula pra escolher a turma ou o compromisso do horário.</span>
+                <span class="modo-edicao-title" id="modoEdicaoTitle">Clique numa célula pra escolher a turma ou o compromisso do horário.</span>
                 <div class="modo-edicao-buttons">
-                    <button class="btn btn-success" onclick="salvarGrade()">💾 Salvar Grade</button>
-                    <button class="btn btn-danger" onclick="resetarGrade()">↺ Resetar</button>
+                    <button class="btn btn-success" id="btnSalvarGrade" onclick="salvarGrade()">💾 Salvar Grade</button>
+                    <button class="btn btn-secondary" id="btnReorganizarGrade" onclick="habilitarEdicaoGrade()" hidden>🔓 Reordenar Grade</button>
                 </div>
             </div>
         </section>
@@ -1101,6 +1110,13 @@
         let unsubTurmas = null;
         let dataBase = new Date();
         let gradeHorarios = null;
+        // Trava a grade contra edição acidental depois de "Salvar Grade" —
+        // os <select> de célula ficam disabled até o professor clicar
+        // "Reordenar Grade" de propósito. Começa destravada: só passa a
+        // true depois de um "Salvar" nesta sessão (não persiste no
+        // Firestore, então um recarregamento de página sempre abre
+        // destravado outra vez).
+        let gradeTravada = false;
         let turmas = [];
         // Componentes que a escola leciona — restringe os seletores de
         // componente (aqui e no Planejamento) em vez do catálogo inteiro.
@@ -1469,9 +1485,25 @@
         }
 
         // Renderizar grid completo
+        // Reflete gradeTravada nos botões/título da barra de ações — chamado
+        // toda vez que a grade é (re)desenhada, pra nunca ficar dessincronizado
+        // do estado real dos <select> (ex.: depois de salvarGrade/habilitarEdicaoGrade).
+        function atualizarBotoesGrade() {
+            const btnSalvar = document.getElementById('btnSalvarGrade');
+            const btnReorganizar = document.getElementById('btnReorganizarGrade');
+            const titulo = document.getElementById('modoEdicaoTitle');
+            if (!btnSalvar || !btnReorganizar || !titulo) return;
+            btnSalvar.hidden = gradeTravada;
+            btnReorganizar.hidden = !gradeTravada;
+            titulo.textContent = gradeTravada
+                ? '🔒 Grade travada. Clique "Reordenar Grade" pra liberar a edição.'
+                : 'Clique numa célula pra escolher a turma ou o compromisso do horário.';
+        }
+
         function renderizarProgramacao() {
             atualizarInfoSemana();
             atualizarDatasSemana();
+            atualizarBotoesGrade();
 
             const grid = document.getElementById('programacaoGrid');
             grid.innerHTML = '';
@@ -1598,10 +1630,11 @@
         function renderizarSeletorCelula(valorBruto, periodo, linhaIndex, dia) {
             const celula = normalizarCelula(valorBruto);
             const classe = classeSelectCelula(celula);
-            return `<select class="grade-select ${classe}" onchange="atualizarCelulaGrade(this, '${periodo}', ${linhaIndex}, '${dia}')">${opcoesSelectCelula(celula)}</select>`;
+            return `<select class="grade-select ${classe}" ${gradeTravada ? 'disabled' : ''} onchange="atualizarCelulaGrade(this, '${periodo}', ${linhaIndex}, '${dia}')">${opcoesSelectCelula(celula)}</select>`;
         }
 
         window.atualizarCelulaGrade = function (selectEl, periodo, linhaIndex, dia) {
+            if (gradeTravada) return;
             const valor = selectEl.value;
             let novoValor;
             if (!valor) {
@@ -1785,39 +1818,22 @@
     }
     salvarGradeService(escolaAtualId, gradeHorarios)
         .then(() => {
-            mostrarMensagem('Grade salva com sucesso!', 'success');
+            gradeTravada = true;
+            renderizarProgramacao();
+            mostrarMensagem('Grade salva e travada! Clique "Reordenar Grade" pra editar de novo.', 'success');
         })
         .catch(error => {
             mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
         });
 };
 
-        window.resetarGrade = function() {
-    if (confirm('Tem certeza que deseja resetar a grade?')) {
-
-        gradeHorarios = {
-            matutino: gradePadrao.matutino.map(linha => ({
-                horario: linha.horario,
-                segunda: '---',
-                terca: '---',
-                quarta: '---',
-                quinta: '---',
-                sexta: '---'
-            })),
-            vespertino: gradePadrao.vespertino.map(linha => ({
-                horario: linha.horario,
-                segunda: '---',
-                terca: '---',
-                quarta: '---',
-                quinta: '---',
-                sexta: '---'
-            }))
+        // Destrava a grade pra edição (não apaga nada — o botão "Reordenar
+        // Grade" só reabre os <select> que "Salvar Grade" travou).
+        window.habilitarEdicaoGrade = function() {
+            gradeTravada = false;
+            renderizarProgramacao();
+            mostrarMensagem('Grade liberada pra edição.', 'info');
         };
-
-        renderizarProgramacao();
-        mostrarMensagem('Grade limpa! Comece a montar sua programação.', 'success');
-    }
-};
 
         // Mostrar mensagem
         function mostrarMensagem(texto, tipo) {
