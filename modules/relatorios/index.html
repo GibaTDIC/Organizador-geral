@@ -405,7 +405,7 @@
         function renderizarAtividadesAba() {
             const atividadesFiltradas = filtrarAtividades(atividadesBanco, { turma: filtroTurma || null, componenteCurricular: filtroComponente || null });
             const ind = calcularIndicadoresAtividades(atividadesFiltradas);
-            const rotuloOrigem = { manual: 'Manual', ia: 'IA', importacao: 'Importação' };
+            const rotuloOrigem = { manual: 'Manual', ia: 'IA', importacao: 'Importação', 'google-drive': 'Google Drive' };
             const cobertura = montarCoberturaBNCCAtividades(atividadesFiltradas, { bnccCatalogoPorComponente: BNCC_POR_COMPONENTE, serieDaTurmaFn: serieDaTurma });
 
             const cardsIndicadores = `

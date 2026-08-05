@@ -129,6 +129,7 @@
                     <div class="ba-barra-acoes">
                         <button class="pf-btn pf-btn--success" onclick="novaAtividade()">➕ Nova Atividade</button>
                         <button class="pf-btn pf-btn--secondary" onclick="document.getElementById('baInputImportacao').click()">📥 Importar</button>
+                        <button class="pf-btn pf-btn--secondary" onclick="importarDoGoogleDrive()">📂 Importar do Drive</button>
                         <button class="pf-btn pf-btn--info" onclick="exportarAtividadesCsv()">⬇️ Exportar</button>
                     </div>
                 </div>
@@ -265,6 +266,7 @@
             adicionarVariacao, atualizarVariacao, removerVariacao
         } from "../../scripts/services/atividades-service.js";
         import { buscarAtividadesCompativeis, buscarTitulosSimilares, encontrarOpcaoCorrespondente } from "../../scripts/services/atividades-busca.js";
+        import { conectarGoogleDrive, abrirSeletorDrive, baixarConteudoGoogleDoc, baixarArquivoBinarioDrive, tipoDeProcessamentoDrive } from "../../scripts/services/google-drive-service.js";
         import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
         import { extrairTextoDocxAtividade } from "../../scripts/services/atividade-docx-extrator.js";
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -317,7 +319,7 @@
         let mostrarArquivadas = false;
 
         let atividadeEditando = null; // id da atividade em edição, null = criando nova
-        let origemAtualForm = 'manual'; // 'manual' | 'ia' | 'importacao' — só usado na criação
+        let origemAtualForm = 'manual'; // 'manual' | 'ia' | 'importacao' | 'google-drive' — só usado na criação
 
         // ---------- Helpers ----------
         function mostrarMensagem(texto, tipo) {
@@ -635,7 +637,7 @@
                 container.innerHTML = '<p class="ba-estado-vazio">Nenhuma atividade encontrada com os filtros atuais.</p>';
                 return;
             }
-            const iconeOrigem = { manual: '', ia: '🤖', importacao: '📥' };
+            const iconeOrigem = { manual: '', ia: '🤖', importacao: '📥', 'google-drive': '📂' };
             container.innerHTML = lista.map(a => {
                 const favoritada = (a.favoritadoPor || []).includes(uidAtual);
                 const habilidadesTexto = (a.habilidades || []).map(h => h.codigo).join(', ');
@@ -844,6 +846,7 @@
             document.getElementById('baDescricao').value = extraido.descricao || '';
             document.getElementById('baObjetivo').value = extraido.objetivo || '';
             document.getElementById('baPalavrasChave').value = (extraido.palavrasChave || []).join(', ');
+            if (extraido.linkOrigem) document.getElementById('baLinkExterno').value = extraido.linkOrigem;
             sugerirCascataBNCCBA(extraido.serie, extraido.unidadeTematica, extraido.objetoConhecimento);
         }
 
@@ -963,29 +966,38 @@
                     return;
                 }
 
-                if (lista.length === 0) {
-                    mostrarMensagem('Não foi possível identificar nenhuma atividade no documento.', 'error');
-                    return;
-                }
-
-                if (lista.length === 1) {
-                    novaAtividade();
-                    preencherFormularioComSugestao(lista[0]);
-                    origemAtualForm = 'importacao';
-                    mostrarMensagem('Documento lido! Revise os campos (e classifique BNCC) antes de salvar.', 'success');
-                } else {
-                    filaImportacao = lista;
-                    renderizarFilaImportacao();
-                    document.getElementById('modalFilaImportacao').open();
-                    mostrarMensagem(`Encontramos ${lista.length} atividades no arquivo. Revise e salve uma de cada vez.`, 'success');
-                }
+                aplicarListaExtraidaAoFormulario(lista, 'importacao');
             } catch (erro) {
                 mostrarMensagem('Não foi possível importar: ' + erro.message, 'error');
             }
         }
 
+        // Decide entre preencher o formulário direto (1 atividade encontrada)
+        // ou abrir a fila de revisão (várias) — usado tanto pela importação
+        // de arquivo local quanto pela importação do Google Drive.
+        function aplicarListaExtraidaAoFormulario(lista, origem) {
+            if (lista.length === 0) {
+                mostrarMensagem('Não foi possível identificar nenhuma atividade no documento.', 'error');
+                return;
+            }
+
+            if (lista.length === 1) {
+                novaAtividade();
+                preencherFormularioComSugestao(lista[0]);
+                origemAtualForm = origem;
+                mostrarMensagem('Documento lido! Revise os campos (e classifique BNCC) antes de salvar.', 'success');
+            } else {
+                filaImportacao = lista;
+                filaImportacaoOrigem = origem;
+                renderizarFilaImportacao();
+                document.getElementById('modalFilaImportacao').open();
+                mostrarMensagem(`Encontramos ${lista.length} atividades no arquivo. Revise e salve uma de cada vez.`, 'success');
+            }
+        }
+
         // ---------- Fila de importação (documentos com múltiplas atividades) ----------
         let filaImportacao = [];
+        let filaImportacaoOrigem = 'importacao';
 
         function renderizarFilaImportacao() {
             const container = document.getElementById('baListaFilaImportacao');
@@ -1012,7 +1024,7 @@
             document.getElementById('modalFilaImportacao').close();
             novaAtividade();
             preencherFormularioComSugestao(item);
-            origemAtualForm = 'importacao';
+            origemAtualForm = filaImportacaoOrigem;
         };
 
         function continuarFilaImportacaoSeHouver() {
@@ -1032,6 +1044,45 @@
             evento.target.value = '';
             if (file) processarImportacaoAtividade(file);
         });
+
+        // ---------- Importação via Google Drive ----------
+        // Só uma fonte alternativa de conteúdo bruto pro mesmo pipeline da
+        // importação de arquivo local acima (extrai texto → chamarAssistenteIA
+        // → normalizarExtraidoImportacao → aplicarListaExtraidaAoFormulario).
+        window.importarDoGoogleDrive = async function () {
+            try {
+                const token = await conectarGoogleDrive();
+                const arquivo = await abrirSeletorDrive(token);
+                if (!arquivo) return; // professor cancelou o seletor
+
+                mostrarMensagem('Lendo o documento...', 'info');
+                const tipo = tipoDeProcessamentoDrive(arquivo.mimeType);
+                let lista;
+                if (tipo === 'google-doc') {
+                    const texto = await baixarConteudoGoogleDoc(arquivo.id, token);
+                    const resposta = await chamarAssistenteIA(promptEstruturarAtividade(), { textoDocumento: texto }, null, 'json');
+                    lista = normalizarExtraidoImportacao(resposta);
+                } else if (tipo === 'docx') {
+                    const blob = await baixarArquivoBinarioDrive(arquivo.id, token);
+                    const texto = await extrairTextoDocxAtividade(blob);
+                    const resposta = await chamarAssistenteIA(promptEstruturarAtividade(), { textoDocumento: texto }, null, 'json');
+                    lista = normalizarExtraidoImportacao(resposta);
+                } else if (tipo === 'pdf') {
+                    const blob = await baixarArquivoBinarioDrive(arquivo.id, token);
+                    const dadosBase64 = await arquivoParaBase64BA(blob);
+                    const resposta = await chamarAssistenteIA(promptEstruturarAtividade(), null, { mimeType: 'application/pdf', dadosBase64 });
+                    lista = normalizarExtraidoImportacao(resposta);
+                } else {
+                    mostrarMensagem('Formato não suportado. Escolha um Google Doc, .docx ou .pdf.', 'error');
+                    return;
+                }
+
+                lista = lista.map(item => ({ ...item, linkOrigem: arquivo.url }));
+                aplicarListaExtraidaAoFormulario(lista, 'google-drive');
+            } catch (erro) {
+                mostrarMensagem('Não foi possível importar do Drive: ' + erro.message, 'error');
+            }
+        };
 
         // ---------- Variações ----------
         let atividadeVariacoesAbertas = null;
