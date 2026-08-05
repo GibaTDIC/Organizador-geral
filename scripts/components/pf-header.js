@@ -3,6 +3,15 @@
 // diretamente — só escuta 'pf-auth-ready'/'pf-escola-ready' (disparados por
 // auth-guard.js/escola-context.js) e dispara 'pf-logout-request',
 // 'pf-escola-selecionar-request' e 'pf-escola-criar-request'.
+//
+// A marca usa gibabit-avatar-header.png (128x128, ~8KB) em vez do arquivo
+// original em assets/ (5250x5250, ~9.7MB — inviável carregar num badge de
+// 32px em TODA página do app, já que este componente aparece em todas).
+// new URL(..., import.meta.url) resolve o caminho relativo a partir deste
+// arquivo (scripts/components/), não da página que importa o componente —
+// funciona igual em qualquer profundidade de pasta (raiz ou modules/*).
+const AVATAR_URL = new URL('../../assets/gibabit-avatar-header.png', import.meta.url).href;
+
 export class PfHeader extends HTMLElement {
     connectedCallback() {
         this.classList.add('pf-header');
@@ -10,7 +19,7 @@ export class PfHeader extends HTMLElement {
             <div class="pf-header__left">
                 <button class="pf-header__menu-toggle" type="button" aria-label="Abrir menu">☰</button>
                 <div class="pf-header__brand">
-                    <span class="pf-header__mark">G</span>
+                    <img class="pf-header__mark" src="${AVATAR_URL}" alt="Gibabit" width="32" height="32">
                     <span class="pf-header__wordmark">Prof<span class="pf-header__accent">GB</span></span>
                 </div>
             </div>

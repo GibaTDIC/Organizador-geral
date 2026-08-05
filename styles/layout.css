@@ -75,14 +75,10 @@ pf-header {
 .pf-header__mark {
     width: 32px;
     height: 32px;
-    border-radius: var(--pf-radius-md);
-    background: rgba(249, 115, 22, 0.1);
-    border: 2px solid rgba(249, 115, 22, 0.3);
-    color: var(--pf-orange-500);
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    flex-shrink: 0;
 }
 
 .pf-header__wordmark {
