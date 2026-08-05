@@ -461,14 +461,14 @@
             return `${dia}/${mes}/${ano}`;
         }
 
-        // Texto final pra colar no sistema externo: todos os códigos de
-        // habilidade (planejadas + ministradas, sem repetir) + título e
-        // descrição da aula (campos de Planejamento).
+        // Texto final pra colar no sistema externo: só os códigos de
+        // habilidade aplicados (planejados + ministrados, sem repetir) e o
+        // título da aula — sem a descrição, a pedido do professor (o sistema
+        // externo só precisa dessas duas informações).
         function textoParaColar(linha) {
             const partes = [];
             if (linha.codigosHabilidades.length > 0) partes.push(`Habilidades: ${linha.codigosHabilidades.join(', ')}`);
             if (linha.titulo) partes.push(`Título: ${linha.titulo}`);
-            if (linha.descricao) partes.push(`Descrição: ${linha.descricao}`);
             return partes.join('\n');
         }
 
