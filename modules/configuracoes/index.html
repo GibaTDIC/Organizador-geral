@@ -643,47 +643,40 @@
             font-size: clamp(0.95rem, 3vw, 1.2rem);
         }
 
+        /* Cards de bimestre bem enxutos — só número + intervalo de datas,
+           pra caber uma visão rápida no celular sem ocupar tanto espaço
+           vertical (o quadrado grande de antes era desproporcional pro
+           pouco texto que ele mostra). */
         .bimestres-compact {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-            gap: clamp(8px, 2vw, 15px);
+            grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+            gap: 6px;
         }
 
         .bimestre-card-compact {
-            padding: clamp(10px, 2.5vw, 15px);
-            border-radius: 12px;
+            padding: 6px 8px;
+            border-radius: 8px;
             color: white;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
-            font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            font-size: 0.7rem;
             display: flex;
             flex-direction: column;
-            min-height: 100px;
-        }
-
-        .bimestre-card-compact:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            gap: 2px;
         }
 
         .bimestre-header-compact {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.3);
-            padding-bottom: 5px;
-            flex-wrap: wrap;
-            gap: 5px;
+            flex-direction: column;
+            gap: 1px;
         }
 
         .bimestre-numero-compact {
             font-weight: 700;
-            font-size: clamp(0.9rem, 2.8vw, 1.1rem);
+            font-size: 0.72rem;
         }
 
         .bimestre-datas-compact {
-            font-size: clamp(0.7rem, 2.2vw, 0.8rem);
+            font-size: 0.62rem;
             opacity: 0.9;
         }
 
