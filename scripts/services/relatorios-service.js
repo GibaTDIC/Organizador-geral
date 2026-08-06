@@ -137,6 +137,10 @@ export function montarDiarioDeClasse(aulasFiltradas) {
 }
 
 const DIA_CHAVES_SEMANA = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+// Duplicado do PERIODOS_GRADE de grade-service.js (fonte de verdade) —
+// este arquivo não importa nada do Firebase de propósito (ver comentário
+// no topo), então o literal fica repetido aqui em vez de importado.
+const PERIODOS_GRADE = ['matutino', 'vespertino', 'noturno'];
 
 function segundaFeiraDaSemana(data) {
     const diaSemana = data.getDay(); // 0=domingo..6=sábado
@@ -160,7 +164,7 @@ export function resolverDataRealAula(gradeAtual, turma, componenteCurricular, da
 
     for (let i = 0; i < DIA_CHAVES_SEMANA.length; i++) {
         const diaChave = DIA_CHAVES_SEMANA[i];
-        const encontrado = ['matutino', 'vespertino'].some(periodo =>
+        const encontrado = PERIODOS_GRADE.some(periodo =>
             (gradeAtual[periodo] || []).some(linha => {
                 const celula = normalizarCelulaFn(linha[diaChave]);
                 return celula.tipo === 'turma' && celula.turma === turma && celula.componenteCurricular === componenteCurricular;

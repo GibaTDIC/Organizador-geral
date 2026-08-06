@@ -617,7 +617,7 @@
         import "../../scripts/layout/page-shell.js";
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
-        import { ouvirGrade, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO, PERIODOS_GRADE } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { ouvirControlador } from "../../scripts/services/controlador-service.js";
         import { ouvirPlanejamentosBimestrais } from "../../scripts/services/planejamento-bimestral-service.js";
@@ -655,6 +655,7 @@
 
         // ---------- Constantes ----------
         const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+        const ROTULO_PERIODO = { matutino: '🌅 Matutino', vespertino: '☀️ Vespertino', noturno: '🌙 Noturno' };
         const DIAS_SEMANA_EXTENSO = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
         const MESES_EXTENSO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -677,6 +678,12 @@
                 '2ª Aula': { inicio: '14:00', fim: '15:00' },
                 '3ª Aula': { inicio: '15:00', fim: '16:00' },
                 '4ª Aula': { inicio: '16:00', fim: '17:00' }
+            },
+            noturno: {
+                '1ª Aula': { inicio: '19:00', fim: '20:00' },
+                '2ª Aula': { inicio: '20:00', fim: '21:00' },
+                '3ª Aula': { inicio: '21:00', fim: '22:00' },
+                '4ª Aula': { inicio: '22:00', fim: '23:00' }
             }
         };
 
@@ -820,7 +827,7 @@
         function montarSlotsDoDia(diaChave) {
             if (!diaChave) return [];
             const slots = [];
-            ['matutino', 'vespertino'].forEach(periodo => {
+            PERIODOS_GRADE.forEach(periodo => {
                 (gradeAtual[periodo] || []).forEach((linha, ordinal) => {
                     slots.push({ periodo, ordinal, horario: linha.horario, celula: normalizarCelula(linha[diaChave]) });
                 });
@@ -932,7 +939,7 @@
 
         function calcularProgressoSemanal() {
             let total = 0, concluidos = 0;
-            ['matutino', 'vespertino'].forEach(periodo => {
+            PERIODOS_GRADE.forEach(periodo => {
                 (gradeAtual[periodo] || []).forEach(linha => {
                     DIA_CHAVES.forEach(dia => {
                         const celula = normalizarCelula(linha[dia]);
@@ -1000,7 +1007,7 @@
                 container.innerHTML = '<p class="dash-estado-vazio">Hoje é fim de semana — sem aulas na grade. 🎉</p>';
                 return;
             }
-            if ((gradeAtual.matutino || []).length === 0 && (gradeAtual.vespertino || []).length === 0) {
+            if (PERIODOS_GRADE.every(periodo => (gradeAtual[periodo] || []).length === 0)) {
                 container.innerHTML = '<p class="dash-estado-vazio">Grade ainda não configurada. Configure em <a href="../configuracoes/index.html">Configurações</a>.</p>';
                 return;
             }
@@ -1019,7 +1026,7 @@
                 let cabecalho = '';
                 if (item.periodo !== periodoAtual) {
                     periodoAtual = item.periodo;
-                    cabecalho = `<div class="dash-rotina-periodo">${item.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'}</div>`;
+                    cabecalho = `<div class="dash-rotina-periodo">${ROTULO_PERIODO[item.periodo] || item.periodo}</div>`;
                 }
                 const classePassada = aulaJaPassou(item) ? ' dash-rotina-item--passada' : '';
                 return `
@@ -1070,7 +1077,7 @@
                     <span class="dash-badge ${classeBadge(proxima.status)}">${proxima.status}</span>
                     <span class="dash-proxima-turma">${proxima.valor}</span>
                     ${proxima.entrada ? `<span class="dash-proxima-conteudo">${proxima.entrada.titulo}</span>` : ''}
-                    <span class="dash-proxima-meta">${proxima.periodo === 'matutino' ? '🌅 Matutino' : '☀️ Vespertino'} · ${proxima.horario}</span>
+                    <span class="dash-proxima-meta">${ROTULO_PERIODO[proxima.periodo] || proxima.periodo} · ${proxima.horario}</span>
                     <button class="pf-btn pf-btn--primary" onclick="irParaProgramacaoDiaria('${proxima.valor}')">▶️ Iniciar Aula</button>
                 </div>
             `;

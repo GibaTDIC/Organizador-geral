@@ -63,6 +63,10 @@ export function dataBRParaISO(dataBR) {
 }
 
 const DIAS_SEMANA_GRADE = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+// Duplicado do PERIODOS_GRADE de grade-service.js (fonte de verdade) —
+// este arquivo não importa nada do Firebase de propósito (ver comentário
+// no topo), então o literal fica repetido aqui em vez de importado.
+const PERIODOS_GRADE = ['matutino', 'vespertino', 'noturno'];
 
 // O aluno do PEI assiste aula junto da turma dele, no mesmo horário — então
 // a Planilha de Acompanhamento pode começar preenchida com as datas em que a
@@ -75,7 +79,7 @@ export function calcularDatasDeAulaNoPeriodo(gradeAtual, turma, componenteCurric
     if (!gradeAtual || !dataInicioISO || !dataTerminoISO) return [];
 
     const diasSemanaComAula = new Set();
-    ['matutino', 'vespertino'].forEach(periodo => {
+    PERIODOS_GRADE.forEach(periodo => {
         (gradeAtual[periodo] || []).forEach(linha => {
             DIAS_SEMANA_GRADE.forEach((chave, indice) => {
                 const celula = normalizarCelulaFn(linha[chave]);

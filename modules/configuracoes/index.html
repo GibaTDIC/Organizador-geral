@@ -126,151 +126,111 @@
             border-color: #1e3c72;
         }
 
-        /* Tabela de Programação */
-        .tabela-container {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-        }
-
-        /* min-width fixo (não min(...,100%)): no celular "100%" vencia e
-           travava o container na largura da tela, anulando o overflow-x:auto
-           de .tabela-container — cada célula ficava espremida a ~50-60px,
-           cortando o nome da turma. Um mínimo fixo mais largo que a tela
-           força o scroll horizontal (já estilizado abaixo) a entrar em ação,
-           dando espaço de verdade pra turma + componente curricular. */
-        .grid-container {
-            min-width: 720px;
-        }
-
-        .grid-row {
+        /* Grade Semanal — abas por dia da semana + lista vertical do dia
+           selecionado. Substitui a antiga tabela de 6 colunas (horário + 5
+           dias lado a lado): naquele layout, caber a tela do celular
+           forçava scroll lateral (ou espremia cada célula a ~50-60px,
+           cortando o nome da turma). Aqui só uma coluna por vez, o select
+           ocupa a largura toda — sobra espaço pra turma + disciplina, e a
+           rolagem fica só vertical. */
+        .dia-tabs {
             display: flex;
-            width: 100%;
-            border-bottom: 1px solid #e9ecef;
+            gap: clamp(4px, 1.5vw, 8px);
+            margin-bottom: 12px;
         }
 
-        .grid-row:last-child {
-            border-bottom: none;
-        }
-
-        .grid-row.header {
-            border-bottom: 2px solid #fff;
-        }
-
-        /* Cabeçalho - Primeira célula azul */
-        .grid-row.header .grid-cell:first-child {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-        }
-
-        .grid-cell.header-cell-bimestre-1 {
-            background: #E63946;
-            color: white;
-        }
-
-        .grid-cell.header-cell-bimestre-2 {
-            background: #2A9D8F;
-            color: white;
-        }
-
-        .grid-cell.header-cell-bimestre-3 {
-            background: #E9C46A;
-            color: white;
-        }
-
-        .grid-cell.header-cell-bimestre-4 {
-            background: #9C89B8;
-            color: white;
-        }
-
-        .grid-cell {
+        .dia-tab {
             flex: 1 1 0;
-            min-width: 108px;
-            padding: clamp(4px, 1.5vw, 8px) clamp(2px, 1vw, 4px);
-            text-align: center;
-            border-right: 1px solid #dee2e6;
+            min-width: 0;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: clamp(6px, 2vw, 10px) clamp(2px, 1vw, 4px);
+            cursor: pointer;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            word-break: break-word;
-        }
-
-        /* Primeira célula de cada linha (horário) - Azul */
-        .grid-cell:first-child {
-            flex: 0 0 80px;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            font-weight: 600;
-            font-size: 0.75rem;
-            border-right: 1px solid rgba(255,255,255,0.2);
-        }
-
-        /* Exceção: células de período não devem ter fundo azul */
-        .periodo-row .grid-cell:first-child {
-            background: #e9ecef;
-            color: #495057;
-        }
-
-        .header .grid-cell {
-            border-right: 1px solid rgba(255,255,255,0.2);
-            padding: clamp(8px, 2vw, 12px) clamp(2px, 1vw, 4px);
             flex-direction: column;
-            gap: 3px;
+            align-items: center;
+            gap: 2px;
+            font-family: inherit;
+            transition: all 0.2s;
         }
 
-        .dia-semana {
-            font-size: clamp(0.7rem, 2vw, 0.9rem);
-            font-weight: 600;
-            white-space: nowrap;
+        .dia-tab:hover {
+            border-color: #1e3c72;
         }
 
-        .dia-mes {
-            font-size: clamp(0.6rem, 1.8vw, 0.75rem);
-            opacity: 0.9;
-            white-space: nowrap;
+        .dia-tab--ativa {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-color: #1e3c72;
         }
 
-        /* Linhas de período - OCUPAM TODA A LARGURA */
-        .periodo-row {
-            background: #e9ecef;
-            border-bottom: 2px solid #dee2e6;
-            border-top: 2px solid #dee2e6;
+        .dia-tab--ativa .dia-tab__nome,
+        .dia-tab--ativa .dia-tab__data {
+            color: white;
         }
 
-        .periodo-row .grid-cell {
-            background: #e9ecef;
+        .dia-tab__nome {
+            font-size: clamp(0.65rem, 2vw, 0.8rem);
             font-weight: 700;
             color: #495057;
-            text-transform: uppercase;
-            font-size: clamp(0.9rem, 3vw, 1.1rem);
-            justify-content: center;
-            padding: clamp(10px, 2.5vw, 15px);
-            white-space: normal;
-            word-break: break-word;
-            border-right: 1px solid #dee2e6;
+            white-space: nowrap;
         }
 
-        /* A primeira célula da linha de período ocupa toda a largura */
-        .periodo-row .grid-cell:first-child {
-            flex: 1;
+        .dia-tab__data {
+            font-size: clamp(0.6rem, 1.8vw, 0.7rem);
+            color: #868e96;
+            white-space: nowrap;
+        }
+
+        .grade-editor-card {
+            background: white;
+            border-radius: 15px;
+            padding: clamp(10px, 2.5vw, 15px);
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .periodo-secao {
+            margin-bottom: 18px;
+        }
+
+        .periodo-secao:last-child {
+            margin-bottom: 0;
+        }
+
+        .periodo-secao__titulo {
             background: #e9ecef;
             color: #495057;
-            font-size: clamp(1rem, 3.5vw, 1.2rem);
-            letter-spacing: 1px;
-            text-align: center;
-            border-right: none;
-            max-width: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+            padding: clamp(6px, 2vw, 10px);
+            border-radius: 8px;
+            margin-bottom: 8px;
         }
 
-        /* Esconder as demais células da linha de período */
-        .periodo-row .grid-cell:not(:first-child) {
-            display: none;
+        .periodo-linha {
+            display: flex;
+            align-items: center;
+            gap: clamp(6px, 2vw, 10px);
+            margin-bottom: 8px;
+        }
+
+        .periodo-linha:last-child {
+            margin-bottom: 0;
+        }
+
+        .periodo-linha__horario {
+            flex: 0 0 62px;
+            font-size: clamp(0.7rem, 2vw, 0.8rem);
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .periodo-linha .grade-select {
+            flex: 1 1 auto;
+            min-width: 0;
         }
 
         /* Seletor de cada célula da grade — dropdown nativo, substitui o
@@ -477,6 +437,29 @@
             margin-bottom: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             overflow: hidden;
+        }
+
+        .turno-noturno-toggle {
+            background: white;
+            border-radius: 15px;
+            padding: clamp(10px, 2.5vw, 15px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .turno-noturno-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+            font-weight: 600;
+            color: #333;
+        }
+
+        .turno-noturno-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
         }
 
         .turmas-header {
@@ -820,7 +803,7 @@
                 justify-content: center;
             }
 
-            .turma-item, .grid-cell {
+            .turma-item {
                 min-height: 44px;
             }
 
@@ -834,20 +817,6 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-            }
-
-            /* Melhorar scroll horizontal */
-            .tabela-container::-webkit-scrollbar {
-                height: 6px;
-            }
-
-            .tabela-container::-webkit-scrollbar-thumb {
-                background: #1e3c72;
-                border-radius: 10px;
-            }
-
-            .tabela-container::-webkit-scrollbar-track {
-                background: #e9ecef;
             }
         }
 
@@ -866,10 +835,6 @@
 
         /* Ajustes para tablets em modo paisagem */
         @media (min-width: 769px) and (max-width: 1024px) {
-            .grid-cell {
-                min-width: 70px;
-            }
-
             .bimestres-compact {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -939,6 +904,16 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Turno Noturno: opcional, nem toda escola usa — liga/desliga
+                 a seção 🌙 NOTURNO na Grade Semanal (4 aulas), sem apagar
+                 dado já salvo se desligado depois. -->
+            <div class="turno-noturno-toggle">
+                <label>
+                    <input type="checkbox" id="checkboxTurnoNoturno" onchange="toggleTurnoNoturno(this.checked)">
+                    🌙 Habilitar turno Noturno na grade (4 aulas)
+                </label>
+            </div>
         </section>
 
         <!-- ===== 2. Turmas ===== -->
@@ -994,10 +969,13 @@
                 </div>
             </div>
 
-            <!-- Tabela de Programação -->
-            <div class="tabela-container">
-                <div class="grid-container" id="programacaoGrid">
-                    <!-- O grid será preenchido via JavaScript -->
+            <!-- Abas de dia + lista vertical do dia selecionado -->
+            <div class="dia-tabs" id="diaTabs">
+                <!-- Preenchido via JavaScript -->
+            </div>
+            <div class="grade-editor-card">
+                <div class="dia-lista" id="programacaoGrid">
+                    <!-- Preenchido via JavaScript -->
                 </div>
             </div>
 
@@ -1092,7 +1070,7 @@
         import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO, COMPONENTES_CURRICULARES } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes, salvarConfiguracoes as salvarConfiguracoesService } from "../../scripts/services/configuracoes-service.js";
         import { ouvirTurmas, salvarTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
-        import { definirComponentesAtivos } from "../../scripts/services/escola-service.js";
+        import { definirComponentesAtivos, definirTurnoNoturno } from "../../scripts/services/escola-service.js";
         import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
         import { CATEGORIAS_DIA_ESPECIAL } from "../../scripts/utils/dias-especiais.js";
 
@@ -1103,18 +1081,46 @@
         let unsubTurmas = null;
         let dataBase = new Date();
         let gradeHorarios = null;
-        // Trava a grade contra edição acidental depois de "Salvar Grade" —
-        // os <select> de célula ficam disabled até o professor clicar
-        // "Reordenar Grade" de propósito. Começa destravada: só passa a
-        // true depois de um "Salvar" nesta sessão (não persiste no
-        // Firestore, então um recarregamento de página sempre abre
-        // destravado outra vez).
-        let gradeTravada = false;
+        // Trava a grade contra edição acidental — os <select> de célula
+        // ficam disabled até o professor clicar "Reordenar Grade" de
+        // propósito. Começa travada mesmo antes de qualquer "Salvar" nesta
+        // sessão (não persiste no Firestore, então um recarregamento de
+        // página sempre abre travado de novo — é assim que se quer, evita
+        // editar sem querer só de entrar na página).
+        let gradeTravada = true;
+        // Qual dia da semana a lista vertical da Grade Semanal mostra —
+        // independente de `dataBase` (que controla a navegação Anterior/
+        // Hoje/Próxima e só muda quais DATAS aparecem nas abas, não qual
+        // dia está selecionado). Começa no dia de hoje se for útil
+        // (segunda a sexta), senão em segunda.
+        let diaSelecionadoGrade = (() => {
+            const CHAVES = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+            const chave = CHAVES[new Date().getDay()];
+            return ['segunda', 'terca', 'quarta', 'quinta', 'sexta'].includes(chave) ? chave : 'segunda';
+        })();
+        const DIAS_TABS = [
+            { chave: 'segunda', curto: 'SEG' },
+            { chave: 'terca', curto: 'TER' },
+            { chave: 'quarta', curto: 'QUA' },
+            { chave: 'quinta', curto: 'QUI' },
+            { chave: 'sexta', curto: 'SEX' }
+        ];
+        // Períodos exibidos na lista vertical, em ordem — noturno só entra
+        // aqui (turnoNoturnoAtivo) quando a escola liga o interruptor.
+        const PERIODOS_INFO = {
+            matutino: { icone: '🌅', titulo: 'MATUTINO' },
+            vespertino: { icone: '☀️', titulo: 'VESPERTINO' },
+            noturno: { icone: '🌙', titulo: 'NOTURNO' }
+        };
         let turmas = [];
         // Componentes que a escola leciona — restringe os seletores de
         // componente (aqui e no Planejamento) em vez do catálogo inteiro.
         // Fallback [Educação Física] cobre escolas criadas antes desse campo.
         let componentesAtivos = [COMPONENTE_CURRICULAR_PADRAO];
+        // Liga a seção 🌙 NOTURNO na Grade Semanal — opcional, nem toda
+        // escola usa. Lido da escola ativa (evento pf-escola-ready) e
+        // gravado via checkbox (toggleTurnoNoturno).
+        let turnoNoturnoAtivo = false;
 
         // Itens especiais fixos (não podem ser removidos)
         const itensEspeciaisFixos = [
@@ -1345,9 +1351,31 @@
             gradeHorarios = JSON.parse(JSON.stringify(gradePadrao));
         }
 
+        if (turnoNoturnoAtivo) garantirPeriodoNoturno();
         renderizarProgramacao();
     });
 }
+
+// Cria gradeHorarios.noturno (4 aulas em branco) na primeira vez que o
+// turno é ligado — não sobrescreve se já existir (ex.: professor desligou
+// e religou o interruptor, dado continua lá).
+function garantirPeriodoNoturno() {
+    if (gradeHorarios && !gradeHorarios.noturno) {
+        gradeHorarios.noturno = ['1ª Aula', '2ª Aula', '3ª Aula', '4ª Aula'].map(horario => ({
+            horario, segunda: '---', terca: '---', quarta: '---', quinta: '---', sexta: '---'
+        }));
+    }
+}
+
+window.toggleTurnoNoturno = function (checked) {
+    turnoNoturnoAtivo = checked;
+    if (checked) garantirPeriodoNoturno();
+    renderizarProgramacao();
+    definirTurnoNoturno(escolaAtualId, checked).catch(erro => {
+        console.error('Erro ao salvar turno noturno:', erro);
+        showToast('Não foi possível salvar. Tente novamente.', 'error');
+    });
+};
 
         // Carregar configurações do Firebase
         function carregarConfiguracoesFirebase() {
@@ -1497,90 +1525,60 @@
             atualizarInfoSemana();
             atualizarDatasSemana();
             atualizarBotoesGrade();
-
-            const grid = document.getElementById('programacaoGrid');
-            grid.innerHTML = '';
-
-            // Cabeçalho
-            grid.appendChild(criarLinhaCabecalho());
-
-            // Período Matutino - COMO CABEÇALHO DE SEÇÃO
-            grid.appendChild(criarLinhaPeriodo('🌅 MATUTINO'));
-
-            // Linhas do Matutino
-            gradeHorarios.matutino.forEach((linha, index) => {
-                grid.appendChild(criarLinhaHorario(linha, 'matutino', index));
-            });
-
-            // Período Vespertino - COMO CABEÇALHO DE SEÇÃO
-            grid.appendChild(criarLinhaPeriodo('☀️ VESPERTINO'));
-
-            // Linhas do Vespertino
-            gradeHorarios.vespertino.forEach((linha, index) => {
-                grid.appendChild(criarLinhaHorario(linha, 'vespertino', index));
-            });
+            renderizarDiaTabs();
+            renderizarListaDia();
         }
 
-        // Criar linha de cabeçalho
-        function criarLinhaCabecalho() {
-            const row = document.createElement('div');
-            row.className = 'grid-row header';
-
-            const primeiraCelula = document.createElement('div');
-            primeiraCelula.className = 'grid-cell';
-            primeiraCelula.innerHTML = '';
-            row.appendChild(primeiraCelula);
-
-            diasSemana.forEach(dia => {
-                const indiceBimestre = determinarBimestre(dia.dataObj);
+        // Abas SEG-SEX — cada uma mostra a data da semana em navegação
+        // (Anterior/Hoje/Próxima) e um 🎌 se aquele dia for especial, mas
+        // selecionar uma aba só troca `diaSelecionadoGrade` (não mexe em
+        // `dataBase`/navegação de semana — são estados independentes).
+        function renderizarDiaTabs() {
+            const container = document.getElementById('diaTabs');
+            if (!container) return;
+            container.innerHTML = DIAS_TABS.map((tab, indice) => {
+                const dia = diasSemana[indice];
                 const especial = diaEspecialNaData(dia.dataObj);
-                const cell = document.createElement('div');
-                cell.className = `grid-cell header-cell-bimestre-${indiceBimestre + 1}`;
-                cell.innerHTML = `
-                    <div class="dia-semana">${dia.nome}${especial ? ` <span title="${(especial.rotulo || CATEGORIAS_DIA_ESPECIAL[especial.categoria].label).replace(/"/g, '&quot;')}" style="cursor:help;">🎌</span>` : ''}</div>
-                    <div class="dia-mes">${dia.data}/${dia.mes+1}</div>
+                const ativa = diaSelecionadoGrade === tab.chave;
+                return `
+                    <button type="button" class="dia-tab${ativa ? ' dia-tab--ativa' : ''}" onclick="selecionarDiaGrade('${tab.chave}')">
+                        <span class="dia-tab__nome">${tab.curto}${especial ? ` <span title="${(especial.rotulo || CATEGORIAS_DIA_ESPECIAL[especial.categoria].label).replace(/"/g, '&quot;')}" style="cursor:help;">🎌</span>` : ''}</span>
+                        <span class="dia-tab__data">${dia.data}/${dia.mes + 1}</span>
+                    </button>
                 `;
-                row.appendChild(cell);
-            });
-
-            return row;
+            }).join('');
         }
 
-        // Criar linha de período - COMO CABEÇALHO DE SEÇÃO
-        function criarLinhaPeriodo(titulo) {
-            const row = document.createElement('div');
-            row.className = 'grid-row periodo-row';
+        window.selecionarDiaGrade = function (chave) {
+            diaSelecionadoGrade = chave;
+            renderizarProgramacao();
+        };
 
-            const celulaUnica = document.createElement('div');
-            celulaUnica.className = 'grid-cell';
-            celulaUnica.innerHTML = titulo;
-            row.appendChild(celulaUnica);
-
-            // Não adicionamos as outras células, pois elas serão escondidas pelo CSS
-
-            return row;
-        }
-
-        // Criar linha de horário
-        function criarLinhaHorario(linha, periodo, linhaIndex) {
-            const row = document.createElement('div');
-            row.className = 'grid-row';
-
-            const primeiraCelula = document.createElement('div');
-            primeiraCelula.className = 'grid-cell';
-            primeiraCelula.innerHTML = linha.horario;
-            row.appendChild(primeiraCelula);
-
-            const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
-            dias.forEach((dia) => {
-                const valor = linha[dia];
-                const cell = document.createElement('div');
-                cell.className = 'grid-cell';
-                cell.innerHTML = renderizarSeletorCelula(valor, periodo, linhaIndex, dia);
-                row.appendChild(cell);
+        // Lista vertical do dia selecionado: um bloco por período
+        // (MATUTINO/VESPERTINO/NOTURNO), uma linha por horário, select
+        // ocupando a largura toda — sem tabela, sem scroll lateral.
+        function renderizarListaDia() {
+            const container = document.getElementById('programacaoGrid');
+            if (!container || !gradeHorarios) return;
+            const periodos = Object.keys(PERIODOS_INFO).filter(periodo => {
+                if (periodo === 'noturno' && !turnoNoturnoAtivo) return false;
+                return Array.isArray(gradeHorarios[periodo]);
             });
-
-            return row;
+            container.innerHTML = periodos.map(periodo => {
+                const info = PERIODOS_INFO[periodo];
+                const linhas = gradeHorarios[periodo].map((linha, linhaIndex) => `
+                    <div class="periodo-linha">
+                        <span class="periodo-linha__horario">${linha.horario}</span>
+                        ${renderizarSeletorCelula(linha[diaSelecionadoGrade], periodo, linhaIndex, diaSelecionadoGrade)}
+                    </div>
+                `).join('');
+                return `
+                    <div class="periodo-secao">
+                        <div class="periodo-secao__titulo">${info.icone} ${info.titulo}</div>
+                        ${linhas}
+                    </div>
+                `;
+            }).join('');
         }
 
         // Opções do <select> de uma célula: vazio + itens especiais fixos +
@@ -1599,7 +1597,11 @@
                 const selecionado = celula.tipo === 'turma' &&
                     celula.turma === turma.nome &&
                     celula.componenteCurricular === turma.componenteCurricular ? ' selected' : '';
-                const badge = turma.componenteCurricular !== COMPONENTE_CURRICULAR_PADRAO ? ` (${turma.componenteCurricular})` : '';
+                // Mostra a disciplina em TODA turma (inclusive as do
+                // componente padrão) quando a escola leciona mais de um
+                // componente — antes só aparecia pra turmas fora do padrão,
+                // deixando metade da grade ambígua numa escola multi-componente.
+                const badge = componentesAtivos.length > 1 ? ` (${turma.componenteCurricular})` : '';
                 opcoes.push(`<option value="turma:${indice}"${selecionado}>${turma.nome}${badge}</option>`);
             });
 
@@ -1955,6 +1957,10 @@
                 ? escolaAtiva.componentesAtivos
                 : [COMPONENTE_CURRICULAR_PADRAO];
             renderizarComponentesAtivos();
+
+            turnoNoturnoAtivo = !!(escolaAtiva && escolaAtiva.turnoNoturnoAtivo);
+            const checkboxNoturno = document.getElementById('checkboxTurnoNoturno');
+            if (checkboxNoturno) checkboxNoturno.checked = turnoNoturnoAtivo;
         });
     </script>
 </body>

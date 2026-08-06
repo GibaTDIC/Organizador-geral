@@ -61,3 +61,11 @@ export async function listarEscolasPorIds(escolaIds) {
 export function definirComponentesAtivos(escolaId, componentes) {
     return updateDoc(doc(db, 'escolas', escolaId), { componentesAtivos: componentes });
 }
+
+// turnoNoturnoAtivo: liga/desliga a seção Noturno na Grade Semanal — nem
+// toda escola usa, então fica opcional em vez de sempre presente. Desligar
+// só esconde a seção (ver Configurações), não apaga dado já salvo em
+// gradeHorarios.noturno.
+export function definirTurnoNoturno(escolaId, ativo) {
+    return updateDoc(doc(db, 'escolas', escolaId), { turnoNoturnoAtivo: ativo });
+}

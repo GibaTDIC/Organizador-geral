@@ -240,7 +240,7 @@
         import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
         import { buscarAtividadesCompativeis, filtrarAtividadesPorContexto } from "../../scripts/services/atividades-busca.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
-        import { ouvirGrade, COMPONENTE_CURRICULAR_PADRAO } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, COMPONENTE_CURRICULAR_PADRAO, PERIODOS_GRADE } from "../../scripts/services/grade-service.js";
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
         import * as bnccArte from "../../data/bncc-curriculum-arte.js";
         import * as bnccEnsinoReligioso from "../../data/bncc-curriculum-ensino-religioso.js";
@@ -1904,7 +1904,7 @@
             const anoFim = mesFim < mesIni ? anoLetivoAtual + 1 : anoLetivoAtual;
             const inicio = new Date(anoLetivoAtual, mesIni - 1, diaIni);
             const fim = new Date(anoFim, mesFim - 1, diaFim);
-            const linhasGrade = [...(gradeHorarios.matutino || []), ...(gradeHorarios.vespertino || [])];
+            const linhasGrade = PERIODOS_GRADE.flatMap(periodo => gradeHorarios[periodo] || []);
 
             const cursor = new Date(inicio);
             while (cursor <= fim) {

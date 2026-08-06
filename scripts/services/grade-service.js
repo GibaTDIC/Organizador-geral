@@ -23,6 +23,13 @@ export function salvarGradeParcial(escolaId, gradeHorarios) {
 export const COMPONENTE_CURRICULAR_PADRAO = 'Educação Física';
 export const SLOTS_ESPECIAIS = ['Folga', 'Planejamento', 'CEMFOR', '---'];
 
+// Períodos que gradeHorarios pode ter — matutino/vespertino sempre
+// existem, noturno é opcional (ver escola.turnoNoturnoAtivo). Toda tela
+// que varre "todos os períodos do dia" deve iterar esta lista em vez de
+// hardcodear ['matutino','vespertino'], senão aulas do noturno somem
+// silenciosamente dessa tela.
+export const PERIODOS_GRADE = ['matutino', 'vespertino', 'noturno'];
+
 // Catálogo completo — usado só na tela de "quais componentes eu leciono"
 // (Configurações). Os formulários do dia a dia (grade, aula do Planejamento)
 // usam o subconjunto marcado como ativo pela escola (escolas/{id}.componentesAtivos),
