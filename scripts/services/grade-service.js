@@ -41,6 +41,24 @@ export const COMPONENTES_CURRICULARES = [
     'Computação'
 ];
 
+// Siglas de 2 letras pra caber o componente dentro da célula da grade sem
+// estourar a largura (nome por extenso não cabia). Mesmas siglas oficiais
+// da API do bncc.dev (AR/CI/EF/ER/GE/HI/LI/LP/MA, ver /v1/estrutura) — só
+// Computação não é componente oficial da BNCC, sigla CO escolhida aqui só
+// pra manter o padrão de 2 letras.
+export const SIGLA_COMPONENTE = {
+    'Educação Física': 'EF',
+    'Língua Portuguesa': 'LP',
+    'Matemática': 'MA',
+    'Ciências': 'CI',
+    'História': 'HI',
+    'Geografia': 'GE',
+    'Arte': 'AR',
+    'Língua Inglesa': 'LI',
+    'Ensino Religioso': 'ER',
+    'Computação': 'CO'
+};
+
 // Uma célula da grade pode ser: vazia/'---' (sem compromisso), uma palavra
 // reservada de SLOTS_ESPECIAIS (compromisso não-letivo), ou uma turma. Dados
 // gravados antes desta função guardam turma como string crua ("6º A") —

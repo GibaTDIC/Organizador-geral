@@ -126,111 +126,125 @@
             border-color: #1e3c72;
         }
 
-        /* Grade Semanal — abas por dia da semana + lista vertical do dia
-           selecionado. Substitui a antiga tabela de 6 colunas (horário + 5
-           dias lado a lado): naquele layout, caber a tela do celular
-           forçava scroll lateral (ou espremia cada célula a ~50-60px,
-           cortando o nome da turma). Aqui só uma coluna por vez, o select
-           ocupa a largura toda — sobra espaço pra turma + disciplina, e a
-           rolagem fica só vertical. */
-        .dia-tabs {
-            display: flex;
-            gap: clamp(4px, 1.5vw, 8px);
-            margin-bottom: 12px;
-        }
-
-        .dia-tab {
-            flex: 1 1 0;
-            min-width: 0;
+        /* Grade Semanal — tabela com os 5 dias lado a lado (o professor
+           pediu pra ver a semana inteira de uma vez, não um dia por vez).
+           Pra caber sem rolagem lateral mesmo em celular estreito (~360px),
+           as colunas são bem compactas — só cabe porque a disciplina agora
+           usa sigla de 2 letras (ver SIGLA_COMPONENTE) em vez do nome por
+           extenso, que estourava a largura da célula. */
+        .tabela-container {
             background: white;
-            border: 2px solid #dee2e6;
-            border-radius: 10px;
-            padding: clamp(6px, 2vw, 10px) clamp(2px, 1vw, 4px);
-            cursor: pointer;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
+        .grid-row {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            font-family: inherit;
-            transition: all 0.2s;
+            width: 100%;
+            border-bottom: 1px solid #e9ecef;
         }
 
-        .dia-tab:hover {
-            border-color: #1e3c72;
+        .grid-row:last-child {
+            border-bottom: none;
         }
 
-        .dia-tab--ativa {
+        .grid-row.header {
+            border-bottom: 2px solid #fff;
+        }
+
+        .grid-row.header .grid-cell:first-child {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            border-color: #1e3c72;
-        }
-
-        .dia-tab--ativa .dia-tab__nome,
-        .dia-tab--ativa .dia-tab__data {
             color: white;
         }
 
-        .dia-tab__nome {
-            font-size: clamp(0.65rem, 2vw, 0.8rem);
-            font-weight: 700;
-            color: #495057;
-            white-space: nowrap;
-        }
+        .grid-cell.header-cell-bimestre-1 { background: #E63946; color: white; }
+        .grid-cell.header-cell-bimestre-2 { background: #2A9D8F; color: white; }
+        .grid-cell.header-cell-bimestre-3 { background: #E9C46A; color: white; }
+        .grid-cell.header-cell-bimestre-4 { background: #9C89B8; color: white; }
 
-        .dia-tab__data {
-            font-size: clamp(0.6rem, 1.8vw, 0.7rem);
-            color: #868e96;
-            white-space: nowrap;
-        }
-
-        .grade-editor-card {
-            background: white;
-            border-radius: 15px;
-            padding: clamp(10px, 2.5vw, 15px);
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .periodo-secao {
-            margin-bottom: 18px;
-        }
-
-        .periodo-secao:last-child {
-            margin-bottom: 0;
-        }
-
-        .periodo-secao__titulo {
-            background: #e9ecef;
-            color: #495057;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: clamp(0.8rem, 2.5vw, 0.95rem);
-            padding: clamp(6px, 2vw, 10px);
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-
-        .periodo-linha {
+        .grid-cell {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 3px 2px;
+            text-align: center;
+            border-right: 1px solid #dee2e6;
             display: flex;
             align-items: center;
-            gap: clamp(6px, 2vw, 10px);
-            margin-bottom: 8px;
+            justify-content: center;
+            font-size: 0.65rem;
+            word-break: break-word;
         }
 
-        .periodo-linha:last-child {
-            margin-bottom: 0;
-        }
-
-        .periodo-linha__horario {
-            flex: 0 0 62px;
-            font-size: clamp(0.7rem, 2vw, 0.8rem);
+        /* Primeira célula de cada linha (horário) */
+        .grid-cell:first-child {
+            flex: 0 0 38px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
             font-weight: 600;
+            font-size: 0.6rem;
+            border-right: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .periodo-row .grid-cell:first-child {
+            background: #e9ecef;
             color: #495057;
         }
 
-        .periodo-linha .grade-select {
-            flex: 1 1 auto;
-            min-width: 0;
+        .header .grid-cell {
+            border-right: 1px solid rgba(255,255,255,0.2);
+            padding: 6px 2px;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .dia-semana {
+            font-size: 0.62rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .dia-mes {
+            font-size: 0.55rem;
+            opacity: 0.9;
+            white-space: nowrap;
+        }
+
+        .periodo-row {
+            background: #e9ecef;
+            border-bottom: 2px solid #dee2e6;
+            border-top: 2px solid #dee2e6;
+        }
+
+        .periodo-row .grid-cell {
+            background: #e9ecef;
+            font-weight: 700;
+            color: #495057;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            justify-content: center;
+            padding: 8px;
+            white-space: normal;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .periodo-row .grid-cell:first-child {
+            flex: 1;
+            background: #e9ecef;
+            color: #495057;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            text-align: center;
+            border-right: none;
+            max-width: none;
+        }
+
+        .periodo-row .grid-cell:not(:first-child) {
+            display: none;
         }
 
         /* Seletor de cada célula da grade — dropdown nativo, substitui o
@@ -240,18 +254,18 @@
             width: 100%;
             background: #e3f2fd;
             border: none;
-            border-left: 4px solid #1e3c72;
-            padding: clamp(4px, 1.5vw, 6px) clamp(2px, 1vw, 4px);
-            border-radius: 6px;
+            border-left: 3px solid #1e3c72;
+            padding: 3px 1px;
+            border-radius: 4px;
             text-align: center;
             text-align-last: center;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.62rem;
             font-weight: 600;
             font-family: inherit;
             color: #1e3c72;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            line-height: 1.3;
+            line-height: 1.2;
         }
 
         .grade-select:focus {
@@ -969,13 +983,10 @@
                 </div>
             </div>
 
-            <!-- Abas de dia + lista vertical do dia selecionado -->
-            <div class="dia-tabs" id="diaTabs">
-                <!-- Preenchido via JavaScript -->
-            </div>
-            <div class="grade-editor-card">
-                <div class="dia-lista" id="programacaoGrid">
-                    <!-- Preenchido via JavaScript -->
+            <!-- Tabela de Programação -->
+            <div class="tabela-container">
+                <div class="grid-container" id="programacaoGrid">
+                    <!-- O grid será preenchido via JavaScript -->
                 </div>
             </div>
 
@@ -1067,7 +1078,7 @@
         import "../../scripts/services/escola-context.js";
         import { requireAuth } from "../../scripts/services/auth-guard.js";
         import { showToast } from "../../scripts/components/pf-alert.js";
-        import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO, COMPONENTES_CURRICULARES } from "../../scripts/services/grade-service.js";
+        import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO, COMPONENTES_CURRICULARES, SIGLA_COMPONENTE } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes, salvarConfiguracoes as salvarConfiguracoesService } from "../../scripts/services/configuracoes-service.js";
         import { ouvirTurmas, salvarTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
         import { definirComponentesAtivos, definirTurnoNoturno } from "../../scripts/services/escola-service.js";
@@ -1088,25 +1099,8 @@
         // página sempre abre travado de novo — é assim que se quer, evita
         // editar sem querer só de entrar na página).
         let gradeTravada = true;
-        // Qual dia da semana a lista vertical da Grade Semanal mostra —
-        // independente de `dataBase` (que controla a navegação Anterior/
-        // Hoje/Próxima e só muda quais DATAS aparecem nas abas, não qual
-        // dia está selecionado). Começa no dia de hoje se for útil
-        // (segunda a sexta), senão em segunda.
-        let diaSelecionadoGrade = (() => {
-            const CHAVES = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-            const chave = CHAVES[new Date().getDay()];
-            return ['segunda', 'terca', 'quarta', 'quinta', 'sexta'].includes(chave) ? chave : 'segunda';
-        })();
-        const DIAS_TABS = [
-            { chave: 'segunda', curto: 'SEG' },
-            { chave: 'terca', curto: 'TER' },
-            { chave: 'quarta', curto: 'QUA' },
-            { chave: 'quinta', curto: 'QUI' },
-            { chave: 'sexta', curto: 'SEX' }
-        ];
-        // Períodos exibidos na lista vertical, em ordem — noturno só entra
-        // aqui (turnoNoturnoAtivo) quando a escola liga o interruptor.
+        // Períodos exibidos na tabela, em ordem — noturno só entra aqui
+        // (turnoNoturnoAtivo) quando a escola liga o interruptor.
         const PERIODOS_INFO = {
             matutino: { icone: '🌅', titulo: 'MATUTINO' },
             vespertino: { icone: '☀️', titulo: 'VESPERTINO' },
@@ -1525,84 +1519,116 @@ window.toggleTurnoNoturno = function (checked) {
             atualizarInfoSemana();
             atualizarDatasSemana();
             atualizarBotoesGrade();
-            renderizarDiaTabs();
-            renderizarListaDia();
-        }
 
-        // Abas SEG-SEX — cada uma mostra a data da semana em navegação
-        // (Anterior/Hoje/Próxima) e um 🎌 se aquele dia for especial, mas
-        // selecionar uma aba só troca `diaSelecionadoGrade` (não mexe em
-        // `dataBase`/navegação de semana — são estados independentes).
-        function renderizarDiaTabs() {
-            const container = document.getElementById('diaTabs');
-            if (!container) return;
-            container.innerHTML = DIAS_TABS.map((tab, indice) => {
-                const dia = diasSemana[indice];
-                const especial = diaEspecialNaData(dia.dataObj);
-                const ativa = diaSelecionadoGrade === tab.chave;
-                return `
-                    <button type="button" class="dia-tab${ativa ? ' dia-tab--ativa' : ''}" onclick="selecionarDiaGrade('${tab.chave}')">
-                        <span class="dia-tab__nome">${tab.curto}${especial ? ` <span title="${(especial.rotulo || CATEGORIAS_DIA_ESPECIAL[especial.categoria].label).replace(/"/g, '&quot;')}" style="cursor:help;">🎌</span>` : ''}</span>
-                        <span class="dia-tab__data">${dia.data}/${dia.mes + 1}</span>
-                    </button>
-                `;
-            }).join('');
-        }
+            const grid = document.getElementById('programacaoGrid');
+            if (!grid || !gradeHorarios) return;
+            grid.innerHTML = '';
 
-        window.selecionarDiaGrade = function (chave) {
-            diaSelecionadoGrade = chave;
-            renderizarProgramacao();
-        };
+            grid.appendChild(criarLinhaCabecalho());
 
-        // Lista vertical do dia selecionado: um bloco por período
-        // (MATUTINO/VESPERTINO/NOTURNO), uma linha por horário, select
-        // ocupando a largura toda — sem tabela, sem scroll lateral.
-        function renderizarListaDia() {
-            const container = document.getElementById('programacaoGrid');
-            if (!container || !gradeHorarios) return;
-            const periodos = Object.keys(PERIODOS_INFO).filter(periodo => {
-                if (periodo === 'noturno' && !turnoNoturnoAtivo) return false;
-                return Array.isArray(gradeHorarios[periodo]);
-            });
-            container.innerHTML = periodos.map(periodo => {
+            // Períodos ativos, na ordem de PERIODOS_INFO — noturno só entra
+            // quando a escola liga o interruptor (turnoNoturnoAtivo).
+            Object.keys(PERIODOS_INFO).forEach(periodo => {
+                if (periodo === 'noturno' && !turnoNoturnoAtivo) return;
+                if (!Array.isArray(gradeHorarios[periodo])) return;
                 const info = PERIODOS_INFO[periodo];
-                const linhas = gradeHorarios[periodo].map((linha, linhaIndex) => `
-                    <div class="periodo-linha">
-                        <span class="periodo-linha__horario">${linha.horario}</span>
-                        ${renderizarSeletorCelula(linha[diaSelecionadoGrade], periodo, linhaIndex, diaSelecionadoGrade)}
-                    </div>
-                `).join('');
-                return `
-                    <div class="periodo-secao">
-                        <div class="periodo-secao__titulo">${info.icone} ${info.titulo}</div>
-                        ${linhas}
-                    </div>
+                grid.appendChild(criarLinhaPeriodo(`${info.icone} ${info.titulo}`));
+                gradeHorarios[periodo].forEach((linha, index) => {
+                    grid.appendChild(criarLinhaHorario(linha, periodo, index));
+                });
+            });
+        }
+
+        // Criar linha de cabeçalho
+        function criarLinhaCabecalho() {
+            const row = document.createElement('div');
+            row.className = 'grid-row header';
+
+            const primeiraCelula = document.createElement('div');
+            primeiraCelula.className = 'grid-cell';
+            primeiraCelula.innerHTML = '';
+            row.appendChild(primeiraCelula);
+
+            diasSemana.forEach(dia => {
+                const indiceBimestre = determinarBimestre(dia.dataObj);
+                const especial = diaEspecialNaData(dia.dataObj);
+                const cell = document.createElement('div');
+                cell.className = `grid-cell header-cell-bimestre-${indiceBimestre + 1}`;
+                cell.innerHTML = `
+                    <div class="dia-semana">${dia.nome.slice(0, 3)}${especial ? ` <span title="${(especial.rotulo || CATEGORIAS_DIA_ESPECIAL[especial.categoria].label).replace(/"/g, '&quot;')}" style="cursor:help;">🎌</span>` : ''}</div>
+                    <div class="dia-mes">${dia.data}/${dia.mes+1}</div>
                 `;
-            }).join('');
+                row.appendChild(cell);
+            });
+
+            return row;
+        }
+
+        // Criar linha de período - COMO CABEÇALHO DE SEÇÃO
+        function criarLinhaPeriodo(titulo) {
+            const row = document.createElement('div');
+            row.className = 'grid-row periodo-row';
+
+            const celulaUnica = document.createElement('div');
+            celulaUnica.className = 'grid-cell';
+            celulaUnica.innerHTML = titulo;
+            row.appendChild(celulaUnica);
+
+            return row;
+        }
+
+        // Criar linha de horário
+        function criarLinhaHorario(linha, periodo, linhaIndex) {
+            const row = document.createElement('div');
+            row.className = 'grid-row';
+
+            const primeiraCelula = document.createElement('div');
+            primeiraCelula.className = 'grid-cell';
+            primeiraCelula.innerHTML = linha.horario.replace('ª Aula', 'ª');
+            row.appendChild(primeiraCelula);
+
+            const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+            dias.forEach((dia) => {
+                const valor = linha[dia];
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.innerHTML = renderizarSeletorCelula(valor, periodo, linhaIndex, dia);
+                row.appendChild(cell);
+            });
+
+            return row;
         }
 
         // Opções do <select> de uma célula: vazio + itens especiais fixos +
         // cada turma cadastrada. Valor da turma é "turma:<índice>" (não o
         // nome) porque duas turmas de componentes diferentes podem ter o
         // mesmo nome (ex: "6º A" de Educação Física e de Arte).
+        // Rótulo curto de cada item especial — a célula da grade agora é
+        // bem estreita (tabela com os 5 dias visíveis ao mesmo tempo), "📝
+        // Planejamento" por extenso não cabia no <select> fechado.
+        const ROTULO_CURTO_ESPECIAL = { Folga: 'Folga', Planejamento: 'Planej.', CEMFOR: 'CEMFOR' };
+
         function opcoesSelectCelula(celula) {
             const opcoes = [`<option value="">➕ ---</option>`];
 
             itensEspeciaisFixos.forEach(item => {
                 const selecionado = celula.tipo === 'especial' && celula.valor === item.nome ? ' selected' : '';
-                opcoes.push(`<option value="${item.nome}"${selecionado}>${item.icone} ${item.nome}</option>`);
+                const rotulo = ROTULO_CURTO_ESPECIAL[item.nome] || item.nome;
+                opcoes.push(`<option value="${item.nome}"${selecionado}>${item.icone} ${rotulo}</option>`);
             });
 
             turmas.forEach((turma, indice) => {
                 const selecionado = celula.tipo === 'turma' &&
                     celula.turma === turma.nome &&
                     celula.componenteCurricular === turma.componenteCurricular ? ' selected' : '';
-                // Mostra a disciplina em TODA turma (inclusive as do
-                // componente padrão) quando a escola leciona mais de um
-                // componente — antes só aparecia pra turmas fora do padrão,
-                // deixando metade da grade ambígua numa escola multi-componente.
-                const badge = componentesAtivos.length > 1 ? ` (${turma.componenteCurricular})` : '';
-                opcoes.push(`<option value="turma:${indice}"${selecionado}>${turma.nome}${badge}</option>`);
+                // Sigla de 2 letras (não o nome por extenso, que estourava a
+                // célula) em TODA turma — inclusive as do componente padrão —
+                // quando a escola leciona mais de um componente. Com só 1
+                // componente ativo não mostra nada, já é implícito.
+                const sigla = componentesAtivos.length > 1
+                    ? ` ${SIGLA_COMPONENTE[turma.componenteCurricular] || turma.componenteCurricular.slice(0, 2).toUpperCase()}`
+                    : '';
+                opcoes.push(`<option value="turma:${indice}"${selecionado}>${turma.nome}${sigla}</option>`);
             });
 
             return opcoes.join('');
