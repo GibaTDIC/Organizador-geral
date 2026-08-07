@@ -249,26 +249,58 @@
 
         /* Seletor de cada célula da grade — dropdown nativo, substitui o
            antigo esquema de arrastar (difícil em touch/mobile e exigia
-           ativar um "modo" à parte antes de editar qualquer célula). */
-        .grade-select {
+           ativar um "modo" à parte antes de editar qualquer célula).
+           <select> nativo não permite quebrar linha no valor fechado (nem
+           com \n nem white-space:pre-line — testado, o navegador sempre
+           desenha o texto do valor numa linha só), mas o professor quer a
+           sigla da disciplina embaixo do nome da turma. Por isso o select
+           fica invisível (opacity:0) só pra continuar funcional — abre o
+           seletor nativo do celular ao tocar — e quem aparece de verdade é
+           a div .celula-visual por baixo, com liberdade total de CSS pra
+           empilhar turma/sigla em 2 linhas. */
+        .celula-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        .celula-wrap .grade-select {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            border: none;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .celula-visual {
             width: 100%;
             background: #e3f2fd;
-            border: none;
             border-left: 3px solid #1e3c72;
             padding: 3px 1px;
             border-radius: 4px;
             text-align: center;
-            text-align-last: center;
-            cursor: pointer;
             font-size: 0.62rem;
             font-weight: 600;
-            font-family: inherit;
             color: #1e3c72;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             line-height: 1.2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
         }
 
-        .grade-select:focus {
+        .celula-visual__sigla {
+            font-size: 0.55rem;
+            font-weight: 500;
+            opacity: 0.85;
+        }
+
+        .grade-select:focus + .celula-visual {
             outline: 2px solid #1e3c72;
             outline-offset: 1px;
         }
@@ -277,12 +309,12 @@
            interação, mas o cursor padrão do navegador pra select
            desabilitado é sutil demais — reforça visualmente que a célula
            não abre até clicar "Reordenar Grade". */
-        .grade-select:disabled {
+        .celula-visual.travada {
             cursor: not-allowed;
             opacity: 0.85;
         }
 
-        .grade-select.vazio {
+        .celula-visual.vazio {
             background: transparent;
             border-left-color: #ced4da;
             color: #adb5bd;
@@ -290,20 +322,20 @@
             box-shadow: none;
         }
 
-        .grade-select.folga {
+        .celula-visual.folga {
             background: #f8f9fa;
             border-left-color: #6c757d;
             color: #6c757d;
             font-style: italic;
         }
 
-        .grade-select.planejamento {
+        .celula-visual.planejamento {
             background: #fff3cd;
             border-left-color: #ffc107;
             color: #856404;
         }
 
-        .grade-select.cemfor {
+        .celula-visual.cemfor {
             background: #d1ecf1;
             border-left-color: #17a2b8;
             color: #0c5460;
@@ -814,7 +846,7 @@
                 min-height: 44px;
             }
 
-            .grade-select {
+            .celula-wrap {
                 min-height: 40px;
             }
 
@@ -1637,6 +1669,25 @@ window.toggleTurnoNoturno = function (checked) {
             }
         }
 
+        // Texto de exibição da caixa visual (não do <select>, que fica
+        // invisível — ver comentário na CSS de .celula-wrap): turma numa
+        // linha e a sigla da disciplina embaixo, quando há mais de um
+        // componente ativo. Itens especiais/vazio ficam numa linha só.
+        function textoCelulaVisual(celula) {
+            if (celula.tipo === 'turma') {
+                const sigla = componentesAtivos.length > 1
+                    ? (SIGLA_COMPONENTE[celula.componenteCurricular] || celula.componenteCurricular.slice(0, 2).toUpperCase())
+                    : '';
+                return { linha1: celula.turma, linha2: sigla };
+            }
+            if (!celula.valor || celula.valor === '---') {
+                return { linha1: '➕ ---', linha2: '' };
+            }
+            const item = itensEspeciaisFixos.find(i => i.nome === celula.valor);
+            const rotulo = ROTULO_CURTO_ESPECIAL[celula.valor] || celula.valor;
+            return { linha1: item ? `${item.icone} ${rotulo}` : rotulo, linha2: '' };
+        }
+
         // Dropdown de cada célula da grade — substitui o antigo esquema de
         // arrastar. Trocar a opção já atualiza gradeHorarios em memória (só
         // grava no Firestore quando o professor clica "💾 Salvar Grade",
@@ -1644,7 +1695,16 @@ window.toggleTurnoNoturno = function (checked) {
         function renderizarSeletorCelula(valorBruto, periodo, linhaIndex, dia) {
             const celula = normalizarCelula(valorBruto);
             const classe = classeSelectCelula(celula);
-            return `<select class="grade-select ${classe}" ${gradeTravada ? 'disabled' : ''} onchange="atualizarCelulaGrade(this, '${periodo}', ${linhaIndex}, '${dia}')">${opcoesSelectCelula(celula)}</select>`;
+            const { linha1, linha2 } = textoCelulaVisual(celula);
+            return `
+                <div class="celula-wrap">
+                    <select class="grade-select" ${gradeTravada ? 'disabled' : ''} onchange="atualizarCelulaGrade(this, '${periodo}', ${linhaIndex}, '${dia}')">${opcoesSelectCelula(celula)}</select>
+                    <div class="celula-visual ${classe}${gradeTravada ? ' travada' : ''}">
+                        <span>${linha1}</span>
+                        ${linha2 ? `<span class="celula-visual__sigla">${linha2}</span>` : ''}
+                    </div>
+                </div>
+            `;
         }
 
         window.atualizarCelulaGrade = function (selectEl, periodo, linhaIndex, dia) {
