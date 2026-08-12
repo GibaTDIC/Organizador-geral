@@ -230,6 +230,37 @@
             padding: var(--pf-space-2) var(--pf-space-3);
         }
 
+        /* Ações que só navegam pra outro módulo (não executam a aula em si)
+           — visivelmente menores/mais discretas que Iniciar/Concluir acima,
+           pra não competir de igual pra igual pela ação principal da tela. */
+        .pd-acoes-secundarias {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--pf-space-1);
+            margin-top: var(--pf-space-2);
+        }
+
+        .pd-acoes-secundarias .pf-btn {
+            font-size: 0.72rem;
+            padding: 4px var(--pf-space-2);
+        }
+
+        /* Cabeçalho clicável da seção "Outras opções de status" (Cancelada/
+           Reposição), recolhida por padrão — mesma linguagem visual usada
+           em cabeçalhos colapsáveis noutras telas do app. */
+        .pd-status-header {
+            display: flex;
+            align-items: center;
+            gap: var(--pf-space-2);
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .pd-status-toggle-icon {
+            font-size: 0.85em;
+            color: var(--pf-gray-500);
+        }
+
         .pd-aviso-somente-leitura {
             margin-top: var(--pf-space-2);
             font-size: 0.78rem;
@@ -392,6 +423,14 @@
         // perceber.
         let entradaFixadaId = null;
         let nomeUsuario = null;
+        // Seção "Status" (troca manual, único caminho pra Cancelada/
+        // Reposição) começa recolhida — Iniciar/Concluir já cobrem os casos
+        // comuns. Precisa ser flag em JS, não classe DOM: construirPainelHtml()
+        // é reconstruído do zero a cada renderizarPainel() (mudança de
+        // status, observação salva, snapshot atualizado — tudo dispara
+        // isso), então uma classe solta no HTML voltaria a fechar sozinha a
+        // cada atualização.
+        let statusManualAberto = false;
 
         // ---------- Constantes ----------
         const DIA_CHAVES = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
@@ -1043,7 +1082,9 @@
                     <div class="pd-acoes-rapidas">
                         <button class="pf-btn pf-btn--success" onclick="iniciarAula()" ${somenteLeitura ? 'disabled' : ''}>▶️ Iniciar Aula</button>
                         <button class="pf-btn pf-btn--primary" onclick="concluirAula()" ${somenteLeitura ? 'disabled' : ''}>✅ Concluir Aula</button>
-                        <button class="pf-btn pf-btn--info" onclick="anexarArquivo()">📎 Anexar Arquivo</button>
+                    </div>
+                    <div class="pd-acoes-secundarias">
+                        <button class="pf-btn pf-btn--secondary" onclick="anexarArquivo()">📎 Anexar Arquivo</button>
                         <a class="pf-btn pf-btn--secondary" href="../planejamento/index.html">📚 Planejamento</a>
                         <a class="pf-btn pf-btn--secondary" href="../banco-atividades/index.html">🗂️ Banco de Atividades</a>
                         <a class="pf-btn pf-btn--secondary" href="../inteligencia-artificial/index.html">🤖 IA</a>
@@ -1061,11 +1102,16 @@
                 </div>
 
                 <div class="pd-painel-secao">
-                    <h4>🔄 Status</h4>
-                    <select id="pdStatusSelect" class="pf-filter-select" ${somenteLeitura ? 'disabled' : ''}>
-                        ${STATUS_POSSIVEIS.map(s => `<option value="${s}" ${entrada.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-                    </select>
-                    <button class="pf-btn pf-btn--secondary" onclick="aplicarStatusManual()" ${somenteLeitura ? 'disabled' : ''}>Aplicar</button>
+                    <h4 class="pd-status-header" onclick="toggleStatusManual()">
+                        <span class="pd-status-toggle-icon">${statusManualAberto ? '▾' : '▸'}</span>
+                        Outras opções de status
+                    </h4>
+                    ${statusManualAberto ? `
+                        <select id="pdStatusSelect" class="pf-filter-select" ${somenteLeitura ? 'disabled' : ''}>
+                            ${STATUS_POSSIVEIS.map(s => `<option value="${s}" ${entrada.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                        <button class="pf-btn pf-btn--secondary" onclick="aplicarStatusManual()" ${somenteLeitura ? 'disabled' : ''}>Aplicar</button>
+                    ` : ''}
                 </div>
 
                 <div class="pd-painel-secao">
@@ -1097,6 +1143,14 @@
             document.getElementById('pdPainelDesktop').innerHTML = html;
             document.getElementById('pdPainelMobileConteudo').innerHTML = html;
         }
+
+        // Re-renderiza (não só troca uma classe) — construirPainelHtml() lê
+        // statusManualAberto pra decidir se mostra o <select>/Aplicar, então
+        // só assim a seção fica de verdade aberta/fechada depois do clique.
+        window.toggleStatusManual = function () {
+            statusManualAberto = !statusManualAberto;
+            renderizarPainel();
+        };
 
         function renderizarTudo() {
             if (!gradeCarregada || !turmasCarregada || !controladorCarregada) return;

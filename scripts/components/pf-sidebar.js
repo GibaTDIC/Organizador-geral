@@ -1,7 +1,7 @@
 // Prof GB — <pf-sidebar>. Menu lateral compartilhado, construído a partir do
 // registro MODULES (scripts/utils/constants.js) — a mesma fonte que uma
 // futura Home GIBABIT poderia consumir. Uso: <pf-sidebar active="controlador">.
-import { MODULES } from '../utils/constants.js';
+import { MODULES, GRUPOS_MODULOS } from '../utils/constants.js';
 import { showToast } from './pf-alert.js';
 
 export class PfSidebar extends HTMLElement {
@@ -9,14 +9,24 @@ export class PfSidebar extends HTMLElement {
         this.classList.add('pf-sidebar');
         const ativo = this.getAttribute('active');
 
+        // Agrupada em seções (Uso diário / Ferramentas / Configuração) em
+        // vez de uma lista só — "complexidade nos bastidores, simplicidade
+        // pro professor": os 3 módulos do dia a dia ficam em destaque no
+        // topo, o resto continua todo alcançável, só sem competir de igual
+        // pra igual por atenção.
+        const linksDoGrupo = (chave) => MODULES.filter(m => m.grupo === chave).map(modulo => `
+            <a class="pf-sidebar__link${modulo.id === ativo ? ' pf-sidebar__link--active' : ''}${modulo.status === 'planned' ? ' pf-sidebar__link--planned' : ''}"
+               href="${modulo.path}">
+                <span class="pf-sidebar__icon">${modulo.icon}</span>
+                <span class="pf-sidebar__label">${modulo.label}</span>
+            </a>
+        `).join('');
+
         this.innerHTML = `
             <nav class="pf-sidebar__nav">
-                ${MODULES.map(modulo => `
-                    <a class="pf-sidebar__link${modulo.id === ativo ? ' pf-sidebar__link--active' : ''}${modulo.status === 'planned' ? ' pf-sidebar__link--planned' : ''}"
-                       href="${modulo.path}">
-                        <span class="pf-sidebar__icon">${modulo.icon}</span>
-                        <span class="pf-sidebar__label">${modulo.label}</span>
-                    </a>
+                ${GRUPOS_MODULOS.map(grupo => `
+                    <div class="pf-sidebar__secao-titulo">${grupo.label}</div>
+                    ${linksDoGrupo(grupo.chave)}
                 `).join('')}
                 <div class="pf-sidebar__divisor"></div>
                 <button type="button" class="pf-sidebar__link pf-sidebar__fechar" id="pfSidebarFechar">

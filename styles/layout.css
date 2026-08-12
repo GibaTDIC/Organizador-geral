@@ -91,6 +91,19 @@ pf-header {
     color: var(--pf-orange-500);
 }
 
+/* Responde "onde estou?" — título da página atual, calculado a partir de
+   MODULES em pf-header.js (nunca hardcoded por página). Vazio (sem span)
+   em páginas fora de modules/, como login.html. */
+.pf-header__titulo {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--pf-ice-50);
+    padding-left: var(--pf-space-3);
+    margin-left: var(--pf-space-1);
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    white-space: nowrap;
+}
+
 .pf-header__login-link {
     color: var(--pf-orange-500);
     text-decoration: none;
@@ -166,6 +179,23 @@ pf-sidebar {
     flex-direction: column;
     padding: var(--pf-space-3);
     gap: var(--pf-space-1);
+}
+
+/* Rótulo de cada seção da sidebar (Uso diário/Ferramentas/Configuração) —
+   pequeno e discreto de propósito, não deve competir com os links abaixo.
+   Sem padding-top na primeira seção (fica colado no topo do nav, que já
+   tem seu próprio padding). */
+.pf-sidebar__secao-titulo {
+    padding: var(--pf-space-3) var(--pf-space-3) var(--pf-space-1);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.pf-sidebar__secao-titulo:first-child {
+    padding-top: 0;
 }
 
 .pf-sidebar__link {

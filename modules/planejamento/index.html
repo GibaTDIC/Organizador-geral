@@ -69,7 +69,6 @@
         .pl-arvore-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: var(--pf-space-2);
             padding: var(--pf-space-2) var(--pf-space-2);
             border-radius: var(--pf-radius-md);
@@ -82,12 +81,24 @@
         .pl-arvore-item--selecionado { background: var(--pf-blue-700); color: var(--pf-white); font-weight: 600; }
         .pl-arvore-item--vazio { color: var(--pf-gray-500); font-style: italic; }
 
+        /* Indicador de "hoje" — só visual, mesmo acento do banner do Dashboard. */
+        .pl-arvore-item--hoje { box-shadow: inset 3px 0 0 var(--pf-orange-500); }
+
+        .pl-arvore-toggle {
+            flex-shrink: 0;
+            width: 14px;
+            text-align: center;
+            color: var(--pf-gray-500);
+        }
+        .pl-arvore-item--selecionado .pl-arvore-toggle { color: inherit; }
+
         .pl-arvore-anual { font-weight: 700; }
         .pl-arvore-bimestre { padding-left: var(--pf-space-2); font-weight: 600; }
         .pl-arvore-mes { padding-left: var(--pf-space-4); }
         .pl-arvore-aula { padding-left: var(--pf-space-6); font-size: 0.8rem; }
 
         .pl-badge-count {
+            margin-left: auto;
             font-size: 0.68rem;
             background: var(--pf-gray-200);
             color: var(--pf-gray-700);
@@ -312,6 +323,14 @@
         let turmaAtual = '6º Ano';
         let anoLetivoAtual = new Date().getFullYear();
         let termoBusca = '';
+        // Árvore colapsável: quais bimestres/meses estão abertos. Chaves:
+        // número do bimestre, e "<bimestre>:<mês>" pro nível de mês. Só é
+        // inicializado UMA VEZ (ver inicializarArvoreAberta) pro bimestre/mês
+        // de hoje — depois disso o professor controla manualmente, nunca
+        // reseta sozinho a cada atualização do Firestore.
+        let arvoreBimestresAbertos = new Set();
+        let arvoreMesesAbertos = new Set();
+        let arvoreInicializada = false;
         // Componentes que a escola leciona (definidos em Configurações) —
         // restringe o seletor de componente do formulário de aula. Fallback
         // cobre escolas criadas antes desse campo existir.
@@ -836,8 +855,24 @@
             return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
                 const data = docSnap.data();
                 bimestresConfig = (data && data.bimestres) ? data.bimestres : [];
+                inicializarArvoreAberta();
                 renderizarTudo();
             });
+        }
+
+        // Expande só o bimestre/mês de hoje na primeira vez que a config de
+        // bimestres chega — atualizações seguintes do Firestore não mexem
+        // mais nisso, senão um expand/collapse manual do professor seria
+        // desfeito a cada snapshot novo.
+        function inicializarArvoreAberta() {
+            if (arvoreInicializada || bimestresConfig.length === 0) return;
+            arvoreInicializada = true;
+            const hoje = new Date();
+            const numeroBimestre = bimestreDaData(hoje);
+            if (numeroBimestre) {
+                arvoreBimestresAbertos.add(numeroBimestre);
+                arvoreMesesAbertos.add(`${numeroBimestre}:${hoje.getMonth() + 1}`);
+            }
         }
 
         function carregarAnuais() {
@@ -968,18 +1003,44 @@
             ));
         }
 
-        window.selecionarNo = function (nivel, id) {
+        window.selecionarNo = function (nivel, id, numero, mes) {
             selecionado = { nivel, id };
+            // Garante que o nó recém-selecionado não fique escondido dentro
+            // de um ramo fechado (ex: clicar numa aula sugerida pela IA).
+            if (numero !== undefined) {
+                arvoreBimestresAbertos.add(numero);
+                if (nivel === 'aula' && mes !== undefined) {
+                    arvoreMesesAbertos.add(`${numero}:${mes}`);
+                }
+            }
             renderizarArvore();
             renderizarAreaPrincipal();
             renderizarPainelAuxiliar();
         };
 
-        function itemArvoreHtml(nivel, id, classeExtra, rotulo, contagem) {
+        window.toggleArvoreBimestre = function (numero) {
+            if (arvoreBimestresAbertos.has(numero)) arvoreBimestresAbertos.delete(numero);
+            else arvoreBimestresAbertos.add(numero);
+            renderizarArvore();
+        };
+
+        window.toggleArvoreMes = function (numero, mes) {
+            const chave = `${numero}:${mes}`;
+            if (arvoreMesesAbertos.has(chave)) arvoreMesesAbertos.delete(chave);
+            else arvoreMesesAbertos.add(chave);
+            renderizarArvore();
+        };
+
+        function itemArvoreHtml(nivel, id, classeExtra, rotulo, contagem, opcoesArvore) {
+            const { aberto, toggleOnClick, hoje, numero, mes } = opcoesArvore || {};
             const chave = `${nivel}:${id}`;
             const ativo = selecionado && `${selecionado.nivel}:${selecionado.id}` === chave;
+            const argsClique = [`'${nivel}'`, `'${id}'`];
+            if (numero !== undefined) argsClique.push(numero);
+            if (mes !== undefined) argsClique.push(mes);
             return `
-                <div class="pl-arvore-item ${classeExtra}${ativo ? ' pl-arvore-item--selecionado' : ''}" onclick="selecionarNo('${nivel}', '${id}')">
+                <div class="pl-arvore-item ${classeExtra}${ativo ? ' pl-arvore-item--selecionado' : ''}${hoje ? ' pl-arvore-item--hoje' : ''}" onclick="selecionarNo(${argsClique.join(', ')})">
+                    ${toggleOnClick ? `<span class="pl-arvore-toggle" onclick="event.stopPropagation(); ${toggleOnClick}">${aberto ? '▾' : '▸'}</span>` : ''}
                     <span>${rotulo}</span>
                     ${contagem !== undefined ? `<span class="pl-badge-count">${contagem}</span>` : ''}
                 </div>
@@ -989,6 +1050,13 @@
         function renderizarArvore() {
             const container = document.getElementById('plArvore');
             const aulasDaTurma = aulasFiltradasPorBusca();
+            // Busca ativa força tudo expandido, senão um resultado dentro de
+            // um ramo fechado ficaria invisível (aulasFiltradasPorBusca já
+            // varre a árvore inteira, independente do estado visual).
+            const buscaAtiva = !!termoBusca;
+            const hoje = new Date();
+            const numeroBimestreHoje = bimestreDaData(hoje);
+            const mesHoje = hoje.getMonth() + 1;
 
             const anual = encontrarAnual();
             let html = itemArvoreHtml('anual', anual ? anual.id : 'novo:anual', 'pl-arvore-anual',
@@ -997,32 +1065,40 @@
             for (let numero = 1; numero <= 4; numero++) {
                 const bimestral = encontrarBimestral(numero);
                 const cfg = bimestresConfig.find(b => b.numero === numero);
+                const bimestreAberto = buscaAtiva || arvoreBimestresAbertos.has(numero);
                 html += itemArvoreHtml('bimestral', bimestral ? bimestral.id : `novo:bimestral:${numero}`, 'pl-arvore-bimestre',
-                    rotuloBimestre(numero));
+                    rotuloBimestre(numero), undefined,
+                    { aberto: bimestreAberto, toggleOnClick: `toggleArvoreBimestre(${numero})`, hoje: numero === numeroBimestreHoje, numero });
 
                 if (!cfg) {
                     html += `<div class="pl-arvore-item pl-arvore-item--vazio pl-arvore-mes"><a href="../configuracoes/index.html" style="color:inherit;">Configure as datas deste bimestre em Configurações →</a></div>`;
                     continue;
                 }
 
+                if (!bimestreAberto) continue;
+
                 const meses = mesesDoIntervalo(cfg.inicio, cfg.fim);
                 meses.forEach(({ mes }) => {
                     const mensal = encontrarMensal(numero, mes);
                     const aulasDoMes = mensal ? ordenarAulasPorData(aulasDaTurma.filter(a => a.planejamentoMensalId === mensal.id)) : [];
+                    const mesAberto = buscaAtiva || arvoreMesesAbertos.has(`${numero}:${mes}`);
                     html += itemArvoreHtml('mensal', mensal ? mensal.id : `novo:mensal:${numero}:${mes}`, 'pl-arvore-mes',
-                        `📅 ${NOMES_MESES[mes - 1]}`, aulasDoMes.length);
+                        `📅 ${NOMES_MESES[mes - 1]}`, aulasDoMes.length,
+                        { aberto: mesAberto, toggleOnClick: `toggleArvoreMes(${numero}, ${mes})`, hoje: numero === numeroBimestreHoje && mes === mesHoje, numero });
+
+                    if (!mesAberto) return;
 
                     aulasDoMes.forEach(aula => {
-                        html += itemArvoreHtml('aula', aula.id, 'pl-arvore-aula', `📝 ${aula.titulo || 'Sem título'}`);
+                        html += itemArvoreHtml('aula', aula.id, 'pl-arvore-aula', `📝 ${aula.titulo || 'Sem título'}`, undefined, { numero, mes });
                     });
                 });
 
                 const aulasSemMes = ordenarAulasPorData(aulasDaTurma.filter(a => a.bimestre === numero && !a.planejamentoMensalId));
                 if (aulasSemMes.length > 0) {
                     html += itemArvoreHtml('mensal', `novo:mensal:${numero}:0`, 'pl-arvore-mes pl-arvore-item--vazio',
-                        `Sem mês vinculado`, aulasSemMes.length);
+                        `Sem mês vinculado`, aulasSemMes.length, { numero });
                     aulasSemMes.forEach(aula => {
-                        html += itemArvoreHtml('aula', aula.id, 'pl-arvore-aula', `📝 ${aula.titulo || 'Sem título'}`);
+                        html += itemArvoreHtml('aula', aula.id, 'pl-arvore-aula', `📝 ${aula.titulo || 'Sem título'}`, undefined, { numero });
                     });
                 }
             }

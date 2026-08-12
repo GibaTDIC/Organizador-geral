@@ -226,6 +226,36 @@
         .dash-badge--reposicao { background: var(--pf-info); color: var(--pf-white); }
         .dash-badge--futura { background: var(--pf-slate-600); color: var(--pf-white); }
 
+        /* Banner de primeiro uso — mesma linguagem visual (acento laranja)
+           da Próxima Aula, pra ler como "a coisa acionável importante".
+           Só aparece quando a grade ainda não foi configurada (ver
+           renderizarBannerConfiguracao); nos outros cards isso já vira uma
+           mensagem neutra "Grade ainda não configurada" em vez de texto
+           enganoso tipo "Tudo em dia!". */
+        .dash-banner-config {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--pf-space-3);
+            padding: var(--pf-space-4);
+            border-radius: var(--pf-radius-md);
+            background: var(--pf-orange-100);
+            border-left: 6px solid var(--pf-orange-500);
+            margin-bottom: var(--pf-space-4);
+        }
+
+        .dash-banner-config__texto h2 {
+            font-size: 1.1rem;
+            color: var(--pf-slate-900);
+            margin-bottom: 4px;
+        }
+
+        .dash-banner-config__texto p {
+            font-size: 0.9rem;
+            color: var(--pf-gray-700);
+        }
+
         /* Próxima Aula */
         .dash-proxima-destaque {
             display: flex;
@@ -304,6 +334,44 @@
             font-size: 0.85rem;
             margin-bottom: var(--pf-space-1);
             color: var(--pf-gray-700);
+        }
+
+        /* "Mais" — envelope colapsável do Resumo Estatístico + Calendário
+           do Bimestre (ver renderizarBannerConfiguracao pro raciocínio).
+           Cabeçalho clicável simples, sem o visual de .pf-card por cima
+           (evitaria borda dupla já que o conteúdo já são .pf-card por
+           dentro). */
+        .dash-mais {
+            margin-top: var(--pf-space-2);
+        }
+
+        .dash-mais-header {
+            display: flex;
+            align-items: center;
+            gap: var(--pf-space-2);
+            width: 100%;
+            padding: var(--pf-space-3);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--pf-gray-700);
+        }
+
+        .dash-mais-header:hover {
+            color: var(--pf-slate-900);
+        }
+
+        .dash-mais-content {
+            display: flex;
+            flex-direction: column;
+            gap: var(--pf-space-4);
+        }
+
+        .dash-mais-content.collapsed {
+            display: none;
         }
 
         /* Resumo Estatístico */
@@ -475,6 +543,15 @@
             <div class="container">
                 <div class="dash-layout">
 
+                    <!-- Banner de primeiro uso: só aparece com grade vazia -->
+                    <section class="dash-banner-config" id="dashBannerConfig" style="display:none;">
+                        <div class="dash-banner-config__texto">
+                            <h2>👋 Vamos configurar sua grade</h2>
+                            <p>Sua grade de horários ainda não foi configurada — é o primeiro passo para este painel funcionar. Leva menos de 2 minutos.</p>
+                        </div>
+                        <a class="pf-btn pf-btn--primary" href="../configuracoes/index.html">⚙️ Configurar agora</a>
+                    </section>
+
                     <!-- Cabeçalho -->
                     <section class="pf-card pf-card--elevated dash-cabecalho">
                         <h1 id="dashSaudacao">Olá!</h1>
@@ -544,14 +621,6 @@
                             </div>
                         </section>
 
-                        <!-- Resumo Estatístico -->
-                        <section class="pf-card">
-                            <h2 class="dash-card-titulo">📊 Resumo Estatístico</h2>
-                            <div class="dash-resumo-grid" id="dashResumoGrid">
-                                <p class="dash-estado-vazio">Carregando estatísticas…</p>
-                            </div>
-                        </section>
-
                         <!-- Acesso Rápido -->
                         <section class="pf-card">
                             <h2 class="dash-card-titulo">🚀 Acesso Rápido</h2>
@@ -559,18 +628,39 @@
                         </section>
                     </div>
 
-                    <!-- Calendário do Bimestre -->
-                    <section class="pf-card">
-                        <div class="dash-calendario-cabecalho">
-                            <button type="button" class="pf-btn pf-btn--secondary" onclick="mesCalendarioAnterior()">◀</button>
-                            <h2 class="dash-card-titulo">🗓️ <span id="dashCalendarioMes">—</span></h2>
-                            <button type="button" class="pf-btn pf-btn--secondary" onclick="mesCalendarioProximo()">▶</button>
+                    <!-- "Mais": Resumo Estatístico + Calendário do Bimestre,
+                         recolhido por padrão — informação útil mas não
+                         crítica pro dia a dia, não precisa competir de igual
+                         pra igual com Próxima Aula/Pendências. Um clique
+                         mostra os dois, nada foi removido. -->
+                    <section class="dash-mais">
+                        <button type="button" class="dash-mais-header" id="dashMaisHeader" onclick="toggleDashMais()">
+                            <span class="dash-mais-icon" id="dashMaisIcon">▸</span>
+                            <span>Mais</span>
+                        </button>
+                        <div class="dash-mais-content collapsed" id="dashMaisContent">
+                            <!-- Resumo Estatístico -->
+                            <section class="pf-card">
+                                <h2 class="dash-card-titulo">📊 Resumo Estatístico</h2>
+                                <div class="dash-resumo-grid" id="dashResumoGrid">
+                                    <p class="dash-estado-vazio">Carregando estatísticas…</p>
+                                </div>
+                            </section>
+
+                            <!-- Calendário do Bimestre -->
+                            <section class="pf-card">
+                                <div class="dash-calendario-cabecalho">
+                                    <button type="button" class="pf-btn pf-btn--secondary" onclick="mesCalendarioAnterior()">◀</button>
+                                    <h2 class="dash-card-titulo">🗓️ <span id="dashCalendarioMes">—</span></h2>
+                                    <button type="button" class="pf-btn pf-btn--secondary" onclick="mesCalendarioProximo()">▶</button>
+                                </div>
+                                <div class="dash-cal-semana">
+                                    <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+                                </div>
+                                <div class="dash-cal-grid" id="dashCalendarioGrid"></div>
+                                <div class="dash-cal-legenda" id="dashCalendarioLegenda"></div>
+                            </section>
                         </div>
-                        <div class="dash-cal-semana">
-                            <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
-                        </div>
-                        <div class="dash-cal-grid" id="dashCalendarioGrid"></div>
-                        <div class="dash-cal-legenda" id="dashCalendarioLegenda"></div>
                     </section>
 
                 </div>
@@ -1051,6 +1141,14 @@
                 container.innerHTML = '<p class="dash-estado-vazio">Sem aulas hoje.</p>';
                 return;
             }
+            // Mesma checagem da Rotina Hoje — sem isso, um professor que
+            // nunca configurou a grade via aqui "Todas as aulas de hoje
+            // foram concluídas! 🎉" (ramo abaixo), uma mensagem enganosa de
+            // sucesso quando na verdade nada foi configurado ainda.
+            if (PERIODOS_GRADE.every(periodo => (gradeAtual[periodo] || []).length === 0)) {
+                container.innerHTML = '<p class="dash-estado-vazio">Grade ainda não configurada. Configure em <a href="../configuracoes/index.html">Configurações</a>.</p>';
+                return;
+            }
 
             const proxima = calcularProximaAula();
             if (!proxima) {
@@ -1085,6 +1183,15 @@
 
         function renderizarPendencias() {
             const container = document.getElementById('dashPendencias');
+            // Mesma checagem da Rotina Hoje/Próxima Aula — sem grade
+            // configurada não existe pendência real ainda a calcular
+            // (pendências vêm do Controlador, que só existe depois que
+            // Planejamento+Grade se cruzam), então "Nenhuma pendência! Tudo
+            // em dia. ✅" (ramo abaixo) seria enganoso pro primeiro uso.
+            if (PERIODOS_GRADE.every(periodo => (gradeAtual[periodo] || []).length === 0)) {
+                container.innerHTML = '<p class="dash-estado-vazio">Grade ainda não configurada. Configure em <a href="../configuracoes/index.html">Configurações</a>.</p>';
+                return;
+            }
             const { atrasadas, proximas } = calcularPendencias();
 
             if (atrasadas.length === 0 && proximas.length === 0) {
@@ -1351,6 +1458,7 @@
 
         function renderizarDashboard() {
             if (!gradeCarregada || !configCarregada || !controladorCarregado || !bimestraisCarregado) return;
+            renderizarBannerConfiguracao();
             renderizarRotinaHoje();
             renderizarProximaAula();
             renderizarPendencias();
@@ -1358,6 +1466,27 @@
             renderizarResumo();
             renderizarCalendario();
             renderizarAlertas();
+        }
+
+        // Toggle simples de classe DOM — seguro aqui porque esse markup
+        // (#dashMaisContent/#dashMaisIcon) é estático, nunca reconstruído
+        // por renderizarDashboard(), diferente do painel da Programação
+        // Diária (que precisa de um flag em JS pra não fechar sozinho).
+        window.toggleDashMais = function () {
+            const conteudo = document.getElementById('dashMaisContent');
+            const icone = document.getElementById('dashMaisIcon');
+            conteudo.classList.toggle('collapsed');
+            icone.textContent = conteudo.classList.contains('collapsed') ? '▸' : '▾';
+        };
+
+        // Primeiro uso: escola sem grade configurada ainda. Mesma checagem
+        // que Rotina Hoje/Próxima Aula/Pendências já usam pra saber que não
+        // há dado real ainda — aqui vira um banner destacado no topo em vez
+        // de uma frase pequena dentro de um card.
+        function renderizarBannerConfiguracao() {
+            const banner = document.getElementById('dashBannerConfig');
+            const semGrade = PERIODOS_GRADE.every(periodo => (gradeAtual[periodo] || []).length === 0);
+            banner.style.display = semGrade ? '' : 'none';
         }
 
         // ---------- Carregamento Firestore ----------

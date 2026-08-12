@@ -3,7 +3,8 @@
 // diretamente — só escuta 'pf-auth-ready'/'pf-escola-ready' (disparados por
 // auth-guard.js/escola-context.js) e dispara 'pf-logout-request',
 // 'pf-escola-selecionar-request' e 'pf-escola-criar-request'.
-//
+import { MODULES } from '../utils/constants.js';
+
 // A marca usa gibabit-avatar-header.png (128x128, ~8KB) em vez do arquivo
 // original em assets/ (5250x5250, ~9.7MB — inviável carregar num badge de
 // 32px em TODA página do app, já que este componente aparece em todas).
@@ -12,9 +13,22 @@
 // funciona igual em qualquer profundidade de pasta (raiz ou modules/*).
 const AVATAR_URL = new URL('../../assets/gibabit-avatar-header.png', import.meta.url).href;
 
+// Título da página atual — responde "onde estou?" sem precisar de markup
+// extra em cada uma das 9 páginas de módulo: casa o `id` de MODULES (que já
+// é igual ao nome da pasta em modules/<id>/) contra a URL de verdade
+// (location.pathname), não contra o `path` relativo de cada entrada (que é
+// relativo a partir de dentro de modules/*, não serve pra comparar direto
+// com a URL). Páginas fora de modules/ (login.html, index.html raiz) não
+// casam com nada — título fica vazio, sem span extra na tela.
+function tituloPaginaAtual() {
+    const modulo = MODULES.find(m => location.pathname.includes(`/modules/${m.id}/`));
+    return modulo ? `${modulo.icon} ${modulo.label}` : '';
+}
+
 export class PfHeader extends HTMLElement {
     connectedCallback() {
         this.classList.add('pf-header');
+        const titulo = tituloPaginaAtual();
         this.innerHTML = `
             <div class="pf-header__left">
                 <button class="pf-header__menu-toggle" type="button" aria-label="Abrir menu">☰</button>
@@ -22,6 +36,7 @@ export class PfHeader extends HTMLElement {
                     <img class="pf-header__mark" src="${AVATAR_URL}" alt="Gibabit" width="32" height="32">
                     <span class="pf-header__wordmark">Prof<span class="pf-header__accent">GB</span></span>
                 </div>
+                ${titulo ? `<span class="pf-header__titulo">${titulo}</span>` : ''}
             </div>
             <a class="pf-header__login-link" href="../../login.html">🔑 Entrar</a>
             <div class="pf-header__escola" hidden>
