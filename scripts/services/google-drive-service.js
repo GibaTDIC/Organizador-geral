@@ -70,7 +70,11 @@ export async function conectarGoogleDrive(forcar = false) {
             resolve(accessTokenAtual);
         };
         cliente.error_callback = () => reject(new Error('Conexão com o Google Drive cancelada.'));
-        cliente.requestAccessToken();
+        // select_account: sem isso, o Google Identity Services pode reusar
+        // silenciosamente a conta já logada no navegador (comum em
+        // dispositivo compartilhado entre professores) em vez de perguntar
+        // qual conta usar — cada professor precisa escolher a própria.
+        cliente.requestAccessToken({ prompt: 'select_account' });
     });
 }
 
