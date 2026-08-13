@@ -168,11 +168,21 @@ export function reconciliarAulas(data, { aulasFirebase, turmasAtuais }) {
         });
     });
 
-    // Remove entradas cujo plano de aula original foi excluído do Planejamento.
+    // Remove entradas cujo plano de aula original foi excluído do
+    // Planejamento, OU cuja turma física foi excluída (ou trocou de
+    // componente curricular) em Configurações — sem o segundo check, apagar
+    // uma turma deixava as aulas dela "penduradas" pra sempre no Controlador
+    // (e portanto em Pendências/Dashboard/Relatórios), mesmo já sumida da
+    // grade e da lista de turmas.
     const tamanhoAntes = controladorBanco.length;
-    controladorBanco = controladorBanco.filter(aulaControlador =>
-        aulasFirebase.some(aulaFirebase => aulaFirebase.id === aulaControlador.firebaseId)
-    );
+    controladorBanco = controladorBanco.filter(aulaControlador => {
+        const aulaExiste = aulasFirebase.some(aulaFirebase => aulaFirebase.id === aulaControlador.firebaseId);
+        const turmaExiste = turmasAtuais.some(turma =>
+            turma.nome === aulaControlador.turma &&
+            (turma.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO) === (aulaControlador.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO)
+        );
+        return aulaExiste && turmaExiste;
+    });
     if (controladorBanco.length !== tamanhoAntes) {
         alterou = true;
     }
