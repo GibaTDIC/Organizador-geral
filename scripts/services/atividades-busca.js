@@ -7,6 +7,17 @@
 // campo (`atividade.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO`,
 // constante de grade-service.js) antes de passar pra cá; este módulo nunca
 // importa grade-service.js pra continuar sem nenhuma dependência do Firebase.
+// Objeto de Conhecimento de uma aula pode ter mais de um valor marcado
+// (ver Planejamento) — normaliza pra array em qualquer um dos formatos que
+// os chamadores passam hoje: string única (Banco de Atividades, cada item
+// tem só 1 objeto), array (Planejamento, múltipla escolha) ou nada. Array
+// vazio também vira null (equivalente a "sem filtro") — sem isso, marcar
+// zero objetos faria o filtro derrubar tudo em vez de não filtrar nada.
+function normalizarListaEspecificacao(valor) {
+    const lista = Array.isArray(valor) ? valor : (valor ? [valor] : []);
+    return lista.length > 0 ? lista : null;
+}
+
 export function calcularPontuacaoCompatibilidade(atividade, criterios) {
     if (!atividade || !criterios) return 0;
     if (criterios.componenteCurricular && atividade.componenteCurricular !== criterios.componenteCurricular) {
@@ -21,13 +32,14 @@ export function calcularPontuacaoCompatibilidade(atividade, criterios) {
     if (criterios.unidadeTematica && atividade.unidadeTematica !== criterios.unidadeTematica) {
         return 0;
     }
-    if (criterios.especificacao && atividade.especificacao !== criterios.especificacao) {
+    const especificacoesCriterio = normalizarListaEspecificacao(criterios.especificacao);
+    if (especificacoesCriterio && !especificacoesCriterio.includes(atividade.especificacao)) {
         return 0;
     }
 
     let pontuacao = 0;
     if (criterios.unidadeTematica && atividade.unidadeTematica === criterios.unidadeTematica) pontuacao += 1;
-    if (criterios.especificacao && atividade.especificacao === criterios.especificacao) pontuacao += 1;
+    if (especificacoesCriterio && especificacoesCriterio.includes(atividade.especificacao)) pontuacao += 1;
 
     const codigosAtividade = new Set((atividade.habilidades || []).map(h => (h && h.codigo) || h));
     (criterios.habilidadesCodigos || []).forEach(codigo => {
@@ -69,7 +81,8 @@ export function filtrarAtividadesPorContexto(atividades, criterios, opcoes = {})
         if (!incluirArquivadas && a.arquivada) return false;
         if (c.componenteCurricular && a.componenteCurricular !== c.componenteCurricular) return false;
         if (c.unidadeTematica && a.unidadeTematica !== c.unidadeTematica) return false;
-        if (c.especificacao && a.especificacao !== c.especificacao) return false;
+        const especificacoesCriterio = normalizarListaEspecificacao(c.especificacao);
+        if (especificacoesCriterio && !especificacoesCriterio.includes(a.especificacao)) return false;
         return true;
     });
 }
