@@ -411,13 +411,21 @@
         function renderizarAtividades() {
             const atividades = documentoRascunho.planilhaAcompanhamento || [];
             if (atividades.length === 0) return '<p class="pei-estado-vazio">Nenhum registro ainda.</p>';
-            return atividades.map((a, i) => `
+            return atividades.map((a, i) => {
+                // atividadeManual !== false cobre tanto true (linha editada
+                // à mão) quanto undefined (linha de um PEI salvo antes desse
+                // campo existir) — protegidas do refresh em massa.
+                const travada = a.atividadeManual !== false;
+                return `
                 <div class="pei-atividade-linha">
                     <input type="date" value="${a.data || ''}" oninput="atualizarAtividade(${i}, 'data', this.value)">
                     <input type="text" placeholder="Nome da aula / participação do aluno" value="${(a.atividade || '').replace(/"/g, '&quot;')}" oninput="atualizarAtividade(${i}, 'atividade', this.value)">
+                    ${travada ? '<span title="Editado manualmente — não é sobrescrito pelo \'Preencher com dias de aula da grade\'" style="font-size:0.9rem;">🔒</span>' : ''}
+                    <button type="button" class="pf-btn pf-btn--secondary" style="padding:4px 8px;font-size:0.78rem;" title="Puxar o conteúdo atual do Planejamento pra esta linha" onclick="atualizarLinhaIndividual(${i})">🔄</button>
                     <button class="pf-btn pf-btn--danger" style="padding:4px 10px;" onclick="removerAtividade(${i})">✕</button>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // ---------- Ações: aluno ----------
@@ -547,7 +555,11 @@
             const linhaDoTempo = montarLinhaDoTempoConteudo(
                 aulasControlador, aluno.turmaSistema, aluno.componenteCurricular, gradeAtual, normalizarCelula
             );
-            return datas.map(data => ({ data, atividade: tituloVigenteNaData(linhaDoTempo, data) }));
+            // atividadeManual:false marca a linha como "em sincronia com o
+            // Planejamento" — ver preencherDatasDaGrade/atualizarLinhaIndividual,
+            // que só sobrescrevem linhas com esse flag (nunca uma que o
+            // professor editou à mão).
+            return datas.map(data => ({ data, atividade: tituloVigenteNaData(linhaDoTempo, data), atividadeManual: false }));
         }
 
         // As datas de cada bimestre já existem em Configurações — não faz
@@ -619,7 +631,10 @@
 
         window.adicionarAtividade = function () {
             documentoRascunho.planilhaAcompanhamento = documentoRascunho.planilhaAcompanhamento || [];
-            documentoRascunho.planilhaAcompanhamento.push({ data: '', atividade: '' });
+            // Linha criada manualmente, sem origem no Planejamento — nasce
+            // travada (atividadeManual:true), já que não há nada pra
+            // "Preencher com dias" sincronizar aqui.
+            documentoRascunho.planilhaAcompanhamento.push({ data: '', atividade: '', atividadeManual: true });
             document.getElementById('peiAtividades').innerHTML = renderizarAtividades();
         };
 
@@ -628,16 +643,49 @@
             document.getElementById('peiAtividades').innerHTML = renderizarAtividades();
         };
 
+        // Qualquer edição direta (data ou atividade) trava a linha — o
+        // professor está curando esse registro à mão, então ela para de ser
+        // sobrescrita pelo "Preencher com dias de aula da grade" a partir
+        // daqui. Reverte só se o professor clicar em "🔄 Atualizar" nela.
         window.atualizarAtividade = function (indice, campo, valor) {
             documentoRascunho.planilhaAcompanhamento[indice][campo] = valor;
+            documentoRascunho.planilhaAcompanhamento[indice].atividadeManual = true;
         };
 
-        // Recalcula as datas de aula da grade pro período deste PEI. Pra
-        // datas que já existem na planilha mas ainda sem atividade escrita,
-        // completa com o nome da aula agora que ele já pode ser calculado
-        // (ex: PEI criado antes de existir Planejamento pra essa semana) —
-        // nunca sobrescreve uma atividade que o professor já editou. Datas
-        // que ainda não existem são adicionadas, já com o nome da aula.
+        // Botão por linha: repuxa o conteúdo atual do Planejamento pra essa
+        // data específica, sobrescrevendo o texto (mesmo que a linha já
+        // estivesse travada) e destrava ela de novo — dá ao professor um
+        // jeito explícito de dizer "quero essa linha de volta em sincronia",
+        // sem precisar apagar o texto e rodar o preenchimento em massa.
+        window.atualizarLinhaIndividual = function (indice) {
+            const linha = documentoRascunho.planilhaAcompanhamento[indice];
+            if (!linha || !linha.data) {
+                showToast('Preencha a data desta linha antes de atualizar.', 'error');
+                return;
+            }
+            const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
+            const linhas = montarLinhasPlanilha(aluno, documentoRascunho.dataInicio, documentoRascunho.dataTermino);
+            const atualizada = linhas.find(l => l.data === linha.data);
+            if (!atualizada || !atualizada.atividade) {
+                showToast('Nenhum conteúdo encontrado no Planejamento pra essa data.', 'info');
+                return;
+            }
+            linha.atividade = atualizada.atividade;
+            linha.atividadeManual = false;
+            document.getElementById('peiAtividades').innerHTML = renderizarAtividades();
+            showToast('Linha atualizada com o Planejamento.', 'success');
+        };
+
+        // Recalcula as datas de aula da grade pro período deste PEI e
+        // ressincroniza com o Planejamento toda linha que ainda estiver "em
+        // sincronia" (atividadeManual:false — nunca editada à mão), mesmo
+        // que já tenha um nome de aula preenchido: sem isso, uma aula
+        // renomeada no Planejamento DEPOIS do primeiro preenchimento nunca
+        // chegava até aqui, porque o critério antigo só olhava se a linha
+        // estava vazia. Linha sem o campo atividadeManual (PEI salvo antes
+        // dessa mudança) é tratada como travada — mesma proteção que o
+        // comportamento antigo já dava a qualquer linha não-vazia. Datas
+        // que ainda não existem na planilha são adicionadas.
         window.preencherDatasDaGrade = function () {
             const aluno = peiAlunos.find(a => a.id === alunoSelecionadoId);
             const linhas = montarLinhasPlanilha(aluno, documentoRascunho.dataInicio, documentoRascunho.dataTermino);
@@ -648,11 +696,14 @@
             documentoRascunho.planilhaAcompanhamento = documentoRascunho.planilhaAcompanhamento || [];
             const atividadePorData = new Map(linhas.map(l => [l.data, l.atividade]));
 
-            let completadas = 0;
+            let atualizadas = 0;
             documentoRascunho.planilhaAcompanhamento.forEach(linha => {
-                if (!linha.atividade && atividadePorData.has(linha.data)) {
-                    const atividade = atividadePorData.get(linha.data);
-                    if (atividade) { linha.atividade = atividade; completadas++; }
+                if (linha.atividadeManual !== false) return;
+                if (!atividadePorData.has(linha.data)) return;
+                const atividade = atividadePorData.get(linha.data);
+                if (atividade && atividade !== linha.atividade) {
+                    linha.atividade = atividade;
+                    atualizadas++;
                 }
             });
 
@@ -670,14 +721,14 @@
 
             const aindaEmBranco = documentoRascunho.planilhaAcompanhamento.filter(a => !a.atividade).length;
 
-            if (adicionadas === 0 && completadas === 0) {
+            if (adicionadas === 0 && atualizadas === 0) {
                 showToast(aindaEmBranco > 0
                     ? `Nenhuma novidade — ${aindaEmBranco} data(s) continuam sem nome de aula porque não há Planejamento lançado pra elas ainda.`
-                    : 'Nada pra atualizar — todas as datas já estão na planilha e com o nome da aula preenchido.', aindaEmBranco > 0 ? 'info' : 'success');
+                    : 'Nada pra atualizar — a planilha já está em dia com o Planejamento.', aindaEmBranco > 0 ? 'info' : 'success');
             } else {
                 const partes = [];
                 if (adicionadas > 0) partes.push(`${adicionadas} data(s) adicionada(s)`);
-                if (completadas > 0) partes.push(`${completadas} nome(s) de aula completado(s)`);
+                if (atualizadas > 0) partes.push(`${atualizadas} linha(s) atualizada(s) com o Planejamento`);
                 if (aindaEmBranco > 0) partes.push(`${aindaEmBranco} ainda sem Planejamento lançado`);
                 showToast(partes.join(', ') + '.', 'success');
             }
