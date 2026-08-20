@@ -1059,17 +1059,40 @@
             return { ...progressoDeConteudoDoBimestre(ultimoEncerrado), rotulo: 'Recesso entre bimestres' };
         }
 
+        // Igual a derivarStatusTurma, mas SEM olhar pra frente: derivarStatusTurma
+        // é feita pra responder "qual a aula da vez" e por isso, assim que o
+        // conteúdo desta semana vira Concluída, ela avança pro próximo
+        // conteúdo já pré-planejado (mesmo que ele só comece semana que
+        // vem) — ótimo pra "próxima aula", péssimo aqui: faria uma turma
+        // 100% concluída esta semana aparecer com 0% (a próxima aula futura
+        // ainda não começou). Esta função pega sempre a entrada mais recente
+        // cujo dataInicio já chegou (hoje ou antes), Concluída ou não — o
+        // que realmente representa "o que aconteceu com essa turma até
+        // agora", sem pular pra frente.
+        function entradaRelevanteDaSemana(turma, componenteCurricular, controlador) {
+            const entradas = (controlador.aulas || []).filter(a =>
+                a.turma === turma &&
+                (a.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO) === componenteCurricular
+            );
+            if (entradas.length === 0) return null;
+            const hojeStr = new Date().toISOString().split('T')[0];
+            const jaChegaram = entradas
+                .filter(a => !a.dataInicio || a.dataInicio <= hojeStr)
+                .sort((a, b) => (b.dataInicio || '').localeCompare(a.dataInicio || ''));
+            return jaChegaram[0] || null;
+        }
+
         // Cada ocorrência de uma turma na grade (ex: EF do 6º A às segundas
-        // E quartas) é uma sessão semanal esperada — mas o status derivado
-        // (Concluída/Em Andamento) é o MESMO pra todas as ocorrências da
-        // mesma turma+componente, porque o Controlador acompanha progresso
-        // por conteúdo (aulasExecutadas/numAulas), não por dia da semana.
-        // Contar "Concluída" célula a célula duplicava (ou zerava) o
-        // crédito: uma turma com 1 de 2 aulas semanais já aplicadas ficava
-        // "Em Andamento" nas DUAS células, sem nenhum crédito pela aula que
-        // já rolou. Em vez disso, agrupa por turma e credita aulasExecutadas
-        // (o nº real de vezes que o professor clicou "Concluir Aula"),
-        // limitado ao nº de ocorrências dela na grade desta semana.
+        // E quartas) é uma sessão semanal esperada — mas a entrada do
+        // Controlador é a MESMA pra todas as ocorrências da mesma
+        // turma+componente, porque ele acompanha progresso por conteúdo
+        // (aulasExecutadas/numAulas), não por dia da semana. Contar
+        // "Concluída" célula a célula duplicava (ou zerava) o crédito: uma
+        // turma com 1 de 2 aulas semanais já aplicadas ficava "Em Andamento"
+        // nas DUAS células, sem nenhum crédito pela aula que já rolou. Em
+        // vez disso, agrupa por turma e credita aulasExecutadas (o nº real
+        // de vezes que o professor clicou "Concluir Aula"), limitado ao nº
+        // de ocorrências dela na grade desta semana.
         function calcularProgressoSemanal() {
             const ocorrenciasPorTurma = new Map();
             PERIODOS_GRADE.forEach(periodo => {
@@ -1086,14 +1109,15 @@
             let total = 0, concluidos = 0;
             ocorrenciasPorTurma.forEach((ocorrencias, chave) => {
                 const [turma, componenteCurricular] = chave.split('::');
-                const { status, entrada } = derivarStatusTurma(turma, componenteCurricular, controladorAtual);
+                const entrada = entradaRelevanteDaSemana(turma, componenteCurricular, controladorAtual);
+                if (!entrada) { total += ocorrencias; return; } // "Sem planejamento": conta no total, 0 concluído
                 // "Cancelada" é neutra: sai do cálculo por completo (não
                 // penaliza o professor por algo fora do controle dele).
-                if (status === 'Cancelada') return;
+                if (entrada.status === 'Cancelada') return;
                 total += ocorrencias;
-                if (status === 'Concluída') {
+                if (entrada.status === 'Concluída') {
                     concluidos += ocorrencias;
-                } else if (entrada) {
+                } else {
                     concluidos += Math.min(entrada.aulasExecutadas || 0, ocorrencias);
                 }
             });
