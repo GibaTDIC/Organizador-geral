@@ -1007,6 +1007,29 @@
             return Math.round((decorridoMs / totalMs) * 100);
         }
 
+        // Soma aulasExecutadas/numAulas de todas as entradas do Controlador
+        // que pertencem a este bimestre — mesmos números já usados pelo
+        // card "Aulas ministradas" do Resumo Estatístico (calcularResumo),
+        // só que recortado por bimestre em vez do total geral. aulasExecutadas
+        // é limitado a numAulas por entrada, pra um dado inconsistente não
+        // empurrar o percentual acima de 100%.
+        function calcularAulasAplicadasBimestre(numeroBimestre) {
+            const entradas = (controladorAtual.aulas || []).filter(a => (a.bimestre || 1) === numeroBimestre);
+            const planejadas = entradas.reduce((soma, a) => soma + (a.numAulas || 0), 0);
+            const aplicadas = entradas.reduce((soma, a) => soma + Math.min(a.aulasExecutadas || 0, a.numAulas || 0), 0);
+            return { planejadas, aplicadas };
+        }
+
+        function progressoDeConteudoDoBimestre(b) {
+            const { planejadas, aplicadas } = calcularAulasAplicadasBimestre(Number(b.numero));
+            if (planejadas === 0) return { percentual: 0, semDados: true };
+            return { percentual: Math.min(100, Math.round((aplicadas / planejadas) * 100)), semDados: false };
+        }
+
+        // Mostra % de aulas já ministradas sobre o total planejado NESTE
+        // bimestre (não tempo decorrido no calendário) — antes media dias
+        // corridos, o que não tinha relação nenhuma com quantas aulas o
+        // professor já tinha de fato dado.
         function calcularProgressoBimestral() {
             if (!bimestresAtual || bimestresAtual.length === 0) {
                 return { percentual: 0, rotulo: 'Bimestral', semDados: true };
@@ -1017,31 +1040,62 @@
                 const fim = stringParaData(b.fim);
                 fim.setHours(23, 59, 59, 999);
                 if (hoje >= inicio && hoje <= fim) {
-                    return { percentual: Math.round(((hoje - inicio) / (fim - inicio)) * 100), rotulo: `${b.numero}º Bimestre` };
+                    return { ...progressoDeConteudoDoBimestre(b), rotulo: `${b.numero}º Bimestre` };
                 }
             }
             const primeiro = stringParaData(bimestresAtual[0].inicio);
-            if (hoje < primeiro) return { percentual: 0, rotulo: 'Ano letivo ainda não iniciado' };
+            if (hoje < primeiro) return { percentual: 0, rotulo: 'Ano letivo ainda não iniciado', semDados: true };
             const ultimo = stringParaData(bimestresAtual[bimestresAtual.length - 1].fim);
-            if (hoje > ultimo) return { percentual: 100, rotulo: 'Ano letivo encerrado' };
-            return { percentual: 100, rotulo: 'Recesso entre bimestres' };
+            if (hoje > ultimo) {
+                return { ...progressoDeConteudoDoBimestre(bimestresAtual[bimestresAtual.length - 1]), rotulo: 'Ano letivo encerrado' };
+            }
+            // Recesso entre bimestres: mostra o progresso do bimestre que
+            // acabou de encerrar (mais relevante que o próximo, que ainda
+            // nem começou).
+            const ultimoEncerrado = bimestresAtual
+                .filter(b => stringParaData(b.fim) < hoje)
+                .sort((a, b) => stringParaData(b.fim) - stringParaData(a.fim))[0];
+            if (!ultimoEncerrado) return { percentual: 0, rotulo: 'Recesso entre bimestres', semDados: true };
+            return { ...progressoDeConteudoDoBimestre(ultimoEncerrado), rotulo: 'Recesso entre bimestres' };
         }
 
+        // Cada ocorrência de uma turma na grade (ex: EF do 6º A às segundas
+        // E quartas) é uma sessão semanal esperada — mas o status derivado
+        // (Concluída/Em Andamento) é o MESMO pra todas as ocorrências da
+        // mesma turma+componente, porque o Controlador acompanha progresso
+        // por conteúdo (aulasExecutadas/numAulas), não por dia da semana.
+        // Contar "Concluída" célula a célula duplicava (ou zerava) o
+        // crédito: uma turma com 1 de 2 aulas semanais já aplicadas ficava
+        // "Em Andamento" nas DUAS células, sem nenhum crédito pela aula que
+        // já rolou. Em vez disso, agrupa por turma e credita aulasExecutadas
+        // (o nº real de vezes que o professor clicou "Concluir Aula"),
+        // limitado ao nº de ocorrências dela na grade desta semana.
         function calcularProgressoSemanal() {
-            let total = 0, concluidos = 0;
+            const ocorrenciasPorTurma = new Map();
             PERIODOS_GRADE.forEach(periodo => {
                 (gradeAtual[periodo] || []).forEach(linha => {
                     DIA_CHAVES.forEach(dia => {
                         const celula = normalizarCelula(linha[dia]);
                         if (celula.tipo !== 'turma') return;
-                        const statusDerivado = derivarStatusTurma(celula.turma, celula.componenteCurricular, controladorAtual).status;
-                        // "Cancelada" é neutra: sai do cálculo por completo
-                        // (não penaliza o professor por algo fora do controle dele).
-                        if (statusDerivado === 'Cancelada') return;
-                        total++;
-                        if (statusDerivado === 'Concluída') concluidos++;
+                        const chave = `${celula.turma}::${celula.componenteCurricular}`;
+                        ocorrenciasPorTurma.set(chave, (ocorrenciasPorTurma.get(chave) || 0) + 1);
                     });
                 });
+            });
+
+            let total = 0, concluidos = 0;
+            ocorrenciasPorTurma.forEach((ocorrencias, chave) => {
+                const [turma, componenteCurricular] = chave.split('::');
+                const { status, entrada } = derivarStatusTurma(turma, componenteCurricular, controladorAtual);
+                // "Cancelada" é neutra: sai do cálculo por completo (não
+                // penaliza o professor por algo fora do controle dele).
+                if (status === 'Cancelada') return;
+                total += ocorrencias;
+                if (status === 'Concluída') {
+                    concluidos += ocorrencias;
+                } else if (entrada) {
+                    concluidos += Math.min(entrada.aulasExecutadas || 0, ocorrencias);
+                }
             });
             return total === 0 ? null : Math.round((concluidos / total) * 100);
         }
