@@ -543,11 +543,14 @@
             <div class="container">
                 <div class="dash-layout">
 
-                    <!-- Banner de primeiro uso: só aparece com grade vazia -->
+                    <!-- Banner de primeiro uso: aparece enquanto houver
+                         configuração pendente/não confirmada (ver
+                         renderizarBannerConfiguracao) — texto/título mudam
+                         conforme só a grade estiver faltando ou mais coisa. -->
                     <section class="dash-banner-config" id="dashBannerConfig" style="display:none;">
                         <div class="dash-banner-config__texto">
-                            <h2>👋 Vamos configurar sua grade</h2>
-                            <p>Sua grade de horários ainda não foi configurada — é o primeiro passo para este painel funcionar. Leva menos de 2 minutos.</p>
+                            <h2 id="dashBannerConfigTitulo">👋 Vamos configurar sua grade</h2>
+                            <p id="dashBannerConfigTexto">Sua grade de horários ainda não foi configurada — é o primeiro passo para este painel funcionar. Leva menos de 2 minutos.</p>
                         </div>
                         <a class="pf-btn pf-btn--primary" href="../configuracoes/index.html">⚙️ Configurar agora</a>
                     </section>
@@ -718,6 +721,10 @@
 
         // ---------- Estado ----------
         let escolaAtualId = null;
+        // Doc completo da escola ativa (inclui configuracaoConfirmada) —
+        // usado só pelo banner de configuração incompleta, ver
+        // renderizarBannerConfiguracao.
+        let escolaAtiva = null;
         let unsubGrade = null;
         let unsubConfiguracoes = null;
         let unsubControlador = null;
@@ -1557,14 +1564,38 @@
             icone.textContent = conteudo.classList.contains('collapsed') ? '▸' : '▾';
         };
 
-        // Primeiro uso: escola sem grade configurada ainda. Mesma checagem
-        // que Rotina Hoje/Próxima Aula/Pendências já usam pra saber que não
-        // há dado real ainda — aqui vira um banner destacado no topo em vez
-        // de uma frase pequena dentro de um card.
+        // Primeiro uso / configuração incompleta. Duas fontes de verdade
+        // combinadas: a checagem de grade vazia (mesma que Rotina Hoje/
+        // Próxima Aula/Pendências já usam — dado real, não depende de
+        // nenhum flag novo) e os 4 flags de configuracaoConfirmada vindos
+        // do doc da escola (ver modules/configuracoes/index.html e
+        // checklist-preparacao.js), que cobrem Componentes/Turmas/Calendário
+        // além da própria Grade. Mantém o texto específico de hoje quando só
+        // a grade estiver pendente (continuidade com o que já existia);
+        // generaliza pra "X etapas restantes" quando há mais de uma coisa.
         function renderizarBannerConfiguracao() {
             const banner = document.getElementById('dashBannerConfig');
+            const confirmado = (escolaAtiva && escolaAtiva.configuracaoConfirmada) || {};
+            const pendentes = new Set(['componentes', 'turmas', 'grade', 'calendario'].filter(chave => !confirmado[chave]));
+
             const semGrade = PERIODOS_GRADE.every(periodo => (gradeAtual[periodo] || []).length === 0);
-            banner.style.display = semGrade ? '' : 'none';
+            if (semGrade) pendentes.add('grade'); else pendentes.delete('grade');
+
+            if (pendentes.size === 0) {
+                banner.style.display = 'none';
+                return;
+            }
+
+            banner.style.display = '';
+            const titulo = document.getElementById('dashBannerConfigTitulo');
+            const texto = document.getElementById('dashBannerConfigTexto');
+            if (pendentes.size === 1 && pendentes.has('grade')) {
+                titulo.textContent = '👋 Vamos configurar sua grade';
+                texto.textContent = 'Sua grade de horários ainda não foi configurada — é o primeiro passo para este painel funcionar. Leva menos de 2 minutos.';
+            } else {
+                titulo.textContent = '👋 Vamos terminar de preparar seu PROF-GB';
+                texto.textContent = `Seu sistema ainda precisa de algumas informações para funcionar corretamente — ${pendentes.size} etapa(s) restante(s) em Configurações.`;
+            }
         }
 
         // ---------- Carregamento Firestore ----------
@@ -1634,6 +1665,14 @@
             unsubConfiguracoes = carregarConfiguracoes();
             unsubControlador = carregarControlador();
             unsubBimestrais = carregarBimestrais();
+
+            // evento.detail.escolas já traz o doc completo de cada escola
+            // (ver escola-context.js) — dá pra saber configuracaoConfirmada
+            // sem precisar de mais uma leitura ao Firestore. Chama o banner
+            // direto aqui (síncrono) além da chamada já existente dentro de
+            // renderizarDashboard(), sem virar uma 5ª flag de "carregado".
+            escolaAtiva = (evento.detail.escolas || []).find(e => e.id === escolaAtualId) || null;
+            renderizarBannerConfiguracao();
         });
     </script>
 </body>
