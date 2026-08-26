@@ -119,6 +119,7 @@
                 <div class="pei-form-grupo">
                     <label>Turma / Componente</label>
                     <select id="peiCampoTurma" class="pf-filter-select" style="width:100%;"></select>
+                    <small id="peiTurmaAviso" style="display:block;color:#9a5b13;margin-top:4px;"></small>
                 </div>
                 <div class="pei-form-grupo">
                     <label>Ano/Turma (como aparece no documento)</label>
@@ -324,6 +325,7 @@
                         <button type="button" class="pei-bimestre-tab" onclick="abrirModalDocumento()">+ Novo PEI</button>
                         ${faltamBimestres ? '<button type="button" class="pei-bimestre-tab" onclick="criarBimestresQueFaltam()">📅 Criar bimestres que faltam</button>' : ''}
                     </div>
+                    ${bimestresConfig.length === 0 ? `<p style="color:#9a5b13;font-size:0.85rem;margin-top:6px;">⚠️ Nenhum bimestre configurado ainda. Configure o calendário em <a href="../configuracoes/index.html">Configurações</a> para os PEIs virem criados automaticamente por bimestre.</p>` : ''}
             `;
 
             if (documentoRascunho) {
@@ -435,6 +437,16 @@
                 `<option value="${t.nome}::${t.componenteCurricular}">${t.nome} (${t.componenteCurricular})</option>`
             ).join('');
             if (valorAtual) select.value = valorAtual;
+
+            // Sem isso, uma escola sem turmas cadastradas via um <select>
+            // vazio e mudo, sem nenhuma pista de que falta configurar algo
+            // em Configurações antes de conseguir cadastrar o estudante.
+            const aviso = document.getElementById('peiTurmaAviso');
+            if (aviso) {
+                aviso.textContent = turmasAtuais.length === 0
+                    ? '⚠️ Nenhuma turma cadastrada ainda. Configure suas turmas antes de cadastrar um estudante.'
+                    : '';
+            }
         }
 
         window.abrirModalAluno = function (id) {

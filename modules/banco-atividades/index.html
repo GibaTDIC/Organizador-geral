@@ -207,6 +207,7 @@
                 <div class="pf-field">
                     <label for="baComponente">Componente Curricular *</label>
                     <select id="baComponente" required onchange="atualizarUnidadesTematicasBA()"></select>
+                    <small id="baComponenteAviso" style="display:block;color:#9a5b13;margin-top:4px;"></small>
                 </div>
                 <div class="pf-field">
                     <label for="baTurma">Série (BNCC)</label>
@@ -310,6 +311,10 @@
         let atividades = [];
         let uidAtual = null;
         let componentesAtivos = [COMPONENTE_CURRICULAR_PADRAO];
+        // true só depois que o professor clica "Confirmar meus componentes"
+        // em Configurações — componentesAtivos pode ser só o fallback
+        // padrão, nunca revisado (ver checklist-preparacao.js).
+        let componentesConfirmado = false;
 
         let termoBusca = '';
         let filtroSerie = '';
@@ -531,6 +536,13 @@
             if (componentesAtivos.includes(valorFiltroAnterior)) document.getElementById('baFiltroComponente').value = valorFiltroAnterior;
 
             document.getElementById('baComponente').innerHTML = componentesAtivos.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            const aviso = document.getElementById('baComponenteAviso');
+            if (aviso) {
+                aviso.textContent = componentesConfirmado
+                    ? ''
+                    : '⚠️ Seus componentes curriculares ainda não foram confirmados em Configurações — confira se a lista está completa.';
+            }
         }
 
         function inicializarBarraSuperior() {
@@ -580,6 +592,7 @@
             componentesAtivos = (escolaAtiva && escolaAtiva.componentesAtivos && escolaAtiva.componentesAtivos.length > 0)
                 ? escolaAtiva.componentesAtivos
                 : [COMPONENTE_CURRICULAR_PADRAO];
+            componentesConfirmado = !!(escolaAtiva && escolaAtiva.configuracaoConfirmada && escolaAtiva.configuracaoConfirmada.componentes);
             atualizarSelectsComponenteBA();
             if (unsubAtividades) unsubAtividades();
             unsubAtividades = carregarAtividades();

@@ -348,6 +348,10 @@
         // restringe o seletor de componente do formulário de aula. Fallback
         // cobre escolas criadas antes desse campo existir.
         let componentesAtivos = [COMPONENTE_CURRICULAR_PADRAO];
+        // true só depois que o professor clica "Confirmar meus componentes"
+        // em Configurações (ver checklist-preparacao.js) — um valor em
+        // componentesAtivos pode ser só o fallback padrão, nunca revisado.
+        let componentesConfirmado = false;
 
         // { nivel: 'anual'|'bimestral'|'mensal'|'aula', id: string } — id pode
         // começar com "novo:" pra representar um nó ainda não criado no Firestore.
@@ -1014,6 +1018,7 @@
             componentesAtivos = (escolaAtiva && escolaAtiva.componentesAtivos && escolaAtiva.componentesAtivos.length > 0)
                 ? escolaAtiva.componentesAtivos
                 : [COMPONENTE_CURRICULAR_PADRAO];
+            componentesConfirmado = !!(escolaAtiva && escolaAtiva.configuracaoConfirmada && escolaAtiva.configuracaoConfirmada.componentes);
             if (unsubAulas) unsubAulas();
             if (unsubConfiguracoes) unsubConfiguracoes();
             if (unsubAnuais) unsubAnuais();
@@ -1581,6 +1586,7 @@
                             if (semBncc.length === 0) return '';
                             return `<small style="display:block;color:var(--pf-gray-500);margin-top:4px;">Sem BNCC cadastrada no app pra ${semBncc.join(', ')} ainda — unidade temática e habilidades ficam livres pra ${semBncc.length === 1 ? 'esse componente' : 'esses componentes'}.</small>`;
                         })()}
+                        ${!componentesConfirmado ? `<small style="display:block;color:#9a5b13;margin-top:4px;">⚠️ Seus componentes curriculares ainda não foram confirmados em <a href="../configuracoes/index.html">Configurações</a> — confira se a lista acima está completa.</small>` : ''}
                     </div>
                     <div class="pf-field">
                         <label for="plAulaBimestre">Bimestre</label>
