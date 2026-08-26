@@ -63,6 +63,151 @@
             font-size: clamp(0.8rem, 2.5vw, 1rem);
         }
 
+        /* Checklist de Preparação */
+        .checklist-preparacao {
+            background: white;
+            border: 2px solid var(--pf-orange-500);
+            border-radius: 0 0 15px 15px;
+            margin-bottom: clamp(12px, 3vw, 20px);
+            overflow: hidden;
+        }
+
+        .checklist-preparacao-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: clamp(10px, 2.5vw, 15px);
+            background: #fff7ed;
+            cursor: pointer;
+            flex-wrap: wrap;
+        }
+
+        .checklist-preparacao-header h2 {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            color: #1e3c72;
+        }
+
+        .checklist-preparacao-header span {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #9a5b13;
+        }
+
+        .checklist-preparacao-conteudo {
+            padding: clamp(10px, 2.5vw, 15px);
+        }
+
+        .checklist-preparacao-conteudo.collapsed {
+            display: none;
+        }
+
+        .checklist-preparacao-intro {
+            font-size: 0.85rem;
+            color: #666;
+            margin: 0 0 12px;
+        }
+
+        .checklist-progresso-barra {
+            height: 8px;
+            border-radius: 4px;
+            background: #eee;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .checklist-progresso-fill {
+            height: 100%;
+            background: var(--pf-success);
+            transition: width 0.3s ease;
+        }
+
+        .checklist-confirmar-massa {
+            background: #fff7ed;
+            border: 1px dashed var(--pf-orange-500);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+
+        .checklist-confirmar-massa p {
+            font-size: 0.82rem;
+            color: #666;
+            margin: 0 0 8px;
+        }
+
+        .checklist-itens {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+        }
+
+        .checklist-item-emoji {
+            font-size: 1.3rem;
+        }
+
+        .checklist-item-texto {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .checklist-item-texto strong {
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .checklist-item-texto span {
+            font-size: 0.78rem;
+            color: #666;
+        }
+
+        .checklist-item--revisar { border-left: 4px solid var(--pf-warning); }
+        .checklist-item--pendente { border-left: 4px solid var(--pf-danger); }
+        .checklist-item--configurado { border-left: 4px solid var(--pf-success); }
+
+        .checklist-item-botao {
+            font-size: 0.78rem;
+            padding: 6px 12px;
+        }
+
+        .checklist-aviso-revisar {
+            background: #fff7ed;
+            border: 1px solid var(--pf-warning);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.82rem;
+            color: #7a4a00;
+            margin-bottom: 10px;
+        }
+
+        .checklist-confirmar-secao {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #dee2e6;
+        }
+
+        .checklist-confirmar-secao span {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--pf-success);
+        }
+
         /* Header da Programação */
         .programacao-header {
             background: white;
@@ -919,6 +1064,21 @@
             <p>Escola, turmas, grade semanal e calendário</p>
         </div>
 
+        <!-- Checklist de Preparação: primeira coisa que o professor vê aqui,
+             deixa explícito o que já está pronto, o que precisa revisar e o
+             que ainda falta — em vez de uma coleção de seções sem indicação
+             nenhuma de progresso (ver checklist-preparacao.js pra regra de
+             status). -->
+        <section class="checklist-preparacao">
+            <div class="checklist-preparacao-header" onclick="toggleChecklistPreparacao()">
+                <h2>⚙️ Vamos preparar seu PROF-GB</h2>
+                <span id="checklistPreparacaoResumo">Carregando…</span>
+            </div>
+            <div id="checklistPreparacaoConteudo" class="checklist-preparacao-conteudo">
+                <p class="checklist-preparacao-intro">Antes de começar, confira estas informações — elas alimentam o Planejamento, as Turmas e os Relatórios mais à frente.</p>
+            </div>
+        </section>
+
         <!-- ===== 1. Escola ===== -->
         <section class="pf-config-secao">
             <h2 class="pf-config-secao-titulo">🏫 Escola</h2>
@@ -930,16 +1090,21 @@
             <div class="turmas-management" id="componentesManagement">
                 <div class="turmas-header" id="componentesHeader" onclick="toggleComponentesLista()">
                     <h3>
-                        <span>📚 Meus Componentes Curriculares</span>
+                        <span>📚 Quais componentes curriculares você leciona?</span>
                         <span class="toggle-icon" id="toggleIconComponentes">▼</span>
                     </h3>
                 </div>
                 <div class="turmas-content" id="componentesContent">
                     <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">
-                        Marque as disciplinas que você leciona nesta escola — só elas aparecem depois nos formulários de turma e de aula.
+                        Selecione somente os componentes que você realmente utiliza nesta escola — eles aparecerão automaticamente nos seus planejamentos, turmas e no Banco de Atividades.
                     </p>
+                    <div id="componentesAvisoRevisar"><!-- Preenchido via JavaScript --></div>
                     <div class="turmas-grid" id="componentesCheckboxGrid">
                         <!-- Preenchido via JavaScript -->
+                    </div>
+                    <div class="checklist-confirmar-secao">
+                        <button type="button" class="btn btn-success" onclick="confirmarComponentes()">✅ Confirmar meus componentes</button>
+                        <span id="componentesConfirmadoTexto"></span>
                     </div>
                 </div>
             </div>
@@ -960,13 +1125,17 @@
             <h2 class="pf-config-secao-titulo">👥 Turmas</h2>
 
             <div class="turmas-management" id="turmasManagement">
-                <div class="turmas-header" onclick="toggleTurmasLista()">
+                <div class="turmas-header" id="turmasHeader" onclick="toggleTurmasLista()">
                     <h3>
-                        <span>📋 Gerenciar Turmas</span>
+                        <span>👥 Quais turmas você atende?</span>
                         <span class="toggle-icon" id="toggleIcon">▼</span>
                     </h3>
                 </div>
                 <div class="turmas-content" id="turmasContent">
+                    <p style="font-size:0.85rem;color:#666;margin:0 0 10px;">
+                        Cadastre as turmas que você atende nesta escola — por exemplo <code>6º A</code>, <code>6º B</code>, <code>7º A</code>. Elas aparecem depois na Programação Diária, no Controlador e no PEI.
+                    </p>
+                    <div id="turmasAvisoRevisar"><!-- Preenchido via JavaScript --></div>
                     <div class="add-turma-form">
                         <input type="text" id="novaTurma" placeholder="Ex: 7º A, 8º B, 1º EM...">
                         <select id="novoComponente" style="font-size:0.8rem;">
@@ -987,12 +1156,17 @@
                             <!-- Preenchido via JavaScript -->
                         </div>
                     </div>
+
+                    <div class="checklist-confirmar-secao">
+                        <button type="button" class="btn btn-success" onclick="confirmarTurmas()">✅ Confirmar minhas turmas</button>
+                        <span id="turmasConfirmadoTexto"></span>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- ===== 3. Grade Semanal ===== -->
-        <section class="pf-config-secao">
+        <section class="pf-config-secao" id="gradeSecao">
             <h2 class="pf-config-secao-titulo">🗓️ Grade Semanal</h2>
 
             <!-- Header da Programação -->
@@ -1046,7 +1220,7 @@
         </section>
 
         <!-- ===== 4. Calendário Escolar ===== -->
-        <section class="pf-config-secao">
+        <section class="pf-config-secao" id="calendarioSecao">
             <h2 class="pf-config-secao-titulo">📅 Calendário Escolar</h2>
 
             <div class="info-compact">
@@ -1106,7 +1280,8 @@
         import { ouvirGrade, salvarGrade as salvarGradeService, salvarGradeParcial, normalizarCelula, COMPONENTE_CURRICULAR_PADRAO, COMPONENTES_CURRICULARES, SIGLA_COMPONENTE } from "../../scripts/services/grade-service.js";
         import { ouvirConfiguracoes, salvarConfiguracoes as salvarConfiguracoesService } from "../../scripts/services/configuracoes-service.js";
         import { ouvirTurmas, salvarTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
-        import { definirComponentesAtivos, definirTurnoNoturno } from "../../scripts/services/escola-service.js";
+        import { definirComponentesAtivos, definirTurnoNoturno, confirmarEtapaConfiguracao } from "../../scripts/services/escola-service.js";
+        import { calcularStatusChecklist, contarPendencias, chavesParaConfirmarEmMassa } from "../../scripts/services/checklist-preparacao.js";
         import { chamarAssistenteIA } from "../../scripts/services/ia-service.js";
         import { CATEGORIAS_DIA_ESPECIAL } from "../../scripts/utils/dias-especiais.js";
 
@@ -1140,6 +1315,25 @@
         // escola usa. Lido da escola ativa (evento pf-escola-ready) e
         // gravado via checkbox (toggleTurnoNoturno).
         let turnoNoturnoAtivo = false;
+
+        // ---------- Checklist de Preparação ----------
+        // configuracaoConfirmada distingue "existe um valor" (pode ser só o
+        // fallback padrão abaixo, nunca revisado de fato) de "o professor
+        // confirmou conscientemente esta seção" — ver checklist-preparacao.js.
+        // Os 4 booleanos *Existiam/*Existia capturam o que cada
+        // carregar*Firebase já calculava internamente (if data && data.X)
+        // antes de cair no fallback, só que descartava em vez de guardar.
+        let configuracaoConfirmada = {};
+        let componentesExistiam = false;
+        let turmasExistiam = false;
+        let gradeExistia = false;
+        let calendarioExistia = false;
+        // Guarda quais seções (componentes/turmas) já tiveram sua decisão de
+        // abrir/fechar automaticamente aplicada — só decide uma vez por
+        // seção, na primeira vez que o status dela fica conhecido, pra não
+        // reabrir uma seção que o professor acabou de fechar manualmente
+        // toda vez que um snapshot novo do Firestore chega.
+        const expansaoInicialAplicada = new Set();
 
         // Itens especiais fixos (não podem ser removidos)
         const itensEspeciaisFixos = [
@@ -1196,7 +1390,14 @@
         // Função para toggle da lista de turmas
         window.toggleTurmasLista = function() {
             const content = document.getElementById('turmasContent');
-            const header = document.querySelector('.turmas-header');
+            // getElementById (não querySelector('.turmas-header')) — essa
+            // classe é compartilhada com o cabeçalho de Componentes
+            // Curriculares (ver componentesHeader acima), que vem ANTES no
+            // documento; um querySelector genérico pegava sempre o cabeçalho
+            // errado (o de Componentes), só corrigido agora que passamos a
+            // precisar de um id específico pro checklist forçar essa seção
+            // a abrir.
+            const header = document.getElementById('turmasHeader');
             const icon = document.getElementById('toggleIcon');
 
             content.classList.toggle('collapsed');
@@ -1245,6 +1446,22 @@
                 select.innerHTML = componentesAtivos.map(c => `<option value="${c}">${c}</option>`).join('');
                 if (componentesAtivos.includes(valorAnterior)) select.value = valorAnterior;
             }
+
+            // Distingue "existe um componente marcado" de "o professor
+            // confirmou que é esse mesmo" — exatamente o caso real que
+            // motivou este checklist (escola com o padrão Educação Física
+            // sendo confundido com "já configurei").
+            const statusComponentes = montarStatusChecklistAtual().find(i => i.chave === 'componentes').status;
+            const aviso = document.getElementById('componentesAvisoRevisar');
+            if (aviso) {
+                aviso.innerHTML = statusComponentes === 'revisar'
+                    ? `<div class="checklist-aviso-revisar">⚠️ Encontramos componentes cadastrados anteriormente. Confira se estão corretos antes de continuar.</div>`
+                    : '';
+            }
+            const textoConfirmado = document.getElementById('componentesConfirmadoTexto');
+            if (textoConfirmado) {
+                textoConfirmado.textContent = statusComponentes === 'configurado' ? '✓ Componentes curriculares configurados' : '';
+            }
         }
 
         window.toggleComponenteAtivo = function(componente) {
@@ -1264,6 +1481,188 @@
                     showToast('Não foi possível salvar. Tente novamente.', 'error');
                 });
         };
+
+        // ---------- Checklist de Preparação ----------
+        // Abre/fecha uma seção colapsável por id, sem depender do toggle
+        // (que só sabe ALTERNAR o estado atual) — usado tanto pra decidir a
+        // expansão inicial quanto pelos botões [Configurar]/[Revisar] do
+        // checklist, que precisam garantir "aberto" mesmo que o professor já
+        // tenha fechado a seção manualmente antes.
+        function setEstadoColapso(contentId, headerId, iconId, colapsado) {
+            const content = document.getElementById(contentId);
+            if (!content) return;
+            const header = headerId ? document.getElementById(headerId) : null;
+            const icon = iconId ? document.getElementById(iconId) : null;
+            content.classList.toggle('collapsed', colapsado);
+            if (header) header.classList.toggle('collapsed', colapsado);
+            if (icon) icon.textContent = colapsado ? '►' : '▼';
+        }
+
+        // Só decide abrir/fechar automaticamente UMA VEZ por seção — a
+        // primeira vez que o status dela fica conhecido (chega via evento
+        // pf-escola-ready ou o primeiro snapshot do Firestore). Sem essa
+        // guarda, qualquer atualização de dado (ex: adicionar uma turma)
+        // rodaria essa decisão de novo e reabriria uma seção que o professor
+        // acabou de fechar de propósito depois de revisar.
+        function aplicarExpansaoInicialSeNecessario(chave, status) {
+            if (expansaoInicialAplicada.has(chave)) return;
+            expansaoInicialAplicada.add(chave);
+            const deveAbrir = status !== 'configurado';
+            if (chave === 'componentes') {
+                setEstadoColapso('componentesContent', 'componentesHeader', 'toggleIconComponentes', !deveAbrir);
+            } else if (chave === 'turmas') {
+                setEstadoColapso('turmasContent', 'turmasHeader', 'toggleIcon', !deveAbrir);
+            }
+        }
+
+        function montarStatusChecklistAtual() {
+            return calcularStatusChecklist({
+                componentesConfirmado: !!configuracaoConfirmada.componentes, componentesExistiam,
+                turmasConfirmado: !!configuracaoConfirmada.turmas, turmasExistiam,
+                gradeConfirmado: !!configuracaoConfirmada.grade, gradeExistia,
+                calendarioConfirmado: !!configuracaoConfirmada.calendario, calendarioExistia
+            });
+        }
+
+        const ROTULO_STATUS_CHECKLIST = {
+            configurado: { emoji: '🟢', texto: 'Configurado' },
+            revisar: { emoji: '🟡', texto: 'Precisa revisar' },
+            pendente: { emoji: '🔴', texto: 'Ainda não configurado' }
+        };
+
+        // Onde cada item do checklist leva quando o professor clica em
+        // [Configurar]/[Revisar] — abre a seção certa e rola até ela.
+        const ALVO_CHECKLIST = {
+            escola: null,
+            componentes: { secaoId: 'componentesManagement', contentId: 'componentesContent', headerId: 'componentesHeader', iconId: 'toggleIconComponentes' },
+            turmas: { secaoId: 'turmasManagement', contentId: 'turmasContent', headerId: 'turmasHeader', iconId: 'toggleIcon' },
+            grade: { secaoId: 'gradeSecao', contentId: null, headerId: null, iconId: null },
+            calendario: { secaoId: 'calendarioSecao', contentId: null, headerId: null, iconId: null }
+        };
+
+        window.irParaSecaoChecklist = function(chave) {
+            const alvo = ALVO_CHECKLIST[chave];
+            if (!alvo) return;
+            if (alvo.contentId) setEstadoColapso(alvo.contentId, alvo.headerId, alvo.iconId, false);
+            const secao = document.getElementById(alvo.secaoId);
+            if (secao) secao.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
+        window.confirmarComponentes = function() {
+            configuracaoConfirmada.componentes = true;
+            renderizarComponentesAtivos();
+            renderizarChecklistPreparacao();
+            confirmarEtapaConfiguracao(escolaAtualId, 'componentes')
+                .then(() => showToast('Componentes curriculares confirmados!', 'success'))
+                .catch(erro => {
+                    console.error('Erro ao confirmar componentes:', erro);
+                    showToast('Não foi possível confirmar. Tente novamente.', 'error');
+                });
+        };
+
+        window.confirmarTurmas = function() {
+            configuracaoConfirmada.turmas = true;
+            renderizarTurmasLista();
+            renderizarChecklistPreparacao();
+            confirmarEtapaConfiguracao(escolaAtualId, 'turmas')
+                .then(() => showToast('Turmas confirmadas!', 'success'))
+                .catch(erro => {
+                    console.error('Erro ao confirmar turmas:', erro);
+                    showToast('Não foi possível confirmar. Tente novamente.', 'error');
+                });
+        };
+
+        // Botão de confirmação em massa: só existe pra seções "revisar" (já
+        // têm dado, só falta um clique consciente) — nunca confirma sozinho
+        // uma seção "pendente" (nada lá ainda pra revisar). Evita o professor
+        // precisar clicar em 4 confirmações separadas na primeira vez que
+        // abre o checklist com dado antigo em tudo.
+        window.confirmarPendenciasEmMassa = function() {
+            const chaves = chavesParaConfirmarEmMassa(montarStatusChecklistAtual());
+            chaves.forEach(chave => { configuracaoConfirmada[chave] = true; });
+            if (chaves.includes('componentes')) renderizarComponentesAtivos();
+            if (chaves.includes('turmas')) renderizarTurmasLista();
+            renderizarChecklistPreparacao();
+            Promise.all(chaves.map(chave => confirmarEtapaConfiguracao(escolaAtualId, chave)))
+                .then(() => showToast('Configurações confirmadas!', 'success'))
+                .catch(erro => {
+                    console.error('Erro ao confirmar em massa:', erro);
+                    showToast('Não foi possível confirmar tudo. Tente novamente.', 'error');
+                });
+        };
+
+        // checklistExpandido: o card começa expandido; quando tudo fica 🟢
+        // ele colapsa sozinho pra um resumo compacto (ver item "não obrigar
+        // fluxo linear pra sempre") — mas se o professor reabrir manualmente
+        // depois disso, não fecha de novo sozinho.
+        let checklistExpandidoManualmente = null;
+
+        window.toggleChecklistPreparacao = function() {
+            const conteudo = document.getElementById('checklistPreparacaoConteudo');
+            if (!conteudo) return;
+            checklistExpandidoManualmente = conteudo.classList.contains('collapsed');
+            conteudo.classList.toggle('collapsed');
+        };
+
+        function renderizarChecklistPreparacao() {
+            const container = document.getElementById('checklistPreparacaoConteudo');
+            const resumo = document.getElementById('checklistPreparacaoResumo');
+            if (!container || !resumo) return;
+
+            const lista = montarStatusChecklistAtual();
+            const pendencias = contarPendencias(lista);
+            const totalEtapas = lista.length;
+            const concluidas = totalEtapas - pendencias;
+
+            lista.forEach(item => aplicarExpansaoInicialSeNecessario(item.chave, item.status));
+
+            const chavesEmMassa = chavesParaConfirmarEmMassa(lista);
+
+            resumo.textContent = pendencias === 0
+                ? `✓ Tudo configurado (${totalEtapas} de ${totalEtapas} etapas)`
+                : `${concluidas} de ${totalEtapas} etapas concluídas`;
+
+            container.innerHTML = `
+                <div class="checklist-progresso">
+                    <div class="checklist-progresso-barra">
+                        <div class="checklist-progresso-fill" style="width:${Math.round((concluidas / totalEtapas) * 100)}%"></div>
+                    </div>
+                </div>
+                ${chavesEmMassa.length > 1 ? `
+                    <div class="checklist-confirmar-massa">
+                        <p>Essas seções já têm dados — clique para confirmar que estão corretos.</p>
+                        <button type="button" class="btn btn-success" onclick="confirmarPendenciasEmMassa()">✅ Já configurei tudo isso, só confirmar</button>
+                    </div>
+                ` : ''}
+                <div class="checklist-itens">
+                    ${lista.map(item => {
+                        const info = ROTULO_STATUS_CHECKLIST[item.status];
+                        const acao = item.chave === 'escola' ? '' : `
+                            <button type="button" class="btn btn-secondary checklist-item-botao" onclick="irParaSecaoChecklist('${item.chave}')">
+                                ${item.status === 'pendente' ? 'Configurar' : item.status === 'revisar' ? 'Revisar' : 'Editar'}
+                            </button>
+                        `;
+                        return `
+                            <div class="checklist-item checklist-item--${item.status}">
+                                <span class="checklist-item-emoji">${info.emoji}</span>
+                                <div class="checklist-item-texto">
+                                    <strong>${item.rotulo}</strong>
+                                    <span>${info.texto}</span>
+                                </div>
+                                ${acao}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            // Colapsa sozinho na primeira vez que tudo fica 🟢 — se o
+            // professor já mexeu manualmente no card antes disso, respeita
+            // a escolha dele em vez de decidir de novo.
+            if (checklistExpandidoManualmente === null) {
+                setEstadoColapso('checklistPreparacaoConteudo', null, null, pendencias === 0);
+            }
+        }
 
         // Função para converter string de data
         function stringParaData(dataStr) {
@@ -1342,8 +1741,9 @@
         function carregarTurmasFirebase() {
     return ouvirTurmas(escolaAtualId, (docSnap) => {
         const data = docSnap.data();
+        turmasExistiam = !!(data && data.lista);
 
-        if (data && data.lista) {
+        if (turmasExistiam) {
             turmas = normalizarTurmas(data.lista);
         } else {
             turmas = normalizarTurmas(["6º A","6º B","6º C","6º D","6º E","6º F","6º G","6º H","6º I","6º J"]);
@@ -1356,6 +1756,7 @@
         // garantida), a grade fica com dropdown sem nenhuma turma até
         // alguma outra coisa forçar um re-render.
         if (gradeHorarios) renderizarProgramacao();
+        renderizarChecklistPreparacao();
     });
 }
 
@@ -1363,8 +1764,9 @@
         function carregarGradeFirebase() {
     return ouvirGrade(escolaAtualId, (docSnap) => {
         const data = docSnap.data();
+        gradeExistia = !!(data && data.matutino && data.vespertino);
 
-        if (data && data.matutino && data.vespertino) {
+        if (gradeExistia) {
     gradeHorarios = data;
         } else {
             gradeHorarios = JSON.parse(JSON.stringify(gradePadrao));
@@ -1372,6 +1774,7 @@
 
         if (turnoNoturnoAtivo) garantirPeriodoNoturno();
         renderizarProgramacao();
+        renderizarChecklistPreparacao();
     });
 }
 
@@ -1400,6 +1803,7 @@ window.toggleTurnoNoturno = function (checked) {
         function carregarConfiguracoesFirebase() {
     return ouvirConfiguracoes(escolaAtualId, (docSnap) => {
         const data = docSnap.data();
+        calendarioExistia = !!(data && data.bimestres);
 
         if (data && data.bimestres) {
             bimestres = data.bimestres;
@@ -1409,6 +1813,7 @@ window.toggleTurnoNoturno = function (checked) {
         }
 
         renderizarBimestresCompact();
+        renderizarChecklistPreparacao();
     });
 }
 
@@ -1522,6 +1927,20 @@ window.toggleTurnoNoturno = function (checked) {
                 div.innerHTML = `<span>${item.icone} ${item.nome}</span>`;
                 especiaisContainer.appendChild(div);
             });
+
+            // Mesma distinção "existe dado" vs "professor confirmou" da
+            // seção de Componentes — ver renderizarComponentesAtivos.
+            const statusTurmas = montarStatusChecklistAtual().find(i => i.chave === 'turmas').status;
+            const aviso = document.getElementById('turmasAvisoRevisar');
+            if (aviso) {
+                aviso.innerHTML = statusTurmas === 'revisar'
+                    ? `<div class="checklist-aviso-revisar">⚠️ Encontramos turmas cadastradas anteriormente. Confira se estão corretas antes de continuar.</div>`
+                    : '';
+            }
+            const textoConfirmado = document.getElementById('turmasConfirmadoTexto');
+            if (textoConfirmado) {
+                textoConfirmado.textContent = statusTurmas === 'configurado' ? '✓ Turmas configuradas' : '';
+            }
         }
 
         // Renderizar grid completo
@@ -1855,6 +2274,13 @@ window.toggleTurnoNoturno = function (checked) {
             renderizarProgramacao();
             fecharConfigModal();
             mostrarMensagem('Configurações salvas com sucesso!', 'success');
+            // Mesmo raciocínio de salvarGrade: salvar o modal já é a
+            // confirmação desta etapa.
+            if (!configuracaoConfirmada.calendario) {
+                configuracaoConfirmada.calendario = true;
+                renderizarChecklistPreparacao();
+                confirmarEtapaConfiguracao(escolaAtualId, 'calendario').catch(erro => console.error('Erro ao confirmar calendário:', erro));
+            }
         })
         .catch(error => {
             mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
@@ -1895,6 +2321,16 @@ window.toggleTurnoNoturno = function (checked) {
             gradeTravada = true;
             renderizarProgramacao();
             mostrarMensagem('Grade salva e travada! Clique "Reordenar Grade" pra editar de novo.', 'success');
+            // Salvar a grade É o momento de confirmação dessa etapa — já é
+            // uma ação deliberada (preencher a semana inteira), diferente de
+            // Componentes/Turmas, que auto-salvam a cada clique sem um
+            // "pronto" explícito (por isso ganharam um botão de confirmar à
+            // parte, ver confirmarComponentes/confirmarTurmas).
+            if (!configuracaoConfirmada.grade) {
+                configuracaoConfirmada.grade = true;
+                renderizarChecklistPreparacao();
+                confirmarEtapaConfiguracao(escolaAtualId, 'grade').catch(erro => console.error('Erro ao confirmar grade:', erro));
+            }
         })
         .catch(error => {
             mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
@@ -1919,20 +2355,12 @@ window.toggleTurnoNoturno = function (checked) {
         // esperar login nem escola ativa — hoje esperam 'pf-escola-ready'.
         renderizarBimestresCompact();
 
-        // Iniciar com a lista de turmas e a de componentes recolhidas
-        setTimeout(() => {
-            const content = document.getElementById('turmasContent');
-            const icon = document.getElementById('toggleIcon');
-            content.classList.add('collapsed');
-            icon.textContent = '►';
-
-            const componentesContent = document.getElementById('componentesContent');
-            const componentesHeader = document.getElementById('componentesHeader');
-            const componentesIcon = document.getElementById('toggleIconComponentes');
-            componentesContent.classList.add('collapsed');
-            componentesHeader.classList.add('collapsed');
-            componentesIcon.textContent = '►';
-        }, 100);
+        // Turmas e Componentes Curriculares abrem ou fecham sozinhos
+        // conforme o status deles no checklist (ver aplicarExpansaoInicialSeNecessario,
+        // chamada de dentro de renderizarChecklistPreparacao) — uma seção
+        // ainda pendente/precisando revisar começa aberta, uma já
+        // configurada começa fechada. Substituiu o setTimeout que colapsava
+        // as duas incondicionalmente, mesmo quando havia algo pendente ali.
 
         // Tamanho máximo aceito pro PDF do calendário — margem conservadora,
         // sem forma de testar aqui o limite real de corpo de requisição do
@@ -2021,6 +2449,12 @@ window.toggleTurnoNoturno = function (checked) {
         // Ao trocar de escola, cancela os listeners antigos antes de abrir os novos.
         document.addEventListener('pf-escola-ready', (evento) => {
             escolaAtualId = evento.detail.escolaId;
+            // Reseta a decisão de expandir/colapsar automaticamente — sem
+            // isso, ao trocar de escola no meio da sessão, a decisão tomada
+            // pra escola anterior "grudava" e a seção da escola nova nunca
+            // abriria sozinha mesmo estando pendente.
+            expansaoInicialAplicada.clear();
+            checklistExpandidoManualmente = null;
             if (unsubConfiguracoes) unsubConfiguracoes();
             if (unsubGrade) unsubGrade();
             if (unsubTurmas) unsubTurmas();
@@ -2032,7 +2466,15 @@ window.toggleTurnoNoturno = function (checked) {
             // (ver escola-context.js) — não precisa de uma leitura extra ao
             // Firestore só pra pegar componentesAtivos.
             const escolaAtiva = (evento.detail.escolas || []).find(e => e.id === escolaAtualId);
-            componentesAtivos = (escolaAtiva && escolaAtiva.componentesAtivos && escolaAtiva.componentesAtivos.length > 0)
+            // configuracaoConfirmada precisa estar pronta ANTES de
+            // renderizarComponentesAtivos() (que já mostra o aviso "⚠️
+            // Confira" com base nela) — senão, ao trocar de escola no meio
+            // da sessão, esse aviso ficaria mostrando o status da escola
+            // anterior por um instante.
+            configuracaoConfirmada = (escolaAtiva && escolaAtiva.configuracaoConfirmada) || {};
+
+            componentesExistiam = !!(escolaAtiva && escolaAtiva.componentesAtivos && escolaAtiva.componentesAtivos.length > 0);
+            componentesAtivos = componentesExistiam
                 ? escolaAtiva.componentesAtivos
                 : [COMPONENTE_CURRICULAR_PADRAO];
             renderizarComponentesAtivos();
@@ -2040,6 +2482,8 @@ window.toggleTurnoNoturno = function (checked) {
             turnoNoturnoAtivo = !!(escolaAtiva && escolaAtiva.turnoNoturnoAtivo);
             const checkboxNoturno = document.getElementById('checkboxTurnoNoturno');
             if (checkboxNoturno) checkboxNoturno.checked = turnoNoturnoAtivo;
+
+            renderizarChecklistPreparacao();
         });
     </script>
 </body>

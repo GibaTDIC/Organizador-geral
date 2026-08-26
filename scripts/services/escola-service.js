@@ -69,3 +69,15 @@ export function definirComponentesAtivos(escolaId, componentes) {
 export function definirTurnoNoturno(escolaId, ativo) {
     return updateDoc(doc(db, 'escolas', escolaId), { turnoNoturnoAtivo: ativo });
 }
+
+// configuracaoConfirmada: distingue "existe um valor" (pode ser só o
+// fallback padrão em quem lê, nunca de fato revisado) de "o professor
+// conferiu conscientemente esta seção de Configurações" — ver Componentes
+// Curriculares, que é exatamente o caso real que motivou este campo (escola
+// com o valor padrão ['Educação Física'] sendo confundido com "já
+// configurei"). Uma vez confirmada, uma seção continua confirmada mesmo que
+// o professor edite o conteúdo dela depois (confirmar não é "nunca mais
+// muda", é "eu já revisei isso pelo menos uma vez").
+export function confirmarEtapaConfiguracao(escolaId, etapa) {
+    return updateDoc(doc(db, 'escolas', escolaId), { [`configuracaoConfirmada.${etapa}`]: true });
+}
