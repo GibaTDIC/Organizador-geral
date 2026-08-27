@@ -251,7 +251,7 @@
         import { ouvirTurmas, normalizarTurmas } from "../../scripts/services/turmas-service.js";
         import { sincronizarControlador } from "../../scripts/services/controlador-sync.js";
         import { ouvirAtividades } from "../../scripts/services/atividades-service.js";
-        import { buscarAtividadesCompativeis, filtrarAtividadesPorContexto } from "../../scripts/services/atividades-busca.js";
+        import { buscarAtividadesCompativeis, filtrarAtividadesPorContexto, encontrarOpcaoCorrespondente } from "../../scripts/services/atividades-busca.js";
         import { ouvirConfiguracoes } from "../../scripts/services/configuracoes-service.js";
         import { ouvirGrade, COMPONENTE_CURRICULAR_PADRAO, PERIODOS_GRADE } from "../../scripts/services/grade-service.js";
         import * as bnccEducacaoFisica from "../../data/bncc-curriculum.js";
@@ -2155,19 +2155,37 @@
             const candidatosBNCC = sugerirClassificacaoBNCC(extraido.codigosBNCC, extraido.especificacoesExtraidas);
 
             // Junta cada código com a descrição já extraída do texto de
-            // "Habilidades:" do documento (não inventa descrição nova).
+            // "Habilidades:" do documento (não inventa descrição nova). O
+            // código pode vir solto no início da linha ("EF67EF01 - ...",
+            // modelo de referência) ou entre parênteses ("(EF05LP01) ...",
+            // visto em modelo de outro componente/professor) — tolera um
+            // "(" opcional antes do código.
             const habilidades = (extraido.codigosBNCC || []).map(codigo => {
-                const linha = (extraido.habilidadesTexto || []).find(l => l.startsWith(codigo));
-                const descricao = linha ? linha.slice(codigo.length).replace(/^[\s-]+/, '') : '';
+                const linha = (extraido.habilidadesTexto || []).find(l => l.replace(/^\s*\(?\s*/, '').startsWith(codigo));
+                let descricao = '';
+                if (linha) {
+                    const semPrefixo = linha.replace(/^\s*\(?\s*/, '');
+                    descricao = semPrefixo.slice(codigo.length).replace(/^[\s)\-:.]+/, '');
+                }
                 return { codigo, descricao };
             });
+
+            // Componente Curricular extraído do cabeçalho do Word, casado
+            // contra os componentes ativos da escola (mesma função já usada
+            // pra casar série/unidade extraídas contra listas curadas) —
+            // sem isso, a aula sempre acabava salva como Educação Física,
+            // não importa o que o documento dissesse. Cai no primeiro
+            // componente ativo se não achar correspondência; o professor
+            // ainda pode trocar na tela de revisão antes de salvar.
+            const componenteCorrespondente = encontrarOpcaoCorrespondente(extraido.componenteCurricular, componentesAtivos) || componentesAtivos[0];
 
             importacaoAtual = {
                 arquivo: file,
                 arquivoNome: extraido.arquivoNome,
                 periodo: extraido.periodo,
                 areaConhecimento: extraido.areaConhecimento,
-                componenteCurricular: extraido.componenteCurricular,
+                componenteCurricular: componenteCorrespondente,
+                componenteCurricularExtraido: extraido.componenteCurricular,
                 docente: extraido.docente,
                 coordenador: extraido.coordenador,
                 turmaTexto: extraido.turmaTexto,
@@ -2259,6 +2277,12 @@
                     `).join('')}</div>
                 </div>
                 <div class="pf-field">
+                    <label>Componente Curricular${imp.componenteCurricularExtraido ? ` (detectado no documento: "${imp.componenteCurricularExtraido}")` : ''}</label>
+                    <select id="impComponenteCurricular" onchange="alternarComponenteImportacao(this.value)">
+                        ${componentesAtivos.map(c => `<option value="${c}" ${c === imp.componenteCurricular ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="pf-field">
                     <label>Classificação BNCC sugerida</label>
                     ${imp.candidatosBNCC.length > 0 ? `
                         <select id="impCandidatoBNCC" onchange="escolherCandidatoBNCC(this.value)">
@@ -2328,6 +2352,10 @@
 
         window.escolherCandidatoBNCC = function (indice) {
             importacaoAtual.candidatoEscolhidoIndex = parseInt(indice, 10);
+        };
+
+        window.alternarComponenteImportacao = function (valor) {
+            importacaoAtual.componenteCurricular = valor;
         };
 
         window.alternarSemanaImportacao = function (i) {
@@ -2400,7 +2428,13 @@
                             bimestre: bimestre || semana.bimestreSugerido || null,
                             planejamentoMensalId,
                             dataReferencia: dataInicioComoISO(semana.dataInicio),
-                            componenteCurricular: COMPONENTE_CURRICULAR_PADRAO,
+                            // Antes ficava sempre fixo em Educação Física,
+                            // não importa o que o documento dissesse — agora
+                            // usa o valor escolhido/confirmado na tela de
+                            // revisão (imp.componenteCurricular), com o
+                            // mesmo fallback de sempre se por algum motivo
+                            // vier vazio.
+                            componenteCurricular: imp.componenteCurricular || COMPONENTE_CURRICULAR_PADRAO,
                             origemImportacao: { importacaoId: refImportacao.id },
                             timestamp: new Date().toISOString()
                         };

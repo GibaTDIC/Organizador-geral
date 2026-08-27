@@ -35,6 +35,15 @@ const RE_SEMANA = /ATIVIDADES\s*[-–]\s*(\d+)[°º]?\s*SEMANA\s*:\s*(\d{2}\/\d{
 const RE_ATIVIDADE = /^(\d+)[ªa]\s*Atividade\s*[-–]\s*(.+)$/i;
 const RE_CODIGO_BNCC = /\bEF\d{2}[A-Z]{2}\d{2,3}\b/g;
 
+// Modelo alternativo (visto em planejamento de Anos Iniciais, sem data por
+// item): em vez de "ATIVIDADES – Nª SEMANA: DD/MM a DD/MM", o mês é
+// organizado em "1°momento", "2°momento" etc., com só UMA data pro mês
+// inteiro no cabeçalho "Período:" — ver parseMomentos/extrairIntervaloMes,
+// usados só como fallback quando RE_SEMANA não encontra nada.
+const RE_MOMENTO = /^\d+[°º]\s*momento\s*:?\s*(.*)$/i;
+const RE_UNIDADE_BLOCO = /^unidade\s+\d+\s*[-–]\s*(.*)$/i;
+const RE_INTERVALO_MES = /(\d{2}\/\d{2})(?:\/\d{2,4})?\s*a\s*(\d{2}\/\d{2})(?:\/\d{2,4})?/;
+
 function textoDoParagrafo(p) {
     const nos = p.getElementsByTagName('w:t');
     let texto = '';
@@ -161,6 +170,62 @@ function parseSemanas(linhas) {
     return semanas;
 }
 
+// Extrai a data de início/fim do MÊS inteiro a partir do texto livre de
+// "Período:" (ex: "9ª FORMAÇÃO - ... Planejamento mensal 21/07 a 21/08/26")
+// — usada só como fallback quando não há data por semana/momento no
+// documento. Mantém o formato DD/MM (sem ano) pra bater com o que RE_SEMANA
+// já produz, sem exigir mudança em sugerirBimestreParaData/escolherMesDaSemana
+// a jusante.
+function extrairIntervaloMes(textoPeriodo) {
+    const m = RE_INTERVALO_MES.exec(textoPeriodo || '');
+    if (!m) return null;
+    return { inicio: m[1], fim: m[2] };
+}
+
+// Sub-parser alternativo à seção "PLANEJAMENTO MENSAL": em modelos sem data
+// por item, o mês é organizado em "N°momento: <título>", dentro de blocos
+// "Unidade N – <nome>" (rastreados só pra prefixar o título de cada
+// momento, já que "1°momento" se repete em cada unidade). Numeração própria
+// (não o dígito capturado do texto) porque esse dígito reinicia a cada
+// unidade — usar ele criaria dois itens numerados "1" com a mesma data,
+// indistinguíveis no título gerado por quem chama (que usa só número+datas).
+// Todo momento recebe a MESMA data (o mês inteiro) — o professor ajusta a
+// data real de cada um na revisão, como já faz com as semanas do modelo EF.
+function parseMomentos(linhas, dataInicioMes, dataFimMes) {
+    const momentos = [];
+    let unidadeAtual = '';
+    let momentoAtual = null;
+
+    (linhas || []).forEach(linhaBruta => {
+        const linha = linhaBruta.trim();
+        const mUnidade = RE_UNIDADE_BLOCO.exec(linha);
+        if (mUnidade) {
+            unidadeAtual = linha;
+            momentoAtual = null;
+            return;
+        }
+        const mMomento = RE_MOMENTO.exec(linha);
+        if (mMomento) {
+            const numero = momentos.length + 1;
+            const tituloMomento = mMomento[1].trim();
+            const titulo = [unidadeAtual, tituloMomento].filter(Boolean).join(' — ') || `Momento ${numero}`;
+            momentoAtual = {
+                numero,
+                dataInicio: dataInicioMes,
+                dataFim: dataFimMes,
+                atividades: [{ titulo, descricao: [] }]
+            };
+            momentos.push(momentoAtual);
+            return;
+        }
+        if (momentoAtual) {
+            momentoAtual.atividades[0].descricao.push(linha);
+        }
+    });
+
+    return momentos;
+}
+
 function extrairCodigosBNCC(linhas) {
     const codigos = new Set();
     const textoCompleto = (linhas || []).join(' ');
@@ -190,7 +255,36 @@ export async function parseArquivoDocxPlanejamento(file) {
     const linhaUnica = (chave) => (campos[chave] || []).join(' ').trim();
     const linhasArray = (chave) => campos[chave] || [];
 
-    const semanas = parseSemanas(campos.planejamentoMensal);
+    let semanas = parseSemanas(campos.planejamentoMensal);
+    // Fallback pro modelo "momento" (ver parseMomentos) — só entra em ação
+    // quando o modelo de referência (ATIVIDADES – Nª SEMANA) não achou
+    // nada. Busca tanto em planejamentoMensal quanto em procedimentos
+    // porque, no modelo real de Anos Iniciais que motivou isso, o conteúdo
+    // dos "momentos" cai sob "PROCEDIMENTOS METODOLÓGICOS" — só um trecho
+    // de UMA linha cai em planejamentoMensal, por coincidência (a própria
+    // linha do cabeçalho "Período: ... Planejamento mensal 21/07 a
+    // 21/08/26" contém as palavras "planejamento mensal").
+    if (semanas.length === 0) {
+        // Busca a data em "período" E "planejamentoMensal" juntos — no
+        // modelo real que motivou isso, "Período: ... Planejamento mensal
+        // 21/07 a 21/08/26" está no MESMO parágrafo, e como "Planejamento
+        // mensal" também é um rótulo reconhecido, a data acaba cortada pro
+        // campo planejamentoMensal, não período (ver extrairCamposBrutos —
+        // cada rótulo encontrado no parágrafo fecha o campo anterior).
+        const intervaloMes = extrairIntervaloMes(`${linhaUnica('periodo')} ${linhaUnica('planejamentoMensal')}`);
+        if (intervaloMes) {
+            // Varre TODOS os parágrafos do documento (não um campo
+            // específico de `campos`) — no modelo real, uma "Observação:"
+            // citada no meio de uma atividade (não como cabeçalho de
+            // seção) já é o suficiente pra extrairCamposBrutos cortar o
+            // campo aberto no meio e jogar o resto pra outro rótulo,
+            // fragmentando os momentos entre "procedimentos"/"observacao"/
+            // etc. Como RE_MOMENTO e RE_UNIDADE_BLOCO exigem o padrão bem
+            // no início da linha, varrer tudo não corre risco de pegar
+            // texto solto por engano.
+            semanas = parseMomentos(paragrafos, intervaloMes.inicio, intervaloMes.fim);
+        }
+    }
     const codigosBNCC = extrairCodigosBNCC(campos.habilidades);
 
     // "Unidade Temática" no documento de origem corresponde, no nosso
